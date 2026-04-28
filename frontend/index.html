@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voxentia: AI Digital Assistant</title>
+  <link rel="stylesheet" href="./static/styles/main.css">
+  <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <div id="app">
+    <!-- Initial Overlay to handle User Gesture for Audio -->
+    <div id="start-overlay">
+      <div class="start-card">
+        <h1 id="overlay-title">Voxentia Digital Assistant</h1>
+        <p id="overlay-desc">Ready to chat? Click the button to activate sound and animation.</p>
+        
+        <div class="language-selector">
+          <button class="lang-btn active" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="de">DE</button>
+          <button class="lang-btn" data-lang="ru">RU</button>
+        </div>
+
+        <button id="startBtn">Start</button>
+      </div>
+    </div>
+
+    <div class="main-container hidden" id="mainLayout">
+      <!-- Left: 3D Scene -->
+      <div id="scene-container">
+        <canvas id="scene"></canvas>
+        <div class="scene-overlay">
+          <div class="controls">
+            <button id="backBtn">🏠 Start</button>
+            <button id="micBtn">🎙️ Talk</button>
+            <button id="testSoundBtn" title="Test System Audio">🔊 Test Sound</button>
+            <button id="callBtn">📹 Video Call</button>
+            <button id="webcamBtn">📷 Camera</button>
+            <button id="uploadBtn" title="Upload PDF">📄 Upload</button>
+            <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+            <select id="modelSelect">
+              <option value="/assets/avatar.glb?v=1.1" id="opt-avatar-1">Avatar 1</option>
+            </select>
+            <select id="speakerSelect" title="Select Voice">
+              <option value="baya" id="opt-voice-baya">Female (Baya)</option>
+              <option value="kseniya" id="opt-voice-kseniya">Female (Kseniya)</option>
+              <option value="eugene" id="opt-voice-eugene">Male (Eugene)</option>
+              <option value="aidar" id="opt-voice-aidar">Male (Aidar)</option>
+            </select>
+            <select id="emojiSelect">
+              <option value="" id="opt-emoji">Emoji</option>
+              <option value="😊">😊</option>
+              <option value="😮">😮</option>
+              <option value="😡">😡</option>
+              <option value="😉">😉</option>
+              <option value="👍">👍</option>
+            </select>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Right: Chat Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2 id="chat-title">Chat</h2>
+          <div class="status-indicator" id="statusIndicator"></div>
+        </div>
+        
+        <div class="chat-container">
+          <div id="history">
+            <!-- Messages will appear here -->
+          </div>
+          
+          <div class="input-area">
+            <div class="input-box">
+              <input type="text" id="textInput" placeholder="Type a message...">
+              <button id="sendBtn">Send</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+        "nanostores": "https://cdn.skypack.dev/nanostores"
+      }
+    }
+  </script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #scene { width: 100%; height: 100%; display: block; }
+    #app { width: 100%; height: 100%; position: relative; }
+  </style>
+
+  <!-- Cache Buster v3.1 -->
+  <script type="module" src="./static/main.js?v=3.1"></script>
+</body>
+</html>
