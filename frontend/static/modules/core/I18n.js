@@ -29,7 +29,9 @@ export const translations = {
         voice_female_kseniya: "Female (Kseniya)",
         voice_male_eugene: "Male (Eugene)",
         voice_male_aidar: "Male (Aidar)",
-        back_btn: "🏠 Start"
+        back_btn: "🏠 Start",
+        error_mic_busy: "Microphone is busy or blocked by another app.",
+        error_mic_failed: "Could not access microphone."
     },
     de: {
         title: "Voxentia: KI Digitaler Assistent",
@@ -58,7 +60,9 @@ export const translations = {
         voice_female_kseniya: "Weiblich (Kseniya)",
         voice_male_eugene: "Männlich (Eugene)",
         voice_male_aidar: "Männlich (Aidar)",
-        back_btn: "🏠 Startseite"
+        back_btn: "🏠 Startseite",
+        error_mic_busy: "Mikrofon ist belegt oder blockiert. Tipp: Prüfe in den Windows-Soundeinstellungen, ob der 'Exklusive Modus' aktiv ist oder ob die Datenschutz-Einstellungen den Zugriff erlauben.",
+        error_mic_failed: "Mikrofonzugriff nicht möglich."
     },
     ru: {
         title: "Voxentia: Цифровой Ассистент",
@@ -79,7 +83,7 @@ export const translations = {
         error_loading_model: "Загрузка новой модели...",
         error_model_loaded: "Модель успешно загружена",
         error_model_change: "Ошибка при смене модели",
-        error_speech_unsupported: "Spracherkennung nicht unterstützt",
+        error_speech_unsupported: "Распознавание речи не поддерживается",
         error_cam_denied: "Доступ к камере запрещен",
         error_chat_failed: "Ошибка при отправке сообщения",
         test_audio_start: "🔔 Запуск теста звука...",
@@ -87,7 +91,9 @@ export const translations = {
         voice_female_kseniya: "Женский (Ксения)",
         voice_male_eugene: "Мужской (Евгений)",
         voice_male_aidar: "Мужской (Айдар)",
-        back_btn: "🏠 На главную"
+        back_btn: "🏠 На главную",
+        error_mic_busy: "Микрофон занят или заблокирован другим приложением.",
+        error_mic_failed: "Не удалось получить доступ к микрофону."
     }
 };
 

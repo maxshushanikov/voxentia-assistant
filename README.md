@@ -285,10 +285,10 @@ Open DevTools (`F12`) → Console:
 
 ## 🗺️ Roadmap
 
-- [ ] **Streaming responses** — word-by-word LLM output for near-instant speech
+- [x] **Streaming responses** — word-by-word LLM output for near-instant response
+- [x] **Emotion from LLM** — auto-trigger gestures from `[happy]` tags in responses
+- [x] **Vision (Webcam)** — multimodal model (llava) sees webcam input
 - [ ] **Advanced lip-sync** — viseme-based mouth shapes from audio waveform
-- [ ] **Emotion from LLM** — auto-trigger gestures from `[smile]` tags in responses
-- [ ] **Vision (Webcam)** — multimodal model sees webcam input
 - [ ] **Voice cloning** — custom TTS voice via XTTS or Coqui
 
 ---

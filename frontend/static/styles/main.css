@@ -320,3 +320,14 @@ body {
   50% { opacity: 1; }
   100% { opacity: 0.5; }
 }
+
+#micBtn.active {
+    background: #ef4444 !important;
+    color: white !important;
+    animation: pulse 1s infinite;
+    border-color: #f87171 !important;
+}
+
+#micBtn.recording {
+    background: #dc2626 !important;
+}

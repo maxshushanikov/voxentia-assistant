@@ -113,27 +113,118 @@ export class AudioManager {
     }
 
     async startRecording() {
+        console.log('🎤 AudioManager: Attempting to start recording...');
         try {
-            if (!this.audioContext) {
-                await this.init();
+            // 1. Cleanup any existing stream/tracks first to avoid "in use" conflicts
+            if (this.mediaStream) {
+                console.log('🎤 AudioManager: Stopping existing media stream tracks...');
+                this.mediaStream.getTracks().forEach(track => track.stop());
+                this.mediaStream = null;
             }
 
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    channelCount: 1,
-                    sampleRate: 44100,
-                    echoCancellation: true,
-                    noiseSuppression: true
-                } 
-            });
+            // 2. Diagnostics: List devices (helps "wake up" the subsystem on some browsers)
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                console.log(`🎤 AudioManager: Found ${audioInputs.length} audio input devices`);
+            } catch (dErr) {
+                console.warn('🎤 AudioManager: Could not enumerate devices:', dErr);
+            }
+
+            // 3. Request Microphone with Multi-Stage Strategy
+            console.log('🎤 AudioManager: Requesting getUserMedia...');
+            let stream = null;
             
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = devices.filter(d => d.kind === 'audioinput');
+            
+            // Try to find the "best" device (preferring real microphones over virtual ones)
+            const preferredDevice = audioInputs.find(d => 
+                d.label.toLowerCase().includes('mikrofon') || 
+                d.label.toLowerCase().includes('microphone')
+            );
+
+            const attemptConstraints = async (constraints, label) => {
+                try {
+                    console.log(`🎤 AudioManager: Attempting constraints (${label})...`);
+                    return await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (e) {
+                    console.warn(`🎤 AudioManager: Constraints (${label}) failed:`, e.name);
+                    return null;
+                }
+            };
+
+            // Strategy 1: High Quality (Matching user's 48kHz setting)
+            stream = await attemptConstraints({
+                audio: {
+                    deviceId: preferredDevice ? { exact: preferredDevice.deviceId } : undefined,
+                    sampleRate: 48000,
+                    channelCount: 1, // Try mono even if hardware is stereo
+                    echoCancellation: true
+                }
+            }, '48kHz Mono');
+
+            // Strategy 2: Basic fallback
+            if (!stream) {
+                stream = await attemptConstraints({ audio: true }, 'Basic Audio');
+            }
+
+            // Strategy 3: Nuclear Reset & Low Quality (Matching user's 16kHz headphone setting)
+            if (!stream) {
+                console.warn('⚠️ AudioManager: Standard attempts failed. Attempting "Nuclear Reset"...');
+                
+                if (this.audioContext) {
+                    await this.audioContext.close();
+                    this.audioContext = null;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                stream = await attemptConstraints({
+                    audio: { sampleRate: 16000, channelCount: 1 }
+                }, '16kHz Mono (Post-Reset)');
+            }
+
+            // Strategy 4: Iterate through EVERY available device (Chrome Fix)
+            if (!stream && audioInputs.length > 0) {
+                console.warn(`⚠️ AudioManager: Trying each of the ${audioInputs.length} devices individually...`);
+                for (const device of audioInputs) {
+                    if (stream) break;
+                    // Skip the 'default' virtual device and try the real IDs
+                    if (device.deviceId === 'default' && audioInputs.length > 1) continue;
+                    
+                    stream = await attemptConstraints({
+                        audio: { deviceId: { exact: device.deviceId } }
+                    }, `Device: ${device.label || 'Unknown ID: ' + device.deviceId.slice(0,5)}`);
+                }
+            }
+
+            if (!stream) {
+                throw new Error('NotReadableError: All hardware access strategies and all devices exhausted.');
+            }
+            
+            console.log('✅ AudioManager: Microphone stream acquired:', stream.id);
             this.mediaStream = stream;
+
+            // 4. Ensure AudioContext exists and is running (Lazy initialization)
+            if (!this.audioContext) {
+                console.log('🎤 AudioManager: Initializing NEW AudioContext...');
+                await this.init();
+            }
+            
+            if (this.audioContext.state === 'suspended') {
+                await this.resume();
+            }
+
+            // 5. Set up Audio Nodes
             const source = this.audioContext.createMediaStreamSource(stream);
             
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 256;
             source.connect(this.analyser);
             
+            // 6. Initialize MediaRecorder
+            console.log('🎤 AudioManager: Initializing MediaRecorder...');
             this.mediaRecorder = new MediaRecorder(stream);
             this.audioChunks = [];
             
@@ -146,10 +237,16 @@ export class AudioManager {
             this.mediaRecorder.start();
             this.isRecording = true;
             
+            console.log('🚀 AudioManager: Recording started successfully');
             return this.analyser;
             
         } catch (error) {
-            console.error('Recording start failed:', error);
+            console.error('❌ AudioManager: Recording start failed:', error);
+            // Ensure we cleanup on failure
+            if (this.mediaStream) {
+                this.mediaStream.getTracks().forEach(track => track.stop());
+                this.mediaStream = null;
+            }
             throw error;
         }
     }

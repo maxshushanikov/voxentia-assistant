@@ -141,6 +141,7 @@ export class UiControls {
         if (startBtn) {
             startBtn.addEventListener('click', async () => {
                 await this.app.resumeAudio();
+                if (this.app.chat) await this.app.chat.clearChat();
                 startOverlay.classList.add('fade-out');
 
                 setTimeout(() => {
@@ -155,9 +156,9 @@ export class UiControls {
 
         const backBtn = document.getElementById('backBtn');
         if (backBtn) {
-            backBtn.addEventListener('click', () => {
+            backBtn.addEventListener('click', async () => {
                 // Clear chat and reset session to prevent cross-language context
-                appState.update('chat.messages', []);
+                if (this.app.chat) await this.app.chat.clearChat();
                 appState.update('session.sessionId', 'session_' + Math.random().toString(36).substr(2, 9));
 
                 mainLayout.classList.add('hidden');

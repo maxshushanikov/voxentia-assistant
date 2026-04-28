@@ -105,48 +105,38 @@ class App {
         }
     }
 
-    startVoiceRecognition() {
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                this._mediaStream = stream;
-                this._audioChunks = [];
-
-                // Choose a supported MIME type
-                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                    ? 'audio/webm;codecs=opus'
-                    : 'audio/webm';
-
-                this._mediaRecorder = new MediaRecorder(stream, { mimeType });
-
-                this._mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) this._audioChunks.push(e.data);
-                };
-
-                this._mediaRecorder.onstop = async () => {
-                    const blob = new Blob(this._audioChunks, { type: mimeType });
-                    await this._sendToWhisper(blob, mimeType);
-                };
-
-                this._mediaRecorder.start();
-                document.getElementById('micBtn').classList.add('active');
-                if (this.audio) this.audio.isRecording = true;
-            })
-            .catch(err => {
-                console.error('Microphone error:', err);
-                this.showError('Microphone access denied.');
-            });
+    async startVoiceRecognition() {
+        try {
+            if (!this.audio) return;
+            
+            await this.audio.startRecording();
+            document.getElementById('micBtn').classList.add('active');
+            
+            console.log('🎤 Recording started...');
+        } catch (err) {
+            console.error('🎤 App: Microphone error:', err);
+            if (err.name === 'NotReadableError') {
+                this.showError(i18n.t('error_mic_busy'));
+            } else {
+                this.showError(i18n.t('error_mic_failed'));
+            }
+        }
     }
 
-    stopVoiceRecognition() {
-        if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
-            this._mediaRecorder.stop();
+    async stopVoiceRecognition() {
+        if (!this.audio) return;
+
+        try {
+            const blob = await this.audio.stopRecording();
+            document.getElementById('micBtn').classList.remove('active');
+            
+            if (blob) {
+                console.log('🎤 Recording stopped, processing...');
+                await this._sendToWhisper(blob, 'audio/wav');
+            }
+        } catch (err) {
+            console.error('Stop recording error:', err);
         }
-        if (this._mediaStream) {
-            this._mediaStream.getTracks().forEach(t => t.stop());
-            this._mediaStream = null;
-        }
-        document.getElementById('micBtn').classList.remove('active');
-        if (this.audio) this.audio.isRecording = false;
     }
 
     async _sendToWhisper(audioBlob, mimeType) {
@@ -172,7 +162,7 @@ class App {
             const text = result.text?.trim();
 
             if (text && this.chat) {
-                this.chat.addMessage('user', text);
+                // handleSend will add the message to the UI
                 this.chat.handleSend(text);
             } else {
                 this.showError(i18n.t('error_speech_unsupported') || 'No speech detected.');
@@ -193,19 +183,43 @@ class App {
 
     async handleWebcamToggle() {
         const webcamBtn = document.getElementById('webcamBtn');
+        const webcamPreview = document.getElementById('webcam-preview');
+        const webcamContainer = document.getElementById('webcam-container');
+
         if (!appState.connection.isWebcamActive) {
             try {
                 this.webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                webcamPreview.srcObject = this.webcamStream;
                 appState.update('connection.isWebcamActive', true);
                 webcamBtn.classList.add('active');
+                webcamContainer.classList.remove('hidden');
             } catch (error) {
+                console.error('Webcam error:', error);
                 this.showError(i18n.t('error_cam_denied'));
             }
         } else {
-            if (this.webcamStream) this.webcamStream.getTracks().forEach(track => track.stop());
+            if (this.webcamStream) {
+                this.webcamStream.getTracks().forEach(track => track.stop());
+            }
+            webcamPreview.srcObject = null;
             appState.update('connection.isWebcamActive', false);
             webcamBtn.classList.remove('active');
+            webcamContainer.classList.add('hidden');
         }
+    }
+
+    captureWebcamFrame() {
+        if (!appState.connection.isWebcamActive || !this.webcamStream) return null;
+        
+        const video = document.getElementById('webcam-preview');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Return as base64 string
+        return canvas.toDataURL('image/jpeg', 0.6);
     }
 
     updateUiTranslations() {
@@ -258,4 +272,14 @@ class App {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
     window.app.init();
+    
+    // Cleanup on close
+    window.addEventListener('beforeunload', () => {
+        if (window.app) {
+            if (window.app.audio) window.app.audio.dispose();
+            if (window.app.webcamStream) {
+                window.app.webcamStream.getTracks().forEach(track => track.stop());
+            }
+        }
+    });
 });

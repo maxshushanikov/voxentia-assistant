@@ -62,7 +62,10 @@ export class AvatarController {
                         await this.loadVariations(genderPrefix);
 
                         this.sceneManager.scene.add(this.avatar);
-                        this.playIdleAnimation();
+                        
+                        // Wait a tiny bit for animations to be ready
+                        setTimeout(() => this.playIdleAnimation(), 100);
+                        
                         resolve(this.avatar);
                     },
                     undefined,
@@ -166,11 +169,42 @@ export class AvatarController {
             '😮': 'surprise',
             '😡': 'angry',
             '😉': 'wink',
-            '👍': 'thumbs_up'
+            '👍': 'thumbs_up',
+            'happy': 'smile',
+            'surprise': 'surprise',
+            'think': 'thinking',
+            'sad': 'sad',
+            'laugh': 'laughing',
+            'angry': 'angry'
         };
 
-        const animationName = emotionMap[emotion] || 'idle';
-        this.playAnimation(animationName, false);
+        // If the emotion is a tag like [happy], extract the word
+        const cleanEmotion = emotion.replace(/[\[\]]/g, '').toLowerCase();
+        const animationName = emotionMap[cleanEmotion] || emotionMap[emotion] || 'idle';
+        
+        console.log(`🎭 Setting emotion: ${emotion} -> ${animationName}`);
+        
+        // Try to play the animation
+        const action = this.playAnimation(animationName, false);
+        
+        // If no animation found, we could fall back to morph targets
+        if (!action) {
+            this.applyMorphEmotion(animationName);
+        }
+    }
+
+    applyMorphEmotion(emotion) {
+        // Fallback: manually adjust morph targets for 2 seconds if no animation exists
+        this.morphMeshes.forEach(mesh => {
+            const dict = mesh.morphTargetDictionary;
+            if (!dict) return;
+            
+            if (emotion === 'smile') {
+                const idx = dict['mouthSmile'] || dict['MouthSmile'];
+                if (idx !== undefined) mesh.morphTargetInfluences[idx] = 0.8;
+                setTimeout(() => { if (mesh.morphTargetInfluences) mesh.morphTargetInfluences[idx] = 0; }, 2000);
+            }
+        });
     }
 
     update(deltaTime, volume = 0) {
@@ -208,10 +242,18 @@ export class AvatarController {
             if (blinkIdx !== undefined) influence[blinkIdx] = this.isBlinking ? 1.0 : 0.0;
         });
 
-        // Natural sway only if no animation is playing (optional, or mix them)
-        if (this.avatar && !this.currentAnimation) {
-            this.avatar.position.y = Math.sin(time * 0.5) * 0.01;
-            this.avatar.rotation.y = Math.sin(time * 0.3) * 0.05;
+        // Natural sway and T-Pose recovery
+        if (this.avatar) {
+            if (!this.currentAnimation) {
+                this.avatar.position.y = Math.sin(time * 0.5) * 0.01;
+                this.avatar.rotation.y = Math.sin(time * 0.3) * 0.05;
+                
+                // Recovery: If no animation is currently active, force idle
+                const hasActiveAction = this.mixer._actions.some(a => a.isRunning());
+                if (!hasActiveAction) {
+                    this.playIdleAnimation();
+                }
+            }
         }
     }
 

@@ -27,3 +27,9 @@ def cleanup_old_messages(days=30):
         db.query(ChatMessage).filter(
             ChatMessage.timestamp < cutoff_date
         ).delete()
+
+def clear_history(session_id):
+    with get_db() as db:
+        db.query(ChatMessage).filter(
+            ChatMessage.session_id == session_id
+        ).delete()

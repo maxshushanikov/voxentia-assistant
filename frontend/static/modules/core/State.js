@@ -74,8 +74,6 @@ export class State {
             current = current[parts[i]];
         }
         current[parts[parts.length - 1]] = value;
-
-        console.log(`[State Update] ${path}:`, value);
         this.notify();
     }
 
