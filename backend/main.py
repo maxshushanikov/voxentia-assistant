@@ -17,8 +17,8 @@ from api.transcribe import router as transcribe_router
 init_db()
 
 app = FastAPI(
-    title="Aura AI API",
-    description="Backend for Aura: AI Digital Assistant",
+    title="Voxentia AI API",
+    description="Backend for Voxentia: AI Digital Assistant",
     version="3.0.0"
 )
 

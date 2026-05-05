@@ -59,6 +59,20 @@ get_model('ru')
 get_model('en')
 get_model('de')
 
+def sanitize_text(text):
+    """Removes markdown and actions from text before TTS."""
+    if not text:
+        return ""
+    # Remove markdown asterisks, backticks, tildes
+    text = re.sub(r'[*_~`]', '', text)
+    # Remove bracketed/parenthesized text (like [laughs], (smiles))
+    text = re.sub(r'\[.*?\]|\(.*?\)', '', text)
+    # Replace newlines with spaces
+    text = text.replace('\n', ' ').replace('\r', ' ')
+    # Condense multiple spaces
+    text = re.sub(r'  +', ' ', text)
+    return text.strip()
+
 def split_text(text, max_chars=250):
     """Splits text into chunks of max_chars, preferably at sentence boundaries."""
     # Split by punctuation but keep the punctuation
@@ -123,22 +137,31 @@ def tts():
                 de_map = {'baya': 'eva_k', 'kseniya': 'hokuspokus', 'eugene': 'bernd_ungerer', 'aidar': 'friedrich'}
                 effective_speaker = de_map.get(speaker, 'eva_k')
 
+            # Skip chunk if it only contains punctuation or spaces
+            clean_chunk = sanitize_text(chunk)
+            if not clean_chunk or re.fullmatch(r'[.,!?;\-\s]+', clean_chunk):
+                continue
+
             try:
                 chunk_audio = model.apply_tts(
-                    text=chunk,
+                    text=clean_chunk,
                     speaker=effective_speaker,
                     sample_rate=sample_rate
                 )
                 audio_tensors.append(chunk_audio)
             except Exception as e:
-                print(f"Error in apply_tts for chunk '{chunk[:20]}': {e}")
+                print(f"Error in apply_tts for chunk '{clean_chunk[:20]}': {e}")
                 # Try fallback speaker if current one fails
                 fallback = 'en_0' if language == 'en' else ('eva_k' if language == 'de' else 'baya')
-                chunk_audio = model.apply_tts(text=chunk, speaker=fallback, sample_rate=sample_rate)
-                audio_tensors.append(chunk_audio)
+                try:
+                    chunk_audio = model.apply_tts(text=clean_chunk, speaker=fallback, sample_rate=sample_rate)
+                    audio_tensors.append(chunk_audio)
+                except Exception as e2:
+                    print(f"Fallback apply_tts also failed for chunk '{clean_chunk[:20]}': {e2}")
             
         if not audio_tensors:
-            raise Exception("Failed to generate any audio tensors")
+            print("Warning: Failed to generate any audio tensors. Returning empty or error.")
+            return jsonify({"error": "Failed to generate audio for any text chunk"}), 500
 
         full_audio = torch.cat(audio_tensors)
         

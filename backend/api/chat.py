@@ -21,6 +21,7 @@ async def chat_endpoint(request: dict):
         
         history = get_history(session_id, settings.HISTORY_LIMIT)
         language = request.get("language", settings.DEFAULT_LANGUAGE)
+        personality = request.get("personality", "professional")
         
         # Search for context only if the message is long enough to be a query
         rag_context = ""
@@ -33,8 +34,10 @@ async def chat_endpoint(request: dict):
             request.get("model"),
             request.get("temperature", 0.7),
             language=language,
+            personality=personality,
             rag_context=rag_context,
-            image=request.get("image")
+            image=request.get("image"),
+            use_tools=request.get("use_tools", True)
         )
         
         speaker = request.get("speaker", "baya")
@@ -67,6 +70,7 @@ async def chat_stream_endpoint(request: dict):
     save_message(session_id, "user", user_message)
     history = get_history(session_id, settings.HISTORY_LIMIT)
     language = request.get("language", settings.DEFAULT_LANGUAGE)
+    personality = request.get("personality", "professional")
     
     rag_context = ""
     if len(user_message.split()) > 2:
@@ -81,8 +85,10 @@ async def chat_stream_endpoint(request: dict):
                 request.get("model"),
                 request.get("temperature", 0.7),
                 language=language,
+                personality=personality,
                 rag_context=rag_context,
-                image=request.get("image")
+                image=request.get("image"),
+                use_tools=request.get("use_tools", True)
             ):
                 full_response += chunk
                 yield chunk
@@ -94,6 +100,11 @@ async def chat_stream_endpoint(request: dict):
             yield f"\n[Error: {str(e)}]"
 
     return StreamingResponse(event_generator(), media_type="text/plain")
+
+@router.get("/chat/history")
+async def get_chat_history_endpoint(session_id: str = "default"):
+    history = get_history(session_id, settings.HISTORY_LIMIT)
+    return {"history": history}
 
 @router.post("/chat/clear")
 async def clear_chat_endpoint(request: dict):

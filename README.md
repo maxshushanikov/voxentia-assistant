@@ -10,14 +10,15 @@
 
 | Feature | Description |
 |---|---|
-| 🧠 **Local LLM** | Powered by [Ollama](https://ollama.com/) with `phi3` (swappable) — runs 100% on your hardware |
-| 🎙️ **Local Speech-to-Text** | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — `base` model, multilingual, no Google/Apple |
-| 🔊 **Local Text-to-Speech** | [Silero TTS](https://github.com/snakers4/silero-models) — Russian, English, German voices |
-| 🧍 **3D Avatar** | Real-time rendering via [Three.js](https://threejs.org/) — masculine & feminine GLB models |
-| 💬 **Multilingual Chat** | Full EN / DE / RU support throughout the UI, LLM prompts, and TTS voices |
-| 📄 **Document Knowledge (RAG)** | Upload PDFs — the avatar answers from your own documents via [ChromaDB](https://www.trychroma.com/) |
-| 🎭 **Avatar Expressions** | Lip-sync, autonomous blinking, idle animation, emotion triggers via emoji |
-| 🔒 **100% Private** | All AI services run in Docker containers — zero external API calls |
+| 🧠 **Local LLM** | Powered by [Ollama](https://ollama.com/) with `phi3` — runs 100% on your hardware |
+| 🎨 **MD3 Interface** | Modern **Material Design 3** UI with Navigation Rail, Top App Bar, and professional iconography |
+| 🎭 **Persona System** | Dynamic personality switching: **Expert Advisor**, **Friendly Companion**, and **Academic Tutor** |
+| 🛠️ **Tool-Use Ready** | Architecture supports external tool calls (e.g., search, weather) integrated into LLM reasoning |
+| 🎙️ **Local STT** | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — `base` model, multilingual speech recognition |
+| 🔊 **Local TTS** | [Silero TTS](https://github.com/snakers4/silero-models) — High-quality EN / DE / RU voices |
+| 🧍 **3D Avatar** | Real-time [Three.js](https://threejs.org/) rendering with lip-sync and manual expression control |
+| 📄 **Doc Knowledge** | PDF upload & RAG support via [ChromaDB](https://www.trychroma.com/) |
+| 🔒 **100% Private** | All AI services run in Docker containers — zero data leaves your local machine |
 
 ---
 
@@ -25,39 +26,24 @@
 
 ```
 digital_avatar/
-├── docker-compose.yml          # Orchestrates all 4 services
-│
-├── backend/                    # FastAPI — Main API Gateway
-│   ├── api/
-│   │   ├── chat.py             # Chat endpoint (LLM + RAG + TTS)
-│   │   ├── documents.py        # PDF upload & processing endpoint
-│   │   └── transcribe.py       # Whisper proxy endpoint
+├── backend/                    # FastAPI — API Gateway & Services
+│   ├── api/                    # REST Endpoints (Chat, Docs, Transcribe)
 │   ├── services/
-│   │   ├── llm.py              # Ollama LLM integration
-│   │   ├── tts.py              # TTS service client
-│   │   └── rag.py              # RAG: ChromaDB vector search
-│   └── core/
-│       ├── config.py           # All environment settings
-│       └── database.py         # SQLite chat history
+│   │   ├── llm.py              # Ollama client + Tool-Use Loop logic
+│   │   ├── tools.py            # Registered Tool definitions (Weather, Search)
+│   │   ├── tts.py              # TTS synthesis client
+│   │   └── rag.py              # ChromaDB vector search service
+│   └── core/                   # Config, Database, Personality Prompts
 │
-├── tts-server/                 # Flask — Silero TTS Service (port 5002)
-│   └── server.py               # Multilingual voice synthesis
+├── frontend/                   # Vanilla JS — Modular Web App (MD3)
+│   ├── index.html              # Modern Rail-based layout
+│   └── static/
+│       ├── main.js             # I18n & App Lifecycle management
+│       ├── components/         # Chat & UI Control components
+│       └── modules/            # Three.js (Avatar), WebAudio (Audio), State
 │
-├── whisper-server/             # Flask — faster-whisper STT Service (port 5003)
-│   └── server.py               # Local speech recognition
-│
-└── frontend/                   # Vanilla JS — Modular Web App (port 8000)
-    ├── index.html
-    └── static/
-        ├── main.js             # App entry point & lifecycle
-        ├── components/
-        │   ├── Chat/           # Chat UI & send logic
-        │   └── UiControls/     # All button/dropdown logic
-        └── modules/
-            ├── avatar/         # AvatarController, AvatarRenderer
-            ├── audio/          # AudioManager (Web Audio API)
-            ├── scene/          # Three.js SceneManager, SceneLoader
-            └── core/           # State.js, I18n.js
+├── tts-server/                 # Silero TTS Service (Local Python container)
+└── whisper-server/             # faster-whisper STT Service (Local Python container)
 ```
 
 ---
@@ -266,30 +252,32 @@ docker logs digital_avatar-ollama-1
 | Problem | Cause | Solution |
 |---|---|---|
 | No audio output | Browser audio blocked | Click **🔊 Test Sound** first |
+| Mic Error (NotReadable) | Hardware lock | App automatically attempts a "Nuclear Reset" — just wait 2 seconds |
 | Avatar in T-pose | No idle animation found | Check console — animations must be in `assets/idle/` |
 | TTS silent on EN/DE | Old container cached | `docker compose up -d --build tts-server` |
 | Upload gives 405 | Backend not rebuilt | `docker compose up -d --build avatar-server` |
 | Mic shows ⏳ forever | Whisper still loading | Check `docker logs digital_avatar-whisper-server-1` |
-| LLM answers in wrong language | Old session context | Click **🏠 Start** to reset session |
 
 ### Browser Console Logs
 
 Open DevTools (`F12`) → Console:
 - `🚀 VOXENTIA AI SYSTEM v3.0 LOADED` — app initialized
+- `⚠️ AudioManager: NotReadableError` — hardware lock detected
 - `[State Update]` — reactive state changes
 - `📂 Loading N variations...` — avatar animation loading
 - `🎙️ Transcribed [de]:` — Whisper output
-- `🔊 [TTS] GENERATING AUDIO` — TTS processing
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] **Streaming responses** — word-by-word LLM output for near-instant response
-- [x] **Emotion from LLM** — auto-trigger gestures from `[happy]` tags in responses
-- [x] **Vision (Webcam)** — multimodal model (llava) sees webcam input
-- [ ] **Advanced lip-sync** — viseme-based mouth shapes from audio waveform
-- [ ] **Voice cloning** — custom TTS voice via XTTS or Coqui
+- [x] **Material Design 3 UI** — Navigation Rail, Outlined FABs, and clean typography
+- [x] **Tool Use Integration** — LLM can now reason and execute internal Python functions
+- [x] **Streaming responses** — Word-by-word LLM output for zero-latency feel
+- [x] **Persona Engine** — Switch between Expert, Friendly, and Academic roles
+- [ ] **Vision (Webcam)** — Real-time mood detection to adapt the avatar's response
+- [ ] **Advanced lip-sync** — Viseme-based mouth shapes from audio waveform
+- [ ] **Long-term Memory** — Personalized RAG to remember user context across sessions
 
 ---
 
