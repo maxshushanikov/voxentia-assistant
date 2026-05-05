@@ -1,0 +1,18 @@
+/* ============================================================
+   VOXENTIA AI — Main Entry Point
+   All styles are split into focused partial files.
+   Import order matters: variables must come first.
+   ============================================================ */
+
+@import url('./variables.css');
+/* Design tokens + reset      */
+@import url('./overlay.css');
+/* Start overlay + animations  */
+@import url('./layout.css');
+/* Nav rail, top bar, scene    */
+@import url('./chat.css');
+/* Sidebar, bubbles, input     */
+@import url('./markdown.css');
+/* Markdown body typography    */
+@import url('./utilities.css');
+/* Toasts, misc utilities      */

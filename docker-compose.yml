@@ -1,0 +1,77 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    networks:
+      - avatar-network
+
+  ollama-init:
+    image: ollama/ollama:latest
+    networks:
+      - avatar-network
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - ollama
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for Ollama to be ready...' &&
+      until ollama list > /dev/null 2>&1; do sleep 2; done &&
+      echo 'Pulling phi3 model...' &&
+      ollama pull phi3 &&
+      echo 'Pulling nomic-embed-text model...' &&
+      ollama pull nomic-embed-text &&
+      echo 'Models are ready!'
+      "
+
+  tts-server:
+    build: ./tts-server
+    ports:
+      - "5002:5002"
+    volumes:
+      - tts-cache:/app/tts-cache
+    networks:
+      - avatar-network
+
+  whisper-server:
+    build: ./whisper-server
+    ports:
+      - "5003:5003"
+    volumes:
+      - whisper-cache:/root/.cache/huggingface
+    environment:
+      - WHISPER_MODEL=base
+    networks:
+      - avatar-network
+
+  avatar-server:
+    build:
+      context: .             
+      dockerfile: backend/Dockerfile 
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./assets:/app/assets 
+      - ./frontend:/app/frontend
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+      tts-server:
+        condition: service_started
+      whisper-server:
+        condition: service_started
+    networks:
+      - avatar-network
+
+volumes:
+  ollama:
+  tts-cache:
+  whisper-cache:
+
+networks:
+  avatar-network:
+    driver: bridge
