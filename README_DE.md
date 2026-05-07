@@ -1,135 +1,123 @@
 # 🤖 Voxentia – KI-Digitalassistent
 
-> **Ein vollständig lokales, datenschutzfreundliches KI-Avatar-System** mit Echtzeit-3D-Rendering, mehrsprachiger Sprachinteraktion, Spracherkennung und dokumentenbasiertem Wissenssystem. Keine Cloud-Dienste. Keine Daten verlassen deinen Computer.
+> **Ein premium, vollständig lokales KI-Avatar-System** mit Echtzeit-3D-Rendering, Multimodaler Vision, mehrsprachiger Sprachinteraktion und dokumentenbasiertem Wissen. 100% Privat. 100% Lokal.
 
 **[🇬🇧 English Version](README.md) | [🇷🇺 Русская версия](README_RU.md)**
 
 ---
 
-## ✨ Funktionen
+## ✨ Funktionen & Highlights
+
+Voxentia ist als hochwertiger persönlicher Assistent konzipiert, der vollständig auf deiner eigenen Hardware läuft und eine moderne, modulare Architektur nutzt.
 
 | Funktion | Beschreibung |
 |---|---|
-| 🧠 **Lokales LLM** | Betrieben von [Ollama](https://ollama.com/) mit `phi3` — läuft 100% auf deiner Hardware |
-| 🎨 **MD3 Interface** | Modernes **Material Design 3** UI mit Navigation Rail, Top App Bar und professioneller Ikonographie |
-| 🎭 **Persona-System** | Dynamische Rollenwechsel: **Experten-Berater**, **Freundlicher Begleiter** und **Akademischer Tutor** |
-| 🛠️ **Tool-Unterstützung** | Architektur für externe Funktionsaufrufe (z.B. Suche, Wetter), integriert in das LLM-Reasoning |
-| 🎙️ **Lokale Spracherkennung** | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — `base`-Modell, mehrsprachig |
-| 🔊 **Lokale Sprachsynthese** | [Silero TTS](https://github.com/snakers4/silero-models) — Hochwertige EN / DE / RU Stimmen |
-| 🧍 **3D-Avatar** | Echtzeit-Rendering via [Three.js](https://threejs.org/) mit Lip-Sync und manueller Mimik-Steuerung |
-| 📄 **Dokumentenwissen** | PDF-Upload & RAG-Unterstützung via [ChromaDB](https://www.trychroma.com/) |
-| 🔒 **100% Privat** | Alle KI-Dienste laufen in Docker-Containern — keine Daten verlassen deinen Computer |
+| 🧠 **Lokales LLM** | Betrieben von [Ollama](https://ollama.com/) (Standard: `phi3`) — läuft lokal mit hoher Performance. |
+| 🎨 **Premium UI** | Modernes "Claude-meets-Material-You" Interface. Schwebende Glas-Paneele, responsive Navigation Rail und flüssige Mikro-Animationen. |
+| 🎭 **Persona-System** | Wähle zwischen **Experten-Berater**, **Freundlichem Begleiter** und **Akademischem Tutor**, um das Verhalten anzupassen. |
+| 🎙️ **Latenzfreie Stimme** | Integriertes [faster-whisper](https://github.com/SYSTRAN/faster-whisper) für STT und [Silero TTS](https://github.com/snakers4/silero-models) für mehrsprachige Sprachsynthese. |
+| 🧍 **3D Digitaler Avatar** | Echtzeit-Rendering via [Three.js](https://threejs.org/) mit prozeduralen Animationen, Lip-Sync und manueller Mimik-Steuerung. |
+| 📄 **Dokumenten-KI** | PDF-Upload für sofortige RAG-Analysen (Retrieval-Augmented Generation) via [ChromaDB](https://www.trychroma.com/). |
+| 🔍 **Websuche-Tool** | Integrierte Suchfunktion ermöglicht es dem Assistenten, Echtzeit-Informationen abzurufen. |
+| 📹 **Multimodale Vision** | Webcam-Integration, die es dem Assistenten ermöglicht, seine Umgebung oder den Benutzer zu "sehen" und zu beschreiben. |
+| 🔒 **Privacy First** | Alle Dienste laufen in Docker-Containern. Keine Telemetrie, keine Cloud-API-Aufrufe und kein Datentracking. |
 
 ---
 
-## 🏗️ Architektur
+## 🏗️ Technische Architektur
+
+Voxentia basiert auf einer verteilten Microservices-Architektur, die über Docker Compose koordiniert wird.
 
 ```
 digital_avatar/
-├── backend/                    # FastAPI — API Gateway & Services
-│   ├── api/                    # REST Endpunkte (Chat, Docs, Transcribe)
+├── backend/                    # FastAPI — Kernlogik & Orchestrierung
+│   ├── api/                    # REST-Endpunkte (Chat, Dokumente, Transkription)
 │   ├── services/
-│   │   ├── llm.py              # Ollama Client + Tool-Use Loop Logik
-│   │   ├── tools.py            # Registrierte Tools (Wetter, Suche, etc.)
-│   │   ├── tts.py              # TTS Synthese Client
-│   │   └── rag.py              # ChromaDB Vektorsuche
-│   └── core/                   # Konfiguration, Datenbank, Persona-Prompts
+│   │   ├── llm.py              # Ollama-Interaktion + Prompt-Engineering + Stop-Tokens
+│   │   ├── tools.py            # Tool-Definitionen (Suche, Wetter, Zeit)
+│   │   ├── tts.py              # TTS-Synthese Client-Logik
+│   │   └── rag.py              # Vektoreinbettung & Abruf via ChromaDB
+│   └── core/                   # Konfig, Datenbank & mehrsprachige System-Prompts
 │
-├── frontend/                   # Vanilla JS — Modulare Web-App (MD3)
-│   ├── index.html              # Modernes Rail-basiertes Layout
+├── frontend/                   # Vanilla JS — Modulare Web-App
+│   ├── index.html              # Responsives MD3-Layout (Rail + Sidebar)
 │   └── static/
-│       ├── main.js             # I18n & App-Lebenszyklus Management
-│       ├── components/         # Chat & UI Steuerungskomponenten
-│       └── modules/            # Three.js (Avatar), WebAudio (Audio), State
-│
-├── tts-server/                 # Silero TTS Dienst (Lokaler Python Container)
-└── whisper-server/             # faster-whisper STT Dienst (Lokaler Python Container)
+│       ├── main.js             # App-Lebenszyklus & I18n-Initialisierung
+│       ├── components/         # Modulare UI (Chat, Controls, Sidebar)
+│       └── modules/            # Engine-Module (Avatar, Audio, State, Scene)
 ```
 
 ---
 
-## 🚀 Schnellstart
+## 🚀 Schnellstart (Installation)
 
 ### Voraussetzungen
+- **Docker Desktop** (mit Compose v2+)
+- **NVIDIA GPU** (Optional, für bessere Performance, läuft aber auch auf CPU)
+- **Mindestens 8GB RAM** (16GB empfohlen)
 
-- **Docker Desktop** (mit Docker Compose v2+)
-- **~6 GB RAM** verfügbar für alle Services
-- **~3 GB Festplattenspeicher** für Modelle und Container
-- Moderner Browser mit WebGL-Unterstützung (Chrome, Firefox, Edge)
-
-### 1. Repository klonen
-
+### 1. Klonen & Setup
 ```bash
 git clone <deine-repo-url>
 cd digital_avatar
+cp .env.example .env
 ```
 
-### 2. Modelle herunterladen (nur beim ersten Mal)
-
+### 2. KI-Modelle laden
 ```bash
-# Ollama-Container starten
+# Ollama starten
 docker compose up ollama -d
 
-# Standard-Sprachmodell und Embedding-Modell laden
+# Benötigte Modelle laden
 docker exec -it digital_avatar-ollama-1 ollama pull phi3
 docker exec -it digital_avatar-ollama-1 ollama pull nomic-embed-text
 ```
 
-### 3. Alle Services starten
-
+### 3. System starten
 ```bash
 docker compose up --build
 ```
+Öffne das Interface unter: **`http://localhost:8000`**
 
 ---
 
-## 🎮 Voxentia verwenden
+## 🎮 Interface-Guide
 
-### Sprach- und Rollenauswahl
-Über die neue **Top App Bar** kannst du jederzeit zwischen den Sprachen und den verschiedenen **Personas** (Experte, Begleiter, Tutor) wechseln. Dies beeinflusst sofort das Verhalten und die Tonalität des Avatars.
+### Responsive Navigation Rail
+Die Sidebar auf der linken Seite bietet schnellen Zugriff auf Kernfunktionen:
+- 🏠 **Home**: Aktuelle Session zurücksetzen.
+- 📄 **Upload**: Dokumente für die KI-Analyse anhängen.
+- 📹 **Video Call**: Immersiven Kommunikationsmodus aktivieren.
+- 📷 **Kamera**: Webcam für Vision-Aufgaben umschalten.
+- 🔊 **Audio-Test**: Audioausgabe prüfen und Kontext reaktivieren.
 
-### Navigation Rail (Sidebar)
+### Chat-Sidebar (Claude-Stil)
+Ein sauberes, hochwertiges Panel für Textinteraktionen:
+- **Sprecher-Auswahl**: Wähle zwischen 4 verschiedenen Stimmen (Baya, Kseniya, Eugene, Aidar).
+- **Sprach-Auswahl**: Wechsle im laufenden Betrieb zwischen Englisch, Deutsch und Russisch.
+- **Persona-Dropdown**: Ändere die Persönlichkeit der KI sofort.
+- **Suche umschalten**: Echtzeit-Websuche aktivieren/deaktivieren.
 
-| Icon | Aktion |
+---
+
+## 🔍 Fehlerbehebung
+
+| Problem | Lösung |
 |---|---|
-| 🏠 | **Home**: Zurück zum Startbildschirm |
-| 📄 | **Upload**: PDF-Dokumente für das RAG-Wissen hochladen |
-| 📹 | **Videoanruf**: Videoanruf-Modus umschalten |
-| 📷 | **Kamera**: Webcam für Vision-Features aktivieren |
-
-### Hauptsteuerung
-
-*   **🎙️ Mikrofon-Icon**: Klicken zum Sprechen, erneut klicken zum Senden.
-*   **🔊 Lautsprecher-Icon**: Audiotest durchführen.
-*   **🎭 Gesichts-Icon**: Mimik des Avatars manuell steuern.
+| **NotReadableError** (Mikro) | Schließe andere Apps, die das Mikro nutzen. Voxentia versucht es automatisch erneut. |
+| **Keine Sprachausgabe** | Klicke auf "Audio-Test", um den Audio-Kontext des Browsers zu wecken. |
+| **Hohe Latenz** | Stelle sicher, dass genug RAM vorhanden ist. Nutze ggf. das `tiny` Whisper-Modell in `docker-compose.yml`. |
+| **Prompt Leakage** | Stelle sicher, dass du die neueste `llm.py` mit den aktualisierten Stop-Tokens nutzt. |
 
 ---
 
-## 🔍 Diagnose & Fehlerbehebung
-
-### Häufige Probleme
-
-| Problem | Ursache | Lösung |
-|---|---|---|
-| Kein Audio | Browser-Audio blockiert | Zuerst auf das **Lautsprecher-Icon** klicken |
-| Mikrofon-Fehler | Hardware-Lock | Die App führt automatisch einen "Nuclear Reset" durch — warte 2 Sek. |
-| Avatar in T-Pose | Animation fehlt | Prüfe `assets/idle/` auf gültige GLB-Dateien |
-| LLM antwortet falsch | Alter Kontext | Klicke auf das **Haus-Icon**, um die Session zurückzusetzen |
-
----
-
-## 🗺️ Roadmap
-
-- [x] **Material Design 3 UI** — Navigation Rail, Outlined FABs und moderne Typografie
-- [x] **Tool-Use Integration** — Die KI kann nun interne Python-Funktionen ausführen
-- [x] **Streaming Antworten** — Wort-für-Wort Ausgabe für null Latenz-Gefühl
-- [x] **Persona Engine** — Wechsel zwischen Experten-, Freundlich- und Tutor-Rollen
-- [ ] **Emotionale Vision** — Stimmungserkennung via Webcam zur Anpassung der Reaktion
-- [ ] **Erweitertes Lip-Sync** — Visem-basierte Mundformen aus der Audiowellenform
-- [ ] **Langzeitgedächtnis** — Personalisiertes RAG für Nutzer-Kontext über Sessions hinweg
+## 🗺️ Roadmap v6.0
+- [ ] **Visem-basiertes Lip-Sync**: Fortschrittliche Mundbewegungen synchron zu Audio-Phonemen.
+- [ ] **Emotionserkennung**: Echtzeit-Gesichtsanalyse via Webcam.
+- [ ] **Langzeitgedächtnis**: Datenbankgestützte Speicherung von Benutzerprofilen.
+- [ ] **Plugin-System**: Einfache Integration von eigenen Tools und API-Connectoren.
 
 ---
 
 ## 📄 Lizenz
-
-MIT-Lizenz — frei zu verwenden, zu modifizieren und zu verteilen.
+MIT-Lizenz — 2026 Voxentia Project.
