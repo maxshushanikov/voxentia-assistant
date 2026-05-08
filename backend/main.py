@@ -1,6 +1,8 @@
+# Main entry point for the Voxentia Backend
 import sys
 from pathlib import Path
 
+# Add the current directory to sys.path to allow absolute imports within the backend package
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
@@ -14,14 +16,17 @@ from api.webrtc import router as webrtc_router
 from api.documents import router as documents_router
 from api.transcribe import router as transcribe_router
 
+# Initialize the database (SQLite for history/metadata and ChromaDB for RAG)
 init_db()
 
+# Initialize FastAPI application
 app = FastAPI(
     title="Voxentia AI API",
-    description="Backend for Voxentia: AI Digital Assistant",
-    version="3.0.0"
+    description="Backend for Voxentia: AI Digital Assistant. Orchestrates LLM, TTS, STT, and RAG.",
+    version="3.1.0"
 )
 
+# Configure CORS for frontend access (allows origins specified in .env)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS.split(","),
@@ -30,14 +35,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register API routes for various functionalities
 app.include_router(chat_router, prefix="/api")
 app.include_router(webrtc_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(transcribe_router, prefix="/api")
 
-# Static file serving
+# Static file serving:
+# /assets: 3D models, textures, and other UI assets
 app.mount("/assets", StaticFiles(directory=str(current_dir.parent / "assets")), name="assets")
+# /api/tts-audio: Temporary cache for generated TTS audio files
 app.mount("/api/tts-audio", StaticFiles(directory=str(current_dir.parent / "data" / "audio")), name="tts-audio")
+# /: Serves the frontend application (index.html and JS/CSS modules)
 app.mount("/", StaticFiles(directory=str(current_dir.parent / "frontend"), html=True), name="frontend")
 
 @app.get("/health")

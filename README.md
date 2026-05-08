@@ -29,25 +29,31 @@ Voxentia is designed to be a high-end personal assistant that runs entirely on y
 Voxentia is built on a distributed microservices architecture coordinated via Docker Compose.
 
 ```
-digital_avatar/
+voxentia-assistant/
 ├── backend/                    # FastAPI — Core Logic & Orchestration
-│   ├── api/                    # REST Endpoints (Chat, Docs, Transcribe)
-│   ├── services/
-│   │   ├── llm.py              # Ollama interaction + Prompt engineering + Stop tokens
-│   │   ├── tools.py            # Tool definitions (Search, Weather, Time)
-│   │   ├── tts.py              # TTS synthesis client logic
-│   │   └── rag.py              # ChromaDB vector embedding & retrieval
-│   └── core/                   # Config, Database, and Multi-lingual System Prompts
+│   ├── api/                    # REST Endpoints (Chat, Docs, Transcribe, WebRTC)
+│   ├── core/                   # Config, Database setup, and System Prompts
+│   ├── models/                 # Pydantic schemas for API validation
+│   └── services/
+│       ├── llm.py              # Ollama interaction (Phi3/Llava) + Tool calling
+│       ├── tools.py            # Tool definitions (Search, Weather, Time)
+│       ├── tts.py              # Silero TTS synthesis client logic
+│       └── rag.py              # Document parsing & Vector search (ChromaDB)
 │
-├── frontend/                   # Vanilla JS — Modular SPA
-│   ├── index.html              # Responsive MD3 layout (Rail + Sidebar)
+├── frontend/                   # Vanilla JS — Modular Web-App
+│   ├── index.html              # MD3 layout & Entry point
 │   └── static/
-│       ├── main.js             # App lifecycle & I18n initialization
-│       ├── components/         # Modular UI (Chat, Controls, Sidebar)
-│       └── modules/            # Engine modules (Avatar, Audio, State, Scene)
+│       ├── main.js             # App controller & lifecycle
+│       ├── components/         # UI modules (Chat panels, navigation)
+│       ├── modules/            # Engine logic (Three.js scene, Avatar, Audio)
+│       ├── stores/             # Global state management
+│       ├── utils/              # API helpers, WebRTC & Formatting
+│       └── styles/             # Modular CSS styles
 │
 ├── tts-server/                 # Silero TTS Engine (Flask wrapper)
-└── whisper-server/             # faster-whisper STT Engine (Flask wrapper)
+├── whisper-server/             # faster-whisper STT Engine (Flask wrapper)
+├── data/                       # Persistence: Vector DB, History, Documents
+└── assets/                     # Static media: 3D models (.glb), Textures
 ```
 
 ---

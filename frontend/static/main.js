@@ -10,17 +10,25 @@ import { i18n } from './modules/core/I18n.js';
 console.log("🚀 VOXENTIA AI DIGITAL ASSISTANT v3.1 LOADED");
 
 class App {
+    /**
+     * The main Application controller for the Voxentia Frontend.
+     * Manages the lifecycle of 3D rendering, audio, chat, and UI state.
+     */
     constructor() {
-        this.sceneManager = null;
-        this.avatar = null;
-        this.avatarRenderer = null;
-        this.audio = null;
-        this.chat = null;
-        this.ui = null;
+        this.sceneManager = null; // Three.js scene management
+        this.avatar = null;       // Avatar controller (GLB loading & animation)
+        this.avatarRenderer = null; // Linker between audio and avatar animation
+        this.audio = null;        // Web Audio API & Mic management
+        this.chat = null;         // Chat UI component
+        this.ui = null;           // UI controls (buttons, dropdowns)
         this.isInitialized = false;
     }
 
     async init() {
+        /**
+         * Bootstrap the application.
+         * Sequence: Scene -> Avatar -> Audio -> Components -> Renderer
+         */
         if (this.isInitialized) {
             console.warn('⚠️ App already initialized, skipping.');
             return;
@@ -97,6 +105,9 @@ class App {
     }
 
     async loadChatHistory() {
+        /**
+         * Fetches previous chat messages for the current session from the backend.
+         */
         try {
             const sessionId = appState.session.sessionId || 'default';
             const response = await fetch(`/api/chat/history?session_id=${sessionId}`);
@@ -160,6 +171,9 @@ class App {
     }
 
     async startVoiceRecognition() {
+        /**
+         * Activates the microphone and visualizes the recording state.
+         */
         try {
             if (!this.audio) return;
 
@@ -206,6 +220,9 @@ class App {
     }
 
     async _sendToWhisper(audioBlob, mimeType) {
+        /**
+         * Sends recorded audio to the whisper-server via the backend transcribe endpoint.
+         */
         const micBtn = document.getElementById('micBtn');
         const inputMicBtn = document.getElementById('inputMicBtn');
 
