@@ -29,22 +29,31 @@ Voxentia ist als hochwertiger persönlicher Assistent konzipiert, der vollständ
 Voxentia basiert auf einer verteilten Microservices-Architektur, die über Docker Compose koordiniert wird.
 
 ```
-digital_avatar/
+voxentia-assistant/
 ├── backend/                    # FastAPI — Kernlogik & Orchestrierung
-│   ├── api/                    # REST-Endpunkte (Chat, Dokumente, Transkription)
-│   ├── services/
-│   │   ├── llm.py              # Ollama-Interaktion + Prompt-Engineering + Stop-Tokens
-│   │   ├── tools.py            # Tool-Definitionen (Suche, Wetter, Zeit)
-│   │   ├── tts.py              # TTS-Synthese Client-Logik
-│   │   └── rag.py              # Vektoreinbettung & Abruf via ChromaDB
-│   └── core/                   # Konfig, Datenbank & mehrsprachige System-Prompts
+│   ├── api/                    # REST-Endpunkte (Chat, Dokumente, Transkription, WebRTC)
+│   ├── core/                   # Konfiguration, Datenbank-Setup & System-Prompts
+│   ├── models/                 # Pydantic-Modelle für API-Validierung
+│   └── services/
+│       ├── llm.py              # Ollama-Interaktion (Phi3/Llava) + Tool-Calling
+│       ├── tools.py            # Tool-Definitionen (Suche, Wetter, Zeit)
+│       ├── tts.py              # Client für Silero TTS Synthese
+│       └── rag.py              # Dokumenten-Parsing & Vektorsuche (ChromaDB)
 │
 ├── frontend/                   # Vanilla JS — Modulare Web-App
-│   ├── index.html              # Responsives MD3-Layout (Rail + Sidebar)
+│   ├── index.html              # MD3 Layout & Einstiegspunkt
 │   └── static/
-│       ├── main.js             # App-Lebenszyklus & I18n-Initialisierung
-│       ├── components/         # Modulare UI (Chat, Controls, Sidebar)
-│       └── modules/            # Engine-Module (Avatar, Audio, State, Scene)
+│       ├── main.js             # App-Controller & Lebenszyklus
+│       ├── components/         # UI-Module (Chat-Fenster, Bedienelemente)
+│       ├── modules/            # Engine-Logik (Three.js Szene, Avatar-Animation, Audio)
+│       ├── stores/             # Globales State-Management (Zustandsverwaltung)
+│       ├── utils/              # API-Helfer, WebRTC & Formatierung
+│       └── styles/             # Modularisierte CSS-Styles
+│
+├── tts-server/                 # Silero TTS Engine (Flask/Python Wrapper)
+├── whisper-server/             # faster-whisper STT Engine (Flask/Python Wrapper)
+├── data/                       # Persistenz: Vektor-DB, Chat-History, Dokumente
+└── assets/                     # Statische Medien: 3D-Modelle (.glb), Texturen
 ```
 
 ---
@@ -78,6 +87,21 @@ docker exec -it digital_avatar-ollama-1 ollama pull nomic-embed-text
 docker compose up --build
 ```
 Öffne das Interface unter: **`http://localhost:8000`**
+
+---
+
+## 🛠️ Konfiguration & Anpassung
+
+### Umgebungsvariablen (.env)
+| Variable | Standard | Beschreibung |
+|---|---|---|
+| `DEFAULT_MODEL` | `phi3` | Das LLM für den Chat. |
+| `DEFAULT_LANGUAGE` | `de` | Standard-Sprache (en, de, ru). |
+| `OLLAMA_TIMEOUT` | `120` | Max. Wartezeit auf LLM-Antwort (Sekunden). |
+| `OLLAMA_URL` | `http://ollama:11434` | URL zum Ollama Container. |
+
+### Eigene Persönlichkeiten (Personas)
+Bearbeite `backend/core/config.py`, um neue Rollen hinzuzufügen. Jede Persona unterstützt lokalisierte System-Prompts für alle unterstützten Sprachen.
 
 ---
 

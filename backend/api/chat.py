@@ -10,6 +10,14 @@ router = APIRouter()
 
 @router.post("/chat")
 async def chat_endpoint(request: dict):
+    """
+    Main chat endpoint (Non-streaming).
+    1. Saves user message to history.
+    2. Searches for RAG context if applicable.
+    3. Fetches response from Ollama.
+    4. Generates TTS audio if configured.
+    5. Returns text and audio URL.
+    """
     session_id = request.get("session_id", "default")
     user_message = request.get("message", "").strip()
     
@@ -61,6 +69,11 @@ async def chat_endpoint(request: dict):
 
 @router.post("/chat/stream")
 async def chat_stream_endpoint(request: dict):
+    """
+    Streaming chat endpoint.
+    Yields chunks of text from the LLM in real-time.
+    Saves the final response to history once complete.
+    """
     session_id = request.get("session_id", "default")
     user_message = request.get("message", "").strip()
     

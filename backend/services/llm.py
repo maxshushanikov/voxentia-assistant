@@ -4,7 +4,16 @@ from core.config import settings
 from services.tools import TOOL_DESCRIPTIONS
 
 async def prepare_llm_messages(message, history, language="en", personality="professional", rag_context="", image_base64=None, use_tools=True):
-    """Prepare messages for Ollama API, including vision description if image is provided."""
+    """
+    Constructs the message payload for the Ollama API.
+    - message: Current user input.
+    - history: Previous chat messages.
+    - language: Desired response language.
+    - personality: Chosen persona (affects system prompt).
+    - rag_context: Optional context from retrieved documents.
+    - image_base64: Optional base64 image for vision analysis.
+    - use_tools: Whether to allow tool call instructions.
+    """
     messages = []
     
     # Get system prompt for the specific personality and language
@@ -58,7 +67,10 @@ RULES:
     return messages
 
 async def describe_image(image_base64: str) -> str:
-    """Uses llava model to describe the provided image."""
+    """
+    Analyzes an image using the LLAVA model via Ollama.
+    Returns a textual description to be injected into the system prompt.
+    """
     # Strip metadata prefix if present (data:image/jpeg;base64,...)
     if ',' in image_base64:
         image_base64 = image_base64.split(',')[1]
@@ -88,7 +100,8 @@ async def describe_image(image_base64: str) -> str:
 
 async def get_llm_response(message, history, model=None, temperature=0.7, language="en", personality="professional", rag_context="", image=None, use_tools=True):
     """
-    Get response from LLM (Ollama) with language-specific system prompt, personality and optional RAG context.
+    Executes a chat request to Ollama.
+    Handles multi-turn tool calling logic (recursive execution of tool calls).
     """
     messages = await prepare_llm_messages(message, history, language, personality, rag_context, image, use_tools)
     
