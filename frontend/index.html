@@ -114,6 +114,22 @@
       </div><!-- /content-area -->
 
       <!-- ================================================
+           Plugin Panel (Dynamic)
+           ================================================ -->
+      <div id="plugin-container" class="plugin-panel hidden" aria-label="Plugin content">
+        <div class="plugin-header">
+           <span class="material-symbols-outlined plugin-icon">extension</span>
+           <h3 class="plugin-title">Plugin-Inhalt</h3>
+           <button class="close-plugin-btn" onclick="document.getElementById('plugin-container').classList.add('hidden')">
+             <span class="material-symbols-outlined">close</span>
+           </button>
+        </div>
+        <div id="plugin-content" class="plugin-body">
+           <!-- Dynamically populated by plugins -->
+        </div>
+      </div>
+
+      <!-- ================================================
            Chat Sidebar
            ================================================ -->
       <aside class="sidebar" aria-label="Chat">

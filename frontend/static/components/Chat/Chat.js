@@ -1,5 +1,12 @@
 import { appState } from '../../modules/core/State.js';
 import { i18n } from '../../modules/core/I18n.js';
+import { pluginManager } from '../../src/plugins/loader.js';
+import { JobAssistantUI } from '../../src/plugins/job_assistant/job-panel.js';
+import { CalendarUI } from '../../src/plugins/calendar/calendar-panel.js';
+
+// Vorab-Registrierung der UI-Plugins
+pluginManager.registerPlugin(JobAssistantUI.metadata, JobAssistantUI);
+pluginManager.registerPlugin(CalendarUI.metadata, CalendarUI);
 
 export class Chat {
     constructor() {
@@ -55,9 +62,43 @@ export class Chat {
             const speaker = document.getElementById('speakerSelect')?.value || 'baya';
             const startTime = Date.now();
             
-            // 1. Start streaming text
-            const assistantMsg = this.addMessage('assistant', '');
-            const fullText = await this.readStream(text, assistantMsg);
+            // --- MODERN PLUGIN MODE ---
+            const assistantMsg = this.addMessage('assistant', i18n.t('thinking') || 'Thinking...');
+            
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: text,
+                    session_id: appState.session.sessionId
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                
+                // Update text content
+                assistantMsg.content = result.text;
+                appState.update('chat.messages', [...appState.chat.messages]);
+                
+                // Render Plugin UI if data is present
+                if (result.plugin_data) {
+                    const pluginContent = document.getElementById('plugin-content');
+                    const pluginTitle = document.querySelector('.plugin-title');
+                    
+                    if (result.intent === 'job_search') {
+                        pluginTitle.textContent = "Gefundene Jobs";
+                    }
+                    
+                    pluginManager.renderResponse(result.intent, result.plugin_data, pluginContent);
+                }
+
+                // Trigger TTS for the whole response (simplified for now)
+                await this.triggerSentenceTTS(result.text.replace(/\[.*?\]/g, ''));
+            } else {
+                // Fallback to old streaming (optional)
+                // await this.readStream(text, assistantMsg);
+            }
             
             appState.update('chat.lastResponseTime', Date.now() - startTime);
         } catch (error) {

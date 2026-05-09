@@ -1,0 +1,15 @@
+{
+    "title_chat": "Чат",
+    "input_placeholder": "Спросите Voxentia...",
+    "start_overlay_title": "Voxentia",
+    "start_overlay_desc": "Ваш цифровой ИИ-ассистент нового поколения",
+    "btn_initialize": "Инициализировать",
+    "thinking": "Думаю...",
+    "ready": "Готов",
+    "error_initialization": "Ошибка инициализации",
+    "pers_professional": "Эксперт",
+    "pers_friendly": "Дружелюбный",
+    "pers_academic": "Тьютор",
+    "plugin_calendar_title": "Календарь",
+    "plugin_jobs_title": "Поиск работы"
+}

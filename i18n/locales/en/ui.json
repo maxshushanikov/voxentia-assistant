@@ -1,0 +1,15 @@
+{
+    "title_chat": "Chat",
+    "input_placeholder": "Message Voxentia...",
+    "start_overlay_title": "Voxentia",
+    "start_overlay_desc": "Your Next-Generation AI Digital Assistant",
+    "btn_initialize": "Initialize System",
+    "thinking": "Thinking...",
+    "ready": "Ready",
+    "error_initialization": "Initialization Failed",
+    "pers_professional": "Expert",
+    "pers_friendly": "Friendly",
+    "pers_academic": "Tutor",
+    "plugin_calendar_title": "Calendar",
+    "plugin_jobs_title": "Job Search"
+}
