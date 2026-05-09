@@ -1,0 +1,15 @@
+{
+    "title_chat": "Chat",
+    "input_placeholder": "Frag Voxentia...",
+    "start_overlay_title": "Voxentia",
+    "start_overlay_desc": "Dein KI-Digitalassistent der nächsten Generation",
+    "btn_initialize": "System initialisieren",
+    "thinking": "Denke nach...",
+    "ready": "Bereit",
+    "error_initialization": "Initialisierung fehlgeschlagen",
+    "pers_professional": "Experte",
+    "pers_friendly": "Freundlich",
+    "pers_academic": "Tutor",
+    "plugin_calendar_title": "Kalender",
+    "plugin_jobs_title": "Job Suche"
+}

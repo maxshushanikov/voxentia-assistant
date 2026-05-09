@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voxentia-core"
+version = "0.1.0"
+description = "Core plugin host for Voxentia AI Assistant"
+authors = [{ name = "Voxentia Team" }]
+dependencies = [
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "httpx>=0.25.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

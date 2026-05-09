@@ -14,5 +14,7 @@
 /* Sidebar, bubbles, input     */
 @import url('./markdown.css');
 /* Markdown body typography    */
+@import url('./plugins.css');
+/* Plugin panel styles        */
 @import url('./utilities.css');
 /* Toasts, misc utilities      */
