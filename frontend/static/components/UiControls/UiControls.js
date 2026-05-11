@@ -18,6 +18,7 @@ export class UiControls {
         const toggleSearch = document.getElementById('toggleSearch');
         const inputAttachBtn = document.getElementById('inputAttachBtn');
         const topProgress = document.getElementById('topProgress');
+        const settingsBtn = document.getElementById('settingsBtn');
 
         // Initial Tool Chip State
         if (toggleSearch && appState.toolsEnabled) {
@@ -174,37 +175,32 @@ export class UiControls {
 
 
 
-        const startBtn = document.getElementById('startBtn');
-        const startOverlay = document.getElementById('start-overlay');
-        const mainLayout = document.getElementById('mainLayout');
+        // --- IMMERSIVE INITIALIZATION ---
+        // Since we removed the start overlay, we initialize immediately
+        console.log("🚀 Immersive UI Initialized");
+        
+        // Auto-resume audio on first click (Browser Policy)
+        const resumeOnFirstInteraction = async () => {
+            await this.app.resumeAudio();
+            document.removeEventListener('click', resumeOnFirstInteraction);
+            document.removeEventListener('keydown', resumeOnFirstInteraction);
+        };
+        document.addEventListener('click', resumeOnFirstInteraction);
+        document.addEventListener('keydown', resumeOnFirstInteraction);
 
-        if (startBtn) {
-            startBtn.addEventListener('click', async () => {
-                await this.app.resumeAudio();
-                if (this.app.chat) await this.app.chat.clearChat();
-                startOverlay.classList.add('fade-out');
+        // Settings Modal Handlers
+        const settingsOverlay = document.getElementById('settings-panel');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 
-                setTimeout(() => {
-                    startOverlay.classList.add('hidden');
-                    mainLayout.classList.remove('hidden');
-                    window.dispatchEvent(new Event('resize'));
-                    const textInput = document.getElementById('textInput');
-                    if (textInput) textInput.focus();
-                }, 500);
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                settingsOverlay.classList.remove('hidden');
             });
         }
 
-        const backBtn = document.getElementById('backBtn');
-        if (backBtn) {
-            backBtn.addEventListener('click', async () => {
-                // Clear chat and reset session to prevent cross-language context
-                if (this.app.chat) await this.app.chat.clearChat();
-                appState.update('activeDocument', null);
-                this.updateActiveDocumentIndicator(null);
-                appState.update('session.sessionId', 'session_' + Math.random().toString(36).substr(2, 9));
-
-                mainLayout.classList.add('hidden');
-                startOverlay.classList.remove('hidden', 'fade-out');
+        if (closeSettingsBtn) {
+            closeSettingsBtn.addEventListener('click', () => {
+                settingsOverlay.classList.add('hidden');
             });
         }
     }

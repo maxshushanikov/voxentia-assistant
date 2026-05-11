@@ -11,17 +11,23 @@ class Orchestrator:
         self.registry = registry
         self.intent_detector = IntentDetector(llm_client)
 
-    async def route_request(self, message: str) -> VoxentiaResponse:
+    async def route_request(self, message: str, language: str = "de") -> VoxentiaResponse:
         """Ermittelt den Intent und delegiert an das passende Plugin."""
-        intent, entities = self.intent_detector.detect(message)
-        logger.info(f"🎯 Intent erkannt: {intent} mit {entities}")
+        intent, entities = await self.intent_detector.detect(message)
+        entities["language"] = language
+        logger.info(f"🎯 Intent erkannt: {intent} mit {entities} (Sprache: {language})")
 
-        # Spezialfall: Wetter & Suche im CoreAssistantPlugin
-        if intent in ["get_weather", "search_web"]:
-            plugin = self.registry.get_plugin("core_assistant")
-            if plugin:
-                res = await plugin.handle_intent(intent, entities)
-                return VoxentiaResponse(text=res.text, plugin_data=res.data, intent=intent)
+        # Begrüßung / Smalltalk
+        if intent == "greeting" or message.lower() in ["hello", "hi", "hallo", "hey"]:
+            greetings = {
+                "de": "Hallo! Ich bin Voxentia. Wie kann ich dir heute behilflich sein?",
+                "en": "Hello! I am Voxentia. How can I help you today?",
+                "ru": "Привет! Я Воксентия. Чем я могу вам помочь сегодня?"
+            }
+            return VoxentiaResponse(
+                text=greetings.get(language, greetings["en"]),
+                intent="greeting"
+            )
 
         # Job Suche
         if intent == "job_search":
@@ -46,7 +52,6 @@ class Orchestrator:
 
         # TODO: Dynamisches Routing basierend auf Plugin-Capabilities
         
-        return VoxentiaResponse(
-            text=f"Kein Plugin für den Intent '{intent}' gefunden. Ich antworte im Standard-Modus.",
-            intent="fallback"
-        )
+        # 4. Fallback: LLM
+        res_text = await self.intent_detector.llm.generate(message)
+        return VoxentiaResponse(text=res_text, intent="fallback")

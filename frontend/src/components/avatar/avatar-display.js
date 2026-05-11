@@ -17,5 +17,16 @@ export const AvatarDisplay = {
         if (this.app.avatar) {
             this.app.avatar.setSpeaking(isSpeaking);
         }
+        const wave = document.getElementById('voiceWave');
+        if (wave) {
+            isSpeaking ? wave.classList.add('active') : wave.classList.remove('active');
+        }
+    },
+
+    setThinking(isThinking) {
+        const bubble = document.getElementById('thinkingBubble');
+        if (bubble) {
+            isThinking ? bubble.classList.remove('hidden') : bubble.classList.add('hidden');
+        }
     }
 };

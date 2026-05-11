@@ -151,11 +151,11 @@ class App {
     async handleModelChange(modelPath) {
         if (!modelPath) return;
         try {
-            this.showError(i18n.t('error_loading_model'));
+            this.showError(i18n.t('error_loading_model') || 'Loading model...');
             if (this.avatar) this.avatar.dispose();
             await this.avatar.loadAvatar(modelPath);
             appState.update('avatar.currentModel', modelPath);
-            this.showError(i18n.t('error_model_loaded'));
+            this.showError(i18n.t('error_model_loaded') || 'Model ready');
         } catch (error) {
             console.error('Model change error:', error);
             this.showError(i18n.t('error_model_change'));
@@ -324,7 +324,32 @@ class App {
 
     captureWebcamFrame() {
         if (!appState.connection.isWebcamActive || !this.webcamStream) return null;
+    }
 
+    // Resize Handler
+    initResizeListener() {
+        window.addEventListener('resize', () => {
+            if (this.sceneManager && this.sceneManager.onWindowResize) {
+                this.sceneManager.onWindowResize();
+            }
+        });
+    }
+
+    addMessage(role, text) {
+        const history = document.getElementById('history');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${role}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.innerText = text;
+        
+        msgDiv.appendChild(bubble);
+        history.appendChild(msgDiv);
+        history.scrollTop = history.scrollHeight;
+    }
+
+    getCanvasFrame() {
         const video = document.getElementById('webcam-preview');
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;

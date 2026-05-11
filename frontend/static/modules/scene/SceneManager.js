@@ -147,18 +147,23 @@ export class SceneManager {
     setupResizeHandler() {
         const resize = () => {
             const canvas = this.renderer.domElement;
-            const width = canvas.clientWidth;
-            const height = canvas.clientHeight;
+            const container = canvas.parentElement;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
             
-            if (canvas.width !== width || canvas.height !== height) {
-                this.renderer.setSize(width, height, false);
-                this.camera.aspect = width / height;
-                this.camera.updateProjectionMatrix();
-            }
+            this.renderer.setSize(width, height, false);
+            this.camera.aspect = width / height;
+            this.camera.updateProjectionMatrix();
         };
 
-        window.addEventListener('resize', resize);
+        const resizeObserver = new ResizeObserver(() => resize());
+        resizeObserver.observe(this.renderer.domElement.parentElement);
+        
         this.resizeHandler = resize;
+        this.resizeObserver = resizeObserver;
+        
+        // Initial resize
+        setTimeout(resize, 100);
     }
 
     render() {

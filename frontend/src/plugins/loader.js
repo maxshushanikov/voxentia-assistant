@@ -14,21 +14,35 @@ class PluginManager {
         console.log(`🔌 UI Plugin registriert: ${metadata.display_name}`);
     }
 
-    getPluginUI(name) {
-        const plugin = this.plugins.get(name);
-        return plugin ? plugin.component : null;
+    /**
+     * Lädt eine Plugin-UI dynamisch (Lazy-Loading).
+     */
+    async loadPluginUI(name) {
+        if (this.plugins.has(name)) return this.plugins.get(name);
+        
+        try {
+            // Dynamischer Import (Code-Splitting)
+            const module = await import(`./${name}/panel.js`);
+            const pluginUI = module.default || module;
+            this.registerPlugin(pluginUI.metadata, pluginUI);
+            return pluginUI;
+        } catch (error) {
+            console.error(`Fehler beim Lazy-Loading von Plugin ${name}:`, error);
+            return null;
+        }
     }
 
     /**
-     * Rendert eine Plugin-spezifische Antwort, falls vorhanden.
+     * Rendert eine Plugin-spezifische Antwort.
      */
-    renderResponse(intent, data, container) {
+    async renderResponse(intent, data, container) {
+        // Suche passendes Plugin
         const plugin = Array.from(this.plugins.values()).find(p => p.metadata.handled_intents.includes(intent));
-        if (plugin && plugin.component.render) {
-            plugin.component.render(data, container);
+        
+        if (plugin && plugin.render) {
+            plugin.render(data, container);
         } else {
-            // Fallback: Standard-Text-Rendering
-            container.innerHTML = `<p>${data.text || data}</p>`;
+            container.innerHTML = `<p>${data.text || JSON.stringify(data)}</p>`;
         }
     }
 }

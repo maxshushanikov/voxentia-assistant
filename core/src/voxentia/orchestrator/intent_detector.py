@@ -1,38 +1,63 @@
-from typing import Dict, Any, Tuple, Optional
+import re
+from typing import Dict, Any, Tuple, Optional, List
 from voxentia.services.llm_client import LLMClient
+from voxentia.utils.logging import logger
 
 class IntentDetector:
-    """Smart Intent-Erkennung mittels LLM."""
+    """Hybride Intent-Erkennung: LLM-basiert mit Keyword-Fallbacks."""
+    
+    # Schnelle Muster für kritische Intents
+    KEYWORD_PATTERNS: Dict[str, List[str]] = {
+        "job_search": [r"job", r"stelle", r"arbeit", r"career"],
+        "get_weather": [r"wetter", r"temperatur", r"regen", r"sonne"],
+        "get_events": [r"termin", r"kalender", r"plan", r"heute"],
+        "generate_quiz": [r"quiz", r"test", r"abfragen", r"lernen"],
+    }
     
     def __init__(self, llm_client: LLMClient):
         self.llm = llm_client
 
+    def _detect_via_keywords(self, text: str) -> Optional[str]:
+        """Einfache Regex-basierte Erkennung."""
+        msg_lower = text.lower()
+        for intent, patterns in self.KEYWORD_PATTERNS.items():
+            if any(re.search(pattern, msg_lower) for pattern in patterns):
+                return intent
+        return None
+
     async def detect(self, text: str) -> Tuple[str, Dict[str, Any]]:
-        """Nutzt das LLM, um Intent und Parameter aus dem Text zu extrahieren."""
+        """Ermittelt den Intent (Hybrid-Ansatz)."""
+        
+        # 1. Schneller Keyword-Check
+        keyword_intent = self._detect_via_keywords(text)
+        
+        # 2. LLM-Analyse
         prompt = f"""
         Analyze the following user message and extract the intent and entities.
-        Available intents:
-        - get_weather (entities: location)
-        - search_web (entities: query)
-        - job_search (entities: query, location)
-        - generate_quiz (entities: topic)
-        - get_events (entities: date)
-        - add_event (entities: title, start_time, location)
-        - fallback (if no other intent matches)
-
+        Available intents: {list(self.KEYWORD_PATTERNS.keys())} + search_web, add_event
+        
         Respond ONLY in JSON format:
         {{
-            "intent": "intent_name",
-            "entities": {{
-                "key": "value"
-            }}
+            "intent": "name",
+            "entities": {{}},
+            "confidence": 0.0
         }}
 
         User message: "{text}"
         """
         
-        result = await self.llm.generate_json(prompt)
-        intent = result.get("intent", "fallback")
-        entities = result.get("entities", {})
-        
-        return intent, entities
+        try:
+            res = await self.llm.generate_json(prompt)
+            llm_intent = res.get("intent")
+            confidence = res.get("confidence", 0.0)
+            entities = res.get("entities", {})
+            
+            # Wenn LLM unsicher ist, aber Keyword passt -> Nutze Keyword
+            if confidence < 0.5 and keyword_intent:
+                logger.info(f"Fallback auf Keyword-Intent: {keyword_intent}")
+                return keyword_intent, entities
+            
+            return llm_intent or "fallback", entities
+        except Exception as e:
+            logger.error(f"Fehler bei LLM-Intent-Erkennung: {e}")
+            return keyword_intent or "fallback", {}

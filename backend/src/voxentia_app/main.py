@@ -51,8 +51,34 @@ async def startup_event():
 async def chat(request: dict):
     message = request.get("message", "")
     response = await orchestrator.route_request(message)
-    return {"text": response}
+    return {
+        "text": response.text, 
+        "plugin_data": response.plugin_data, 
+        "intent": response.intent
+    }
+
+@app.get("/api/chat/history")
+async def get_history(session_id: str):
+    # Dummy-History oder echte DB-Anbindung
+    return {"history": []}
+
+@app.post("/api/chat/clear")
+async def clear_chat():
+    return {"status": "success"}
+
+@app.post("/api/tts/generate")
+async def generate_tts(request: dict):
+    import httpx
+    tts_url = os.getenv("TTS_URL", "http://tts-server:5002")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(f"{tts_url}/tts", json=request, timeout=30.0)
+            if response.status_code != 200:
+                return {"error": f"TTS server error: {response.text}"}, response.status_code
+            return response.json()
+        except Exception as e:
+            return {"error": f"TTS proxy failed: {str(e)}"}, 500
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

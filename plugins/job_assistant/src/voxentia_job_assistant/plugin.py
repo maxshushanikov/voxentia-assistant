@@ -25,13 +25,25 @@ class JobAssistantPlugin(VoxentiaPlugin):
             query = entities.get("query", "Python")
             location = entities.get("location", "Remote")
             
+            lang = entities.get("language", "de")
+            
             jobs = await self.adapter.search(query, location)
             
             if not jobs:
-                return PluginResponse(text=f"Ich konnte leider keine Stellenangebote für '{query}' in {location} finden.")
+                error_msgs = {
+                    "de": f"Ich konnte leider keine Stellenangebote für '{query}' in {location} finden.",
+                    "en": f"I couldn't find any job offers for '{query}' in {location}.",
+                    "ru": f"К сожалению, я не нашел вакансий по запросу '{query}' в {location}."
+                }
+                return PluginResponse(text=error_msgs.get(lang, error_msgs["en"]))
             
             # Text-Zusammenfassung
-            text_response = f"Ich habe {len(jobs)} interessante Stellen für '{query}' in {location} gefunden. Schau sie dir im Panel an!"
+            success_msgs = {
+                "de": f"Ich habe {len(jobs)} interessante Stellen für '{query}' in {location} gefunden. Schau sie dir im Panel an!",
+                "en": f"I found {len(jobs)} interesting positions for '{query}' in {location}. Check them in the panel!",
+                "ru": f"Я нашел {len(jobs)} интересных вакансий по запросу '{query}' в {location}. Посмотрите их на панели!"
+            }
+            text_response = success_msgs.get(lang, success_msgs["en"])
             
             # Strukturierte Daten für die UI
             data = {

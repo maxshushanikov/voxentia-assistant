@@ -69,29 +69,40 @@ export class AudioManager {
             return;
         }
         const { url, resolve, reject } = this.audioQueue.shift();
+        console.log(`🎵 Processing audio: ${url}`);
+        
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const arrayBuffer = await response.arrayBuffer();
+            
+            // Ensure context is ready
+            if (this.audioContext.state === 'closed') await this.init();
+            await this.resume();
+
             const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
             const source = this.audioContext.createBufferSource();
             source.buffer = audioBuffer;
+            
             this.currentSource = source;
             if (!this.analyser) {
                 this.analyser = this.audioContext.createAnalyser();
                 this.analyser.fftSize = 256;
             }
+            
             source.connect(this.analyser);
             this.analyser.connect(this.audioContext.destination);
+            
             source.onended = () => {
                 source.disconnect();
                 this.currentSource = null;
                 resolve();
                 this.processQueue();
             };
+            
             source.start(0);
         } catch (error) {
-            console.error('Queue processing error:', error);
+            console.error('❌ Audio playback error:', error);
             reject(error);
             this.processQueue();
         }

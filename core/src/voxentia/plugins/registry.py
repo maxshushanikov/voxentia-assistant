@@ -1,5 +1,7 @@
+import asyncio
+from contextlib import asynccontextmanager
 from typing import Dict, Type, Optional, Any
-from voxentia.plugins.base import VoxentiaPlugin
+from voxentia.plugins.base import VoxentiaPlugin, PluginResponse
 from voxentia.utils.logging import logger
 from voxentia.config.settings import settings
 
@@ -39,6 +41,18 @@ class PluginRegistry:
         self.plugin_classes[metadata.name] = plugin_class
         logger.info(f"Plugin Klasse registriert: {metadata.display_name} (v{metadata.version})")
 
+    @asynccontextmanager
+    async def _execute_with_timeout(self, plugin_name: str, coro, timeout_sec: int = 15):
+        """Führt Plugin-Code mit Timeout und Fehler-Isolation aus."""
+        try:
+            yield await asyncio.wait_for(coro, timeout=timeout_sec)
+        except asyncio.TimeoutError:
+            logger.error(f"Plugin '{plugin_name}' Zeitüberschreitung nach {timeout_sec}s")
+            yield PluginResponse(text="Dieses Plugin braucht zu lange für eine Antwort.")
+        except Exception as e:
+            logger.exception(f"Plugin '{plugin_name}' verursachte einen Fehler: {e}")
+            yield PluginResponse(text="In diesem Plugin ist ein Fehler aufgetreten.")
+
     async def initialize_plugins(self, context, config: Dict[str, Any]):
         """Initialisiert nur die in der Konfiguration aktivierten Plugins."""
         plugin_config = config.get("plugins", {})
@@ -51,11 +65,22 @@ class PluginRegistry:
                 
             try:
                 instance = cls(context)
+                # Hier könnten wir auch einen Timeout für die Initialisierung setzen
                 await instance.initialize()
                 self.plugins[name] = instance
                 logger.info(f"Plugin geladen & aktiviert: {name}")
             except Exception as e:
                 logger.error(f"Fehler bei Initialisierung von {name}: {e}")
+
+    async def shutdown_plugins(self):
+        """Beendet alle Plugins sauber."""
+        for name, instance in self.plugins.items():
+            try:
+                await instance.shutdown()
+                logger.info(f"Plugin heruntergefahren: {name}")
+            except Exception as e:
+                logger.error(f"Fehler beim Beenden von {name}: {e}")
+        self.plugins.clear()
 
     def get_plugin(self, name: str) -> Optional[VoxentiaPlugin]:
         return self.plugins.get(name)

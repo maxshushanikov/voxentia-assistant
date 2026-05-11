@@ -1,8 +1,8 @@
 import { appState } from '../../modules/core/State.js';
 import { i18n } from '../../modules/core/I18n.js';
-import { pluginManager } from '../../src/plugins/loader.js';
-import { JobAssistantUI } from '../../src/plugins/job_assistant/job-panel.js';
-import { CalendarUI } from '../../src/plugins/calendar/calendar-panel.js';
+import { pluginManager } from '../../../src/plugins/loader.js';
+import { JobAssistantUI } from '../../../src/plugins/job_assistant/job-panel.js';
+import { CalendarUI } from '../../../src/plugins/calendar/calendar-panel.js';
 
 // Vorab-Registrierung der UI-Plugins
 pluginManager.registerPlugin(JobAssistantUI.metadata, JobAssistantUI);
@@ -24,32 +24,64 @@ export class Chat {
         
         // Subscribe to state changes for re-rendering
         appState.subscribe(() => this.renderMessages());
+        
+        this.addGreeting();
 
-        // Configure marked.js for Markdown + Syntax Highlighting
-        if (window.marked && window.hljs) {
-            window.marked.setOptions({
-                highlight: function(code, lang) {
-                    const language = window.hljs.getLanguage(lang) ? lang : 'plaintext';
-                    return window.hljs.highlight(code, { language }).value;
-                },
-                langPrefix: 'hljs language-',
-                breaks: true
-            });
+        // Configure marked.js
+        if (window.marked) {
+            window.marked.setOptions({ breaks: true });
         }
+    }
+
+    addGreeting() {
+        const greetings = {
+            'de': 'Hallo! Wie kann ich dir heute helfen?',
+            'en': 'Hello! How can I help you today?',
+            'ru': 'Привет! Чем я могу вам помочь сегодня?'
+        };
+        const text = greetings[appState.language] || greetings['en'];
+        this.addMessage('assistant', text);
+    }
+
+    setupQuickActions() {
+        document.querySelectorAll('.quick-action').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const intent = btn.getAttribute('data-intent');
+                const label = btn.querySelector('.label').textContent;
+                this.handleSend(label);
+            });
+        });
     }
 
     setupEventListeners() {
         if (!this.sendButton) return;
-
         this.sendButton.addEventListener('click', () => this.handleSend());
         this.inputElement.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') this.handleSend();
         });
+
+        // Handle New Chat (Claude Style reset)
+        const newChatBtn = document.getElementById('newChatBtn');
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', () => {
+                this.clearChat();
+                const mainContent = document.querySelector('.main-content');
+                const chatView = document.getElementById('chat-view');
+                if (mainContent) mainContent.classList.remove('chat-active');
+                if (chatView) chatView.classList.remove('active');
+            });
+        }
     }
 
     async handleSend(textOverride = null) {
         const text = textOverride || this.inputElement.value.trim();
         if (!text || appState.chat.isSending) return;
+
+        // Claude Transition: Show chat view, compact input
+        const mainContent = document.querySelector('.main-content');
+        const chatView = document.getElementById('chat-view');
+        if (mainContent) mainContent.classList.add('chat-active');
+        if (chatView) chatView.classList.add('active');
 
         // Auto-resume audio on interaction
         if (window.app && window.app.resumeAudio) await window.app.resumeAudio();
@@ -287,15 +319,12 @@ export class Chat {
                 }
 
                 messageEl.innerHTML = `
-                    <div class="message-avatar">
-                        <span class="material-symbols-outlined">${icon}</span>
+                    <div class="msg-meta">
+                        <span class="sender">${senderName}</span>
+                        <span class="time">${time}</span>
                     </div>
-                    <div class="message-body">
-                        <div class="message-meta">
-                            <span class="sender">${senderName}</span>
-                            <span class="time">${time}</span>
-                        </div>
-                        <div class="message-content-wrapper content markdown-body">${renderedContent}</div>
+                    <div class="msg-bubble content markdown-body">
+                        ${renderedContent}
                     </div>
                 `;
                 this.historyElement.appendChild(messageEl);

@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 class LLMClient:
     """Wrapper für die Kommunikation mit dem Ollama LLM."""
     
-    def __init__(self, base_url: str = "http://localhost:11434", default_model: str = "llama3"):
+    def __init__(self, base_url: str = "http://localhost:11434", default_model: str = "phi3"):
         self.base_url = base_url
         self.default_model = default_model
 
@@ -30,3 +30,23 @@ class LLMClient:
         except Exception as e:
             print(f"❌ LLM Error: {e}")
             return {}
+    async def generate(self, prompt: str, model: Optional[str] = None) -> str:
+        """Sendet einen Prompt an Ollama und gibt den Antwort-Text zurück."""
+        payload = {
+            "model": model or self.default_model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.7
+            }
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.post(f"{self.base_url}/api/generate", json=payload)
+                response.raise_for_status()
+                result = response.json()
+                return result.get("response", "")
+        except Exception as e:
+            print(f"❌ LLM Error: {e}")
+            return "Entschuldigung, ich habe gerade technische Schwierigkeiten bei der Antwort-Generierung."
