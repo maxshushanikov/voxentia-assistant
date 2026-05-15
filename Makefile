@@ -18,10 +18,10 @@ test:
 	pytest tests/
 
 docker-up:
-	docker compose -f deployment/docker-compose.yml up --build
+	docker compose up --build
 
 docker-down:
-	docker compose -f deployment/docker-compose.yml down
+	docker compose down
 
 docs:
 	mkdocs serve

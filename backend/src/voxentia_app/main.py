@@ -47,6 +47,9 @@ async def startup_event():
     context = PluginContext(settings=None, llm=llm_client)
     await registry.initialize_plugins(context, config)
 
+from api.transcribe import router as transcribe_router
+app.include_router(transcribe_router, prefix="/api", tags=["speech"])
+
 @app.post("/chat")
 async def chat(request: dict):
     message = request.get("message", "")
@@ -58,7 +61,7 @@ async def chat(request: dict):
     }
 
 @app.get("/api/chat/history")
-async def get_history(session_id: str):
+async def get_history(session_id: str = "default"):
     # Dummy-History oder echte DB-Anbindung
     return {"history": []}
 

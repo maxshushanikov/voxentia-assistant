@@ -21,8 +21,8 @@ COPY backend /app/backend
 COPY plugins /app/plugins
 
 # Set environment variables
-ENV PYTHONPATH="/app/core/src:/app:/app/plugins/job_assistant/src:/app/plugins/teacher_assistant/src:/app/plugins/calendar/src"
+ENV PYTHONPATH="/app/core/src:/app:/app/backend:/app/plugins/job_assistant/src:/app/plugins/teacher_assistant/src:/app/plugins/calendar/src"
 
 EXPOSE 8000
 
-CMD ["python", "backend/src/voxentia_app/main.py"]
+CMD ["python", "backend/app/main.py"]

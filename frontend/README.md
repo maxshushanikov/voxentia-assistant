@@ -1,53 +1,73 @@
-# 🎨 Voxentia Frontend
+# React + TypeScript + Vite
 
-The Voxentia frontend is a modern, modular web application built with vanilla JavaScript and Material Design 3 principles.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## 🚀 Technology Stack
-- **Styling**: Vanilla CSS with **Material Design 3 (MD3)** components
-- **3D Engine**: [Three.js](https://threejs.org/) for real-time avatar rendering
-- **Iconography**: [Google Material Symbols](https://fonts.google.com/icons)
-- **Audio**: Web Audio API for playback and microphone management
-- **Architecture**: Modular ES6 Modules (No bundler needed)
+Currently, two official plugins are available:
 
-## 📂 Directory Structure
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-```
-frontend/
-├── index.html              # Main entry point & MD3 layout
-└── static/
-    ├── main.js             # App Controller & I18n initialization
-    ├── components/         # MD3 UI Components
-    │   ├── Chat/           # Chat list & message handling
-    │   └── UiControls/     # Selects, Buttons, and Sidebar logic
-    ├── modules/            # Core business logic
-    │   ├── avatar/         # Avatar animation & GLB management
-    │   ├── audio/          # AudioManager & Microphone Reset logic
-    │   ├── scene/          # Three.js lighting, cameras, and loaders
-    │   └── core/           # State Management (appState) & I18n
-    └── styles/             # Main CSS & MD3 tokens
-```
+## React Compiler
 
-## 🛠️ Key Systems
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-### 1. Material Design 3 UI
-The layout uses a **Navigation Rail** for primary navigation and a **Top App Bar** for contextual settings. Buttons are styled as **Outlined FABs** or **Circular Icon Buttons**, following Google's latest design specifications.
+## Expanding the ESLint configuration
 
-### 2. Reactive State Management
-The `State.js` module provides a lightweight, reactive store. Components can `subscribe` to changes (e.g., language switch, personality change) and update the UI automatically.
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-### 3. Internationalization (I18n)
-All UI text is externalized in `I18n.js`. The `main.js` controller handles dynamic DOM translation while preserving icons and interactive elements.
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-### 4. Audio Recovery (Nuclear Reset)
-To handle browser-level microphone locks, the `AudioManager` implements a "Nuclear Reset" strategy: it closes the AudioContext, waits for a hardware release, and attempts a fresh `getUserMedia` call automatically.
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-## 🖥️ Development
-
-Since the app uses native ES modules, you can serve it with any simple static file server:
-
-```bash
-# Using Python
-python -m http.server 8000
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-The frontend expects the backend API to be available at `http://localhost:8000/api`.
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
