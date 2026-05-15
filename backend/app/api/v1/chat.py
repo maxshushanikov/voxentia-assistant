@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.chat import ChatRequest, ChatResponse, HistoryResponse, MessageHistory
+from app.schemas.chat import ChatRequest, ChatResponse, HistoryResponse, MessageHistory, SessionListResponse, SessionSummary
 from app.services.chat_service import chat_service
 from app.services.voice_service import transcribe_audio_file
 
@@ -32,6 +32,21 @@ async def get_chat_history(session_id: str = "default", db: Session = Depends(ge
         for m in history
     ]
     return {"history": formatted_history}
+
+@router.get("/sessions", response_model=SessionListResponse)
+async def get_sessions(db: Session = Depends(get_db)):
+    """Returns all chat sessions ordered by most recent activity."""
+    sessions = chat_service.get_sessions(db)
+    return {
+        "sessions": [
+            SessionSummary(
+                session_id=s["session_id"],
+                title=s["title"],
+                timestamp=s["timestamp"]
+            )
+            for s in sessions
+        ]
+    }
 
 @router.post("/transcribe")
 async def transcribe_endpoint(

@@ -1,17 +1,17 @@
-import {
-  Calendar, FileText, BookOpen, Briefcase, FolderRoot, Target
+import { 
+  Calendar, BookOpen, Briefcase, FolderRoot, FileText, Target 
 } from 'lucide-react';
 import CalendarView from './CalendarView';
-import NotesView from './NotesView';
 import LearnView from './LearnView';
 import JobView from './JobView';
 import DocumentView from './DocumentView';
+import NotesView from './NotesView';
 import ProjectPlanningView from './ProjectPlanningView';
 import type { ReactNode } from 'react';
 
 export interface PluginDefinition {
   id: string;
-  nameKey: string; // Key for translations or literal name
+  nameKey: string;
   icon: ReactNode;
   component: ReactNode;
 }
@@ -54,3 +54,4 @@ export const plugins: PluginDefinition[] = [
     component: <ProjectPlanningView />
   }
 ];
+

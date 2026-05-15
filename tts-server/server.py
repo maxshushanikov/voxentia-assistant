@@ -105,7 +105,7 @@ def tts():
         speaker = data.get("speaker", "baya")
         language = data.get("language", "ru")
         
-        print(f"🔊 [TTS] GENERATING AUDIO | Language: {language} | Speaker: {speaker} | Text: {text[:50]}...")
+        print(f"🔊 [TTS] GENERATING AUDIO | Language: {language} | Speaker: {speaker} | Text: {text[:50]}...", flush=True)
         
         if not text:
             return jsonify({"error": "No text provided"}), 400
@@ -180,8 +180,9 @@ def tts():
         })
         
     except Exception as e:
-        print(f"TTS error: {e}")
-        traceback.print_exc()
+        print(f"TTS error: {e}", flush=True)
+        import sys
+        traceback.print_exc(file=sys.stdout)
         return jsonify({"error": str(e)}), 500
 
 @app.route("/audio/<filename>")

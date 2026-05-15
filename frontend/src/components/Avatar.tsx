@@ -108,7 +108,7 @@ function AvatarModel({ url, isSpeaking, mouthAlpha, gender }: { url: string, isS
 
   return (
     <group ref={group} dispose={null}>
-      <primitive object={scene} scale={[1.2, 1.2, 1.2]} position={[0, -1.2, 0]} />
+      <primitive object={scene} scale={[1.2, 1.2, 1.2]} position={[0, -1.8, 0]} />
     </group>
   );
 }
@@ -136,7 +136,7 @@ export default function Avatar({
       <div className="w-[600px] h-[1000px] bg-gradient-to-t from-[#2979ff]/10 to-transparent opacity-40 rounded-full blur-3xl absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"></div>
       
       <Canvas 
-        camera={{ position: [0, 1.2, 4], fov: 30 }}
+        camera={{ position: [0, 0.2, 5], fov: 30 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
         className="w-full h-full"
       >
@@ -147,7 +147,7 @@ export default function Avatar({
         
         <Environment preset="city" />
         
-        <ContactShadows position={[0, -1.2, 0]} opacity={0.6} scale={8} blur={2} />
+        <ContactShadows position={[0, -1.8, 0]} opacity={0.6} scale={8} blur={2} />
 
         <React.Suspense fallback={null}>
           <AvatarModel 
@@ -161,9 +161,9 @@ export default function Avatar({
         <OrbitControls 
           enableZoom={false} 
           enablePan={false}
-          minPolarAngle={Math.PI / 2.2}
-          maxPolarAngle={Math.PI / 1.8}
-          target={[0, 0.5, 0]}
+          minPolarAngle={Math.PI / 2}
+          maxPolarAngle={Math.PI / 2}
+          target={[0, 0, 0]}
         />
       </Canvas>
     </div>

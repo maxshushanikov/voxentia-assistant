@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.v1.chat import router as chat_router
+from app.api.v1.plugins import router as plugin_router
 
 # Initialize Database
 init_db()
@@ -25,6 +26,7 @@ app.add_middleware(
 
 # Include API Routers
 app.include_router(chat_router, prefix="/api/v1", tags=["Chat"])
+app.include_router(plugin_router, prefix="/api/v1/plugins", tags=["Plugins"])
 # Maintain compatibility with legacy /api prefix
 app.include_router(chat_router, prefix="/api", tags=["Legacy Chat"])
 

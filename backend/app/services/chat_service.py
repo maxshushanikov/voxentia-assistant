@@ -34,20 +34,13 @@ class ChatService:
         with open(config_path, "r") as f:
             config = json.load(f)
         
-        # Register Plugins (Manual for now, could be dynamic)
-        from plugins.core_assistant import CoreAssistantPlugin
-        # Correct import paths based on current layout
-        try:
-            from voxentia_job_assistant.plugin import JobAssistantPlugin
-            from voxentia_teacher_assistant.plugin import TeacherAssistantPlugin
-            from voxentia_calendar.plugin import CalendarPlugin
-            
-            self.registry.register_plugin_class(CoreAssistantPlugin)
-            self.registry.register_plugin_class(JobAssistantPlugin)
-            self.registry.register_plugin_class(TeacherAssistantPlugin)
-            self.registry.register_plugin_class(CalendarPlugin)
-        except ImportError as e:
-            print(f"Warning: Some plugins could not be loaded: {e}")
+        # Register Plugins Dynamically
+        plugins_root = settings.BASE_DIR.parent / "plugins"
+        self.registry.discover_plugins(str(plugins_root))
+        
+        # Also discover plugins in the source packages if they have been installed
+        # This allows discovering plugins from 'voxentia_calendar.plugin' etc.
+        # But discovery from folder is safer for local dev
 
         context = PluginContext(settings=None, llm=self.llm_client)
         await self.registry.initialize_plugins(context, config)
@@ -81,8 +74,38 @@ class ChatService:
 
         return response.text, audio_url, response.intent, response.plugin_data
 
-    def get_history(self, db: Session, session_id: str, limit: int = 20) -> List[ChatMessage]:
+    def get_history(self, db: Session, session_id: str, limit: int = 50) -> List[ChatMessage]:
         return db.query(ChatMessage).filter(ChatMessage.session_id == session_id)\
-                 .order_by(ChatMessage.timestamp.desc()).limit(limit).all()[::-1]
+                 .order_by(ChatMessage.timestamp.asc()).limit(limit).all()
+
+    def get_sessions(self, db: Session) -> List[dict]:
+        """Get all unique sessions with their first user message as title."""
+        from sqlalchemy import distinct
+        # Get all distinct session_ids ordered by latest message
+        sessions_raw = db.query(
+            ChatMessage.session_id,
+            ChatMessage.timestamp
+        ).order_by(ChatMessage.timestamp.desc()).all()
+
+        seen = {}
+        for row in sessions_raw:
+            if row.session_id not in seen:
+                seen[row.session_id] = row.timestamp
+
+        result = []
+        for session_id, ts in seen.items():
+            # Get first user message as title
+            first_msg = db.query(ChatMessage).filter(
+                ChatMessage.session_id == session_id,
+                ChatMessage.role == "user"
+            ).order_by(ChatMessage.timestamp.asc()).first()
+
+            title = first_msg.content[:60] if first_msg else session_id
+            result.append({
+                "session_id": session_id,
+                "title": title,
+                "timestamp": ts.isoformat()
+            })
+        return result
 
 chat_service = ChatService()

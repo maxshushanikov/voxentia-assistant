@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Sparkles, History } from 'lucide-react';
 import Avatar from './components/Avatar';
 import Sidebar from './components/Sidebar';
@@ -8,10 +8,13 @@ import ChatInput from './components/ChatInput';
 import { useAudioManager } from './hooks/useAudioManager';
 import { speakerGenderMap } from './types';
 import type { Message, Language, Speaker, Personality } from './types';
-import { translations } from './translations';
 
 import SettingsView from './components/SettingsView';
 import { plugins } from './plugins/registry';
+
+function generateSessionId() {
+  return 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+}
 
 function App() {
   const [inputText, setInputText] = useState('');
@@ -23,48 +26,21 @@ function App() {
   const [personality, setPersonality] = useState<Personality>('professional');
   const [isSettingsDropdownOpen, setIsSettingsDropdownOpen] = useState(false);
   const [activePlugin, setActivePlugin] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string>(generateSessionId);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { 
     isSpeaking, 
     isRecording, 
     mouthAlpha, 
-    playAudio, 
+    playAudio,
+    unlockAudio,
     startRecording, 
     stopRecording 
   } = useAudioManager();
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const response = await fetch('/api/chat/history?session_id=default');
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data = await response.json();
-        if (data.history && data.history.length > 0) {
-          const historyMessages: Message[] = data.history.map((m: any, index: number) => ({
-            role: m.role,
-            content: m.content,
-            id: `hist-${index}`
-          }));
-          setMessages(historyMessages);
-        } else {
-          // Only show greeting if NO history
-          const greeting: Message = {
-            role: 'assistant',
-            content: translations[language].greeting,
-            id: 'greeting'
-          };
-          setMessages([greeting]);
-        }
-      } catch (error) {
-        console.error('Error fetching history:', error);
-      }
-    };
-    fetchHistory();
-  }, [language]); // Re-run if language changes while empty
-
-  const processResponse = async (text: string) => {
+  const processResponse = useCallback(async (text: string, currentSessionId: string) => {
     setIsThinking(true);
     try {
       const response = await fetch('/api/chat', {
@@ -72,6 +48,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: text,
+          session_id: currentSessionId,
           language,
           speaker,
           personality
@@ -96,12 +73,14 @@ function App() {
     } finally {
       setIsThinking(false);
     }
-  };
+  }, [language, speaker, personality, playAudio]);
 
   const handleSend = async () => {
     if (!inputText.trim() || isThinking) return;
 
-    // If we were in a plugin view, return to chat when sending
+    // Unlock AudioContext within the user-gesture event (fixes browser autoplay block)
+    unlockAudio();
+
     if (activePlugin) setActivePlugin(null);
 
     const userMsg: Message = {
@@ -112,10 +91,11 @@ function App() {
 
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
-    await processResponse(userMsg.content);
+    await processResponse(userMsg.content, sessionId);
   };
 
   const handleMicClick = async () => {
+    unlockAudio(); // Ensure audio can play when response arrives
     if (isRecording) {
       const blob = await stopRecording();
       if (blob) {
@@ -139,7 +119,7 @@ function App() {
                 id: Date.now().toString()
               };
               setMessages(prev => [...prev, userMsg]);
-              await processResponse(data.text);
+              await processResponse(data.text, sessionId);
             }
           }
         } catch (error) {
@@ -160,9 +140,6 @@ function App() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // TODO: Implement actual upload logic to /api/documents
-    console.log("Uploading file:", file.name);
     
     const userMsg: Message = {
       role: 'user',
@@ -171,7 +148,6 @@ function App() {
     };
     setMessages(prev => [...prev, userMsg]);
     
-    // Simulate thinking
     setIsThinking(true);
     setTimeout(() => {
       setIsThinking(false);
@@ -185,13 +161,33 @@ function App() {
   };
 
   const handleNewChat = () => {
+    // Save current session to history by refreshing sidebar
+    if (messages.length > 0) {
+      setHistoryRefreshKey(k => k + 1);
+    }
+    // Create fresh session
+    setSessionId(generateSessionId());
     setActivePlugin(null);
-    setMessages([{
-      role: 'assistant',
-      content: translations[language].greeting,
-      id: 'greeting'
-    }]);
+    setMessages([]);
     setInputText('');
+  };
+
+  const handleLoadSession = async (sid: string) => {
+    try {
+      const response = await fetch(`/api/chat/history?session_id=${sid}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      const historyMessages: Message[] = data.history.map((m: any, index: number) => ({
+        role: m.role,
+        content: m.content,
+        id: `hist-${sid}-${index}`
+      }));
+      setSessionId(sid);
+      setMessages(historyMessages);
+      setActivePlugin(null);
+    } catch (error) {
+      console.error('Error loading session:', error);
+    }
   };
 
   const renderPluginView = () => {
@@ -226,7 +222,9 @@ function App() {
         language={language}
         activePlugin={activePlugin}
         setActivePlugin={setActivePlugin}
-        onHistoryClick={() => setActivePlugin(null)} // Click history to return to chat
+        onNewChat={handleNewChat}
+        onLoadSession={handleLoadSession}
+        historyRefreshKey={historyRefreshKey}
       />
 
       <main className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">

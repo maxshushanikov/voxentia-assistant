@@ -45,8 +45,22 @@ export function useAudioManager() {
     const analyser = analyserRef.current!;
 
     try {
+      // CRITICAL: Must await resume() — browser blocks audio until first user interaction
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
       const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`Audio fetch failed: ${response.status} ${url}`);
+        return;
+      }
       const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength === 0) {
+        console.error('Audio buffer is empty:', url);
+        return;
+      }
+
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
 
       const source = ctx.createBufferSource();
@@ -110,11 +124,20 @@ export function useAudioManager() {
     });
   }, []);
 
+  const unlockAudio = useCallback(() => {
+    initAudio();
+    const ctx = audioContextRef.current;
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+  }, [initAudio]);
+
   return {
     isSpeaking,
     isRecording,
     mouthAlpha,
     playAudio,
+    unlockAudio,
     startRecording,
     stopRecording
   };

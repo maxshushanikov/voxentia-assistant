@@ -24,3 +24,11 @@ class MessageHistory(BaseModel):
 
 class HistoryResponse(BaseModel):
     history: List[MessageHistory]
+
+class SessionSummary(BaseModel):
+    session_id: str
+    title: str
+    timestamp: str
+
+class SessionListResponse(BaseModel):
+    sessions: List[SessionSummary]
