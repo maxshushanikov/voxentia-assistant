@@ -8,7 +8,7 @@ Das System besteht aus vier Hauptschichten:
 
 ```mermaid
 graph TD
-    UI[Frontend: Vanilla JS + Three.js] --> API[FastAPI Entrypoint]
+    UI[Frontend: React + Vite + Three.js] --> API[FastAPI backend/app]
     API --> ORCH[Core: Orchestrator]
     ORCH --> LLM[Service: LLM Client / Ollama]
     ORCH --> REG[Core: Plugin Registry]
@@ -50,3 +50,6 @@ Plugins laufen innerhalb der Voxentia-Laufzeit, haben aber eingeschränkte Zugri
 
 ## 🎨 UI-Komponenten (Plugin-UI)
 Plugins können das Frontend erweitern, ohne den Kern-Code zu ändern. Über den `PluginManager` im Frontend werden spezifische Renderer registriert, die komplexe Daten (wie Job-Karten oder Kalender-Einträge) visualisieren.
+
+## 📄 Dokumente & RAG
+PDF-Uploads werden unter `POST /api/v1/documents/upload` verarbeitet, in ChromaDB indexiert und bei Chat-Anfragen automatisch als Kontext eingebunden (`backend/app/services/rag_service.py`).

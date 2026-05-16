@@ -1,6 +1,8 @@
-from voxentia.plugins.base import VoxentiaPlugin, PluginMetadata, PluginContext, PluginResponse
 import httpx
 from typing import Dict, Any
+
+from voxentia.plugins.base import PluginContext, PluginMetadata, PluginResponse, VoxentiaPlugin
+from voxentia.utils.logging import logger
 
 class CoreAssistantPlugin(VoxentiaPlugin):
     """Bietet Basis-Funktionen wie Wetter und Websuche."""
@@ -16,7 +18,7 @@ class CoreAssistantPlugin(VoxentiaPlugin):
         )
 
     async def initialize(self):
-        print("Initializing Core Assistant Plugin...")
+        logger.info("Initializing Core Assistant Plugin")
 
     async def handle_intent(self, intent: str, entities: Dict[str, Any]) -> PluginResponse:
         if intent == "get_weather":

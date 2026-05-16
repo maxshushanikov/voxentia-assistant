@@ -1,12 +1,16 @@
 # Stage 1: Build React App
-FROM node:20-alpine as build-stage
+FROM node:20-alpine AS build-stage
 
 WORKDIR /app
 
-COPY frontend/package*.json ./
-RUN npm install
+# Install deps first (layer cache); .npmrc enables legacy-peer-deps for openapi-typescript + TS 6
+COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
+RUN npm ci
 
+# i18n lives outside frontend/ but is imported via Vite alias @i18n -> ../i18n/locales
+COPY i18n /i18n
 COPY frontend/ .
+
 RUN npm run build
 
 # Stage 2: Serve with Nginx

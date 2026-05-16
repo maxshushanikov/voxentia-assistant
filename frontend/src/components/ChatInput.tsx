@@ -2,8 +2,7 @@ import { Plus, Paperclip, Mic, Send } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import { translations } from '../translations';
-import type { Language } from '../types';
+import { useTranslation } from '../i18n/context';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -18,16 +17,14 @@ interface ChatInputProps {
   onNewChat: () => void;
   isRecording: boolean;
   isThinking: boolean;
-  language: Language;
 }
 
 export default function ChatInput({
   inputText, setInputText,
   onSend, onMicClick, onFileClick, onNewChat,
   isRecording, isThinking,
-  language
 }: ChatInputProps) {
-  const t = translations[language];
+  const { t } = useTranslation();
   return (
     <div className="p-6 bg-[#0b0e14]/50 backdrop-blur-md">
       <div className={cn(

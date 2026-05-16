@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# Voxentia Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite 8 + Tailwind CSS 4 + Three.js (React Three Fiber).
 
-Currently, two official plugins are available:
+## Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+frontend/src/
+├── App.tsx              # Main layout, chat flow, TanStack Query
+├── components/
+│   ├── Avatar.tsx       # 3D avatar (Bounds/Center auto-fit)
+│   ├── Sidebar.tsx      # Plugins, history (preview + show all), delete
+│   ├── ChatArea.tsx
+│   └── ...
+├── hooks/
+│   ├── useAudioManager.ts   # Web Audio playback + lip-sync analyser
+│   └── useChatApi.ts        # React Query mutations
+├── api/
+│   ├── client.ts        # fetch wrapper + X-Request-ID
+│   ├── chat.ts          # API functions
+│   └── schema.d.ts      # Generated from OpenAPI
+├── i18n/index.ts        # Loads JSON from ../../i18n/locales
+└── plugins/             # Plugin UI panels + registry
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Vite dev server (proxies `/api` → :8000) |
+| `npm run build` | Production build → `dist/` |
+| `npm run test` | Vitest unit tests |
+| `npm run lint` | ESLint |
+| `npm run generate:api` | Regenerate `src/api/schema.d.ts` |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## i18n
+
+UI strings live in **`/i18n/locales/{en,de,ru}/ui.json`** (single source of truth).  
+Vite alias: `@i18n` → `../i18n/locales`.
+
+## 3D Avatar
+
+- Models: `/assets/avatar_feminine.glb`, `/assets/avatar_masculine.glb` (served by backend/nginx).
+- `@react-three/drei` **Bounds** + **Center** auto-frame the model in the canvas.
+- Lip-sync via morph targets (`mouthOpen`, `jawOpen`, etc.) driven by `useAudioManager`.
+
+## History UI
+
+- Sidebar shows up to **8** recent chats by default.
+- **Show all** / **Alle anzeigen** expands the full list.
+- Hover a chat → trash icon → `DELETE /api/sessions/{id}`.
+- When expanded: **Delete all** clears every session.
+
+## Docker build
+
+Uses `deployment/docker/frontend.Dockerfile`:
+
+- Copies `frontend/.npmrc` (legacy-peer-deps) before `npm ci`
+- Copies `i18n/` for locale JSON imports
+- Nginx serves `dist/` on port 80
+
+## Local development
+
+```bash
+npm install
+npm run dev
 ```
+
+Ensure the backend is running on port 8000 (or adjust `vite.config.ts` proxy).

@@ -1,19 +1,30 @@
-from voxentia.plugins.registry import PluginRegistry
 from voxentia.orchestrator.intent_detector import IntentDetector
-from voxentia.services.llm_client import LLMClient
 from voxentia.orchestrator.response_formatter import VoxentiaResponse
+from voxentia.plugins.registry import PluginRegistry
+from voxentia.services.llm_client import LLMClient
 from voxentia.utils.logging import logger
+
 
 class Orchestrator:
     """Der zentrale Dispatcher, der Anfragen an Plugins routet."""
-    
+
     def __init__(self, registry: PluginRegistry, llm_client: LLMClient):
         self.registry = registry
         self.intent_detector = IntentDetector(llm_client)
 
-    async def route_request(self, message: str, language: str = "de") -> VoxentiaResponse:
+    async def route_request(
+        self,
+        message: str,
+        language: str = "de",
+        *,
+        system_prompt: str = "",
+        model: str | None = None,
+        temperature: float = 0.7,
+    ) -> VoxentiaResponse:
         """Ermittelt den Intent und delegiert an das passende Plugin."""
-        intent, entities = await self.intent_detector.detect(message)
+        intent, entities = await self.intent_detector.detect(
+            message, system=system_prompt, model=model, temperature=temperature
+        )
         entities["language"] = language
         logger.info(f"🎯 Intent erkannt: {intent} mit {entities} (Sprache: {language})")
 
@@ -51,7 +62,12 @@ class Orchestrator:
                 return VoxentiaResponse(text=res.text, plugin_data=res.data, intent=intent)
 
         # TODO: Dynamisches Routing basierend auf Plugin-Capabilities
-        
+
         # 4. Fallback: LLM
-        res_text = await self.intent_detector.llm.generate(message)
+        res_text = await self.intent_detector.llm.generate(
+            message,
+            model=model,
+            system=system_prompt or None,
+            temperature=temperature,
+        )
         return VoxentiaResponse(text=res_text, intent="fallback")

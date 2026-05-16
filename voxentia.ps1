@@ -14,6 +14,7 @@ switch ($Action) {
         Write-Host "--- Installing Dependencies ---" -ForegroundColor Cyan
         pip install -e core
         pip install -r backend/requirements.txt
+        pip install -r requirements-dev.txt
         Set-Location frontend
         npm install
         Set-Location $RootPath

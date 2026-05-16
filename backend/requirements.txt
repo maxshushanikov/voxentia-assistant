@@ -7,3 +7,4 @@ pydantic-settings==2.1.0
 chromadb==0.4.21
 numpy<2.0.0
 pypdf==3.17.4
+slowapi==0.1.9

@@ -14,26 +14,9 @@ class PluginRegistry:
 
     def discover_plugins(self, package_path: str):
         """Durchsucht ein Verzeichnis nach Plugins und registriert sie."""
-        import os
-        import sys
-        import pkgutil
-        import importlib
-        import inspect
-        
-        if not os.path.exists(package_path):
-            logger.warning(f"Pfad nicht gefunden: {package_path}")
-            return
+        from voxentia.plugins.discovery import discover_plugins
 
-        sys.path.insert(0, package_path)
-        
-        for loader, module_name, is_pkg in pkgutil.walk_packages([package_path]):
-            try:
-                module = importlib.import_module(module_name)
-                for name, obj in inspect.getmembers(module):
-                    if inspect.isclass(obj) and issubclass(obj, VoxentiaPlugin) and obj is not VoxentiaPlugin:
-                        self.register_plugin_class(obj)
-            except Exception as e:
-                logger.error(f"Fehler beim Laden von {module_name}: {e}")
+        discover_plugins(self, package_path)
 
     def register_plugin_class(self, plugin_class: Type[VoxentiaPlugin]):
         """Registriert eine Plugin-Klasse manuell."""

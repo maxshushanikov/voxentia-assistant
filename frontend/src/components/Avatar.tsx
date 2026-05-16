@@ -1,60 +1,114 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useLayoutEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, useAnimations, Environment, OrbitControls, ContactShadows } from '@react-three/drei';
+import {
+  useGLTF,
+  useAnimations,
+  Environment,
+  OrbitControls,
+  ContactShadows,
+  Center,
+  Bounds,
+  useBounds,
+} from '@react-three/drei';
 import * as THREE from 'three';
+import { SkeletonUtils } from 'three-stdlib';
 
-// Create an inner component for the actual avatar logic
-function AvatarModel({ url, isSpeaking, mouthAlpha, gender }: { url: string, isSpeaking: boolean, mouthAlpha: number, gender: string }) {
+const FEMININE_IDLE = '/assets/idle/feminine/F_Talking_Variations_001.glb';
+const MASCULINE_IDLE = '/assets/idle/masculine/M_Talking_Variations_001.glb';
+
+/** Fit camera once per model — no re-fit on layout/resize (avoids jump on sidebar clicks). */
+function FitOnce({ modelKey }: { modelKey: string }) {
+  const bounds = useBounds();
+  const lastKey = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (lastKey.current === modelKey) return;
+    bounds.refresh().fit();
+    lastKey.current = modelKey;
+  }, [bounds, modelKey]);
+
+  return null;
+}
+
+function pickIdleAction(
+  actions: Record<string, THREE.AnimationAction | null>,
+  isSpeaking: boolean,
+): THREE.AnimationAction | null {
+  const entries = Object.entries(actions).filter(([, a]) => a != null) as [
+    string,
+    THREE.AnimationAction,
+  ][];
+  if (entries.length === 0) return null;
+
+  if (isSpeaking) {
+    const talk = entries.filter(
+      ([k]) =>
+        k.toLowerCase().includes('talk') ||
+        k.toLowerCase().includes('variat') ||
+        k.toLowerCase().includes('speak'),
+    );
+    if (talk.length > 0) {
+      const [, action] = talk[Math.floor(Math.random() * talk.length)];
+      return action;
+    }
+  }
+
+  const idle =
+    entries.find(([k]) => /^idle$/i.test(k)) ??
+    entries.find(([k]) => k.toLowerCase().includes('idle')) ??
+    entries[0];
+  return idle?.[1] ?? null;
+}
+
+function AvatarModel({
+  url,
+  animUrl,
+  isSpeaking,
+  mouthAlpha,
+}: {
+  url: string;
+  animUrl: string;
+  isSpeaking: boolean;
+  mouthAlpha: number;
+}) {
   const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
-  
-  // Load animations from a separate file
-  const animUrl = gender === 'feminine' 
-    ? '/assets/idle/feminine/F_Talking_Variations_001.glb'
-    : '/assets/idle/masculine/M_Talking_Variations_001.glb';
-  
-  const { animations: anims } = useGLTF(animUrl);
-  const { actions } = useAnimations(anims, group);
-  
-  // States for autonomous blinking
+  const { animations } = useGLTF(animUrl);
+
+  const clone = useMemo(() => {
+    const cloned = SkeletonUtils.clone(scene);
+    cloned.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+    return cloned;
+  }, [scene]);
+
+  const { actions } = useAnimations(animations, group);
+
   const [isBlinking, setIsBlinking] = useState(false);
   const blinkTimer = useRef(0);
   const blinkTarget = useRef(2 + Math.random() * 3);
-
-  // Setup morph targets
   const morphMeshes = useRef<THREE.Mesh[]>([]);
 
   useEffect(() => {
     morphMeshes.current = [];
-    scene.traverse((child) => {
+    clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh && (child as THREE.Mesh).morphTargetInfluences) {
         morphMeshes.current.push(child as THREE.Mesh);
       }
     });
-  }, [scene]);
+  }, [clone]);
 
-  // Handle Animations (Idle vs Speaking)
   useEffect(() => {
     if (!actions) return;
 
-    // Stop all current animations
-    Object.values(actions).forEach(a => a?.fadeOut(0.5));
+    Object.values(actions).forEach((a) => a?.fadeOut(0.5));
 
-    let actionToPlay: THREE.AnimationAction | null = null;
-
-    if (isSpeaking) {
-      // Pick a random talking variation
-      const talkKeys = Object.keys(actions).filter(k => k.toLowerCase().includes('talk') || k.toLowerCase().includes('variat'));
-      if (talkKeys.length > 0) {
-        const key = talkKeys[Math.floor(Math.random() * talkKeys.length)];
-        actionToPlay = actions[key];
-      }
-    }
-
-    // Fallback to idle (usually the first clip or specifically named)
-    if (!actionToPlay) {
-      actionToPlay = actions['idle'] || actions['Idle'] || Object.values(actions)[0];
-    }
+    const actionToPlay = pickIdleAction(actions, isSpeaking);
 
     if (actionToPlay) {
       actionToPlay.reset().fadeIn(0.5).play();
@@ -65,56 +119,58 @@ function AvatarModel({ url, isSpeaking, mouthAlpha, gender }: { url: string, isS
     };
   }, [actions, isSpeaking]);
 
-  // Update loop for morph targets and blinking
-  useFrame((state, delta) => {
-    // Blinking logic
+  useFrame((_, delta) => {
     blinkTimer.current += delta;
     if (blinkTimer.current >= blinkTarget.current) {
       setIsBlinking(true);
-      if (blinkTimer.current >= blinkTarget.current + 0.15) { // blink duration
+      if (blinkTimer.current >= blinkTarget.current + 0.15) {
         setIsBlinking(false);
         blinkTimer.current = 0;
         blinkTarget.current = 2 + Math.random() * 4;
       }
     }
 
-    // Apply morph targets
-    morphMeshes.current.forEach(mesh => {
+    morphMeshes.current.forEach((mesh) => {
       if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
 
       const dict = mesh.morphTargetDictionary;
       const influence = mesh.morphTargetInfluences;
 
-      // Mouth opening for lip-sync
-      const mouthIdx = dict['mouthOpen'] || dict['jawOpen'] || dict['viseme_aa'] || dict['MouthOpen'] || dict['JawOpen'] || dict['v_aa'];
+      const mouthIdx =
+        dict['mouthOpen'] ??
+        dict['jawOpen'] ??
+        dict['viseme_aa'] ??
+        dict['MouthOpen'] ??
+        dict['JawOpen'] ??
+        dict['v_aa'];
       if (mouthIdx !== undefined) {
         influence[mouthIdx] = mouthAlpha;
       }
 
-      // Blinking
-      const blinkIdx = dict['eyeBlinkLeft'] || dict['eyeBlinkRight'] || dict['blink'] || dict['EyeBlinkLeft'];
+      const blinkIdx =
+        dict['eyeBlinkLeft'] ?? dict['eyeBlinkRight'] ?? dict['blink'] ?? dict['EyeBlinkLeft'];
       if (blinkIdx !== undefined) {
         influence[blinkIdx] = isBlinking ? 1.0 : 0.0;
       }
     });
 
-    // Gentle natural sway if not moving much
     if (group.current) {
-      const time = state.clock.getElapsedTime();
-      group.current.position.y = Math.sin(time * 0.5) * 0.01;
-      group.current.rotation.y = Math.sin(time * 0.3) * 0.05;
+      const time = performance.now() * 0.001;
+      group.current.rotation.y = Math.sin(time * 0.3) * 0.04;
     }
   });
 
   return (
     <group ref={group} dispose={null}>
-      <primitive object={scene} scale={[1.2, 1.2, 1.2]} position={[0, -1.8, 0]} />
+      <primitive object={clone} />
     </group>
   );
 }
 
-// Preload standard feminine variation to prevent delay
 useGLTF.preload('/assets/avatar_feminine.glb');
+useGLTF.preload('/assets/avatar_masculine.glb');
+useGLTF.preload(FEMININE_IDLE);
+useGLTF.preload(MASCULINE_IDLE);
 
 interface AvatarProps {
   gender?: 'feminine' | 'masculine';
@@ -122,50 +178,63 @@ interface AvatarProps {
   mouthAlpha?: number;
 }
 
-export default function Avatar({ 
-  gender = 'feminine', 
-  isSpeaking = false, 
-  mouthAlpha = 0
+function Avatar({
+  gender = 'feminine',
+  isSpeaking = false,
+  mouthAlpha = 0,
 }: AvatarProps) {
-  
   const modelUrl = `/assets/avatar_${gender}.glb`;
+  const animUrl = gender === 'feminine' ? FEMININE_IDLE : MASCULINE_IDLE;
+  const fitMargin = gender === 'masculine' ? 1.5 : 1.35;
+  const cameraY = gender === 'masculine' ? 0.08 : 0.05;
+  const fitKey = `${modelUrl}|${animUrl}`;
 
   return (
-    <div className="w-full h-full relative">
-      {/* Background ambient glow */}
-      <div className="w-[600px] h-[1000px] bg-gradient-to-t from-[#2979ff]/10 to-transparent opacity-40 rounded-full blur-3xl absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"></div>
-      
-      <Canvas 
-        camera={{ position: [0, 0.2, 5], fov: 30 }}
+    <div className="w-full h-full relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-t from-[#2979ff]/8 via-transparent to-transparent pointer-events-none" />
+
+      <Canvas
+        camera={{ position: [0, 0.15, 4.2], fov: 42, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
         className="w-full h-full"
+        style={{ touchAction: 'none' }}
+        resize={{ debounce: 0, scroll: false }}
       >
-        <ambientLight intensity={1.5} />
+        <ambientLight intensity={1.4} />
         <spotLight position={[5, 10, 5]} angle={0.15} penumbra={1} intensity={2} castShadow />
         <directionalLight position={[2, 4, 5]} intensity={1.5} />
         <directionalLight position={[-2, 3, -3]} intensity={0.5} color="#7777bb" />
-        
+
         <Environment preset="city" />
-        
-        <ContactShadows position={[0, -1.8, 0]} opacity={0.6} scale={8} blur={2} />
 
         <React.Suspense fallback={null}>
-          <AvatarModel 
-            url={modelUrl} 
-            isSpeaking={isSpeaking} 
-            mouthAlpha={mouthAlpha}
-            gender={gender}
-          />
+          <Bounds fit clip margin={fitMargin} maxDuration={0}>
+            <FitOnce modelKey={fitKey} />
+            <Center>
+              <AvatarModel
+                url={modelUrl}
+                animUrl={animUrl}
+                isSpeaking={isSpeaking}
+                mouthAlpha={mouthAlpha}
+              />
+            </Center>
+          </Bounds>
         </React.Suspense>
 
-        <OrbitControls 
-          enableZoom={false} 
+        <ContactShadows position={[0, -0.05, 0]} opacity={0.55} scale={10} blur={2.5} far={4} />
+
+        <OrbitControls
+          enableZoom={false}
           enablePan={false}
-          minPolarAngle={Math.PI / 2}
-          maxPolarAngle={Math.PI / 2}
-          target={[0, 0, 0]}
+          minPolarAngle={Math.PI / 2.2}
+          maxPolarAngle={Math.PI / 1.85}
+          target={[0, cameraY, 0]}
+          enableDamping
+          dampingFactor={0.05}
         />
       </Canvas>
     </div>
   );
 }
+
+export default React.memo(Avatar);

@@ -1,101 +1,218 @@
-# 🌌 Voxentia: Your Modular AI Assistant
+# Voxentia — Modular Local AI Assistant
 
-> **A premium, fully local AI digital assistant** featuring real-time 3D rendering, multimodal vision, multilingual speech interaction, and document-based knowledge. 100% Private. 100% Local.
+> A privacy-first digital assistant with a 3D avatar, voice interaction, document RAG, and a plugin architecture. Runs entirely on your hardware via Docker.
 
-**[🇩🇪 Deutsche Version](README_DE.md) | [🇷🇺 Русская версия](README_RU.md)**
-
----
-
-## ✨ Features & Highlights
-
-Voxentia is designed as a high-end personal assistant that runs entirely on your own hardware using a modern, modular architecture.
-
-| Feature | Description |
-|---|---|
-| 🧠 **Local LLM** | Powered by [Ollama](https://ollama.com/) — runs locally with high performance (Default: `phi3`). |
-| ⚛️ **Modern React UI** | Professional, modular frontend built with React, Vite, and Tailwind CSS. Features "Glassmorphism" design and smooth transitions. |
-| 🎭 **Persona System** | Switch between **Professional Assistant**, **Friendly Companion**, and **Academic Tutor** to customize behavior. |
-| 🎙️ **Multilingual Voice** | Integrated STT (Whisper) and TTS (Silero) supporting English, German, and Russian with synchronized lip-sync. |
-| 🧍 **3D Digital Avatar** | Real-time rendering via [Three.js](https://threejs.org/) with procedural animations and dynamic gender-switching based on voice. |
-| 📄 **Document Intelligence** | Upload PDFs for instant RAG (Retrieval-Augmented Generation) analysis via ChromaDB. |
-| 🔌 **Plugin Architecture** | Modular backend allowing easy expansion with custom tools (Calendar, Notes, etc.). |
-| 🔒 **Privacy First** | All services run in Docker containers. No telemetry, no cloud API calls, and no data tracking. |
+**Languages:** [Deutsch](README_DE.md) · [Русский](README_RU.md)
 
 ---
 
-## 🏗️ Technical Architecture
+## Overview
 
-Voxentia follows a professional microservices architecture coordinated via Docker Compose.
+Voxentia combines a **React + Three.js** frontend, a **FastAPI** backend, the **voxentia-core** orchestrator, and optional **plugins** (calendar, jobs, learning, documents). Speech uses **Ollama** (LLM), **Whisper** (STT), and **Silero** (TTS). PDFs are indexed in **ChromaDB** for retrieval-augmented answers.
+
+| Property | Value |
+|----------|--------|
+| Default LLM | `phi3` (via Ollama) |
+| Languages | English, German, Russian |
+| API | `/api/v1` (+ legacy `/api` aliases) |
+| UI | http://localhost (Nginx) or Vite dev on :5173 |
+
+---
+
+## Features
+
+| Area | Details |
+|------|---------|
+| **Chat** | Session-based history, personalities (professional / friendly / academic), optional model override |
+| **Voice** | Microphone → Whisper STT; replies → Silero TTS with lip-sync on the 3D avatar |
+| **Avatar** | GLB models (feminine/masculine), auto-framed in the viewport, idle/talking animations |
+| **Documents** | PDF upload → chunking → embeddings → RAG context in chat |
+| **Plugins** | Backend plugins via `plugin_config.json`; frontend plugin panels in the sidebar |
+| **History** | Grouped by time (today / yesterday / 7d / 30d), preview limit, **delete single or all chats** |
+| **Ops** | Health checks, rate limiting, request IDs, structured logging |
+
+---
+
+## Architecture
+
+```text
+Browser (React)
+    │  /api/*
+    ▼
+Nginx (:80) ──► FastAPI backend/app (:8000)
+                    ├── SQLite (chat history, WAL mode)
+                    ├── ChromaDB (documents)
+                    ├── voxentia-core (orchestrator + plugins)
+                    ├── Ollama (:11434) — LLM + embeddings
+                    ├── tts-server (:5002) — Silero TTS
+                    └── whisper-server (:5003) — faster-whisper
+```
+
+### Repository layout
 
 ```text
 voxentia-assistant/
-├── backend/app/                # FastAPI — Core Logic & Orchestration
-│   ├── api/                    # Versioned REST endpoints (v1)
-│   ├── core/                   # Pydantic Settings, Database & Security
-│   ├── models/                 # SQLAlchemy Persistence Models
-│   ├── schemas/                # Pydantic Schemas for API validation
-│   └── services/               # Business Logic (Chat, Voice, RAG)
-│
-├── frontend/                   # React — Modular Web Application
-│   ├── src/components/         # Decomposed UI components (Sidebar, Chat, Avatar)
-│   ├── src/hooks/              # Custom React hooks (Audio Manager, etc.)
-│   └── src/types/              # Shared TypeScript definitions
-│
-├── core/                       # Shared Python Framework (Plugin-System)
-├── tts-server/                 # Silero TTS Engine (Flask Wrapper)
-├── whisper-server/             # faster-whisper STT Engine (Flask Wrapper)
-├── data/                       # Persistence: Vektor-DB, Chat-History, Audio Cache
-└── assets/                     # Static Media: 3D Models (.glb), Textures
+├── backend/app/           # FastAPI (canonical API)
+├── core/                  # voxentia-core package
+├── frontend/              # React + Vite + Tailwind + Three.js
+├── plugins/               # Optional Python plugins
+├── i18n/locales/          # UI strings (en, de, ru)
+├── tts-server/            # Silero TTS microservice
+├── whisper-server/        # Whisper STT microservice
+├── deployment/docker/     # Dockerfiles + nginx.conf
+├── tests/                 # pytest
+├── scripts/               # e.g. export_openapi.py
+└── data/                  # Runtime DB, chroma, audio (gitignored)
 ```
 
 ---
 
-## 🚀 Quick Start (Installation)
+## Prerequisites
 
-### Prerequisites
-- **Docker Desktop** (with Compose v2+)
-- **Windows / Linux / macOS**
-- **Ollama** installed locally.
+- **Docker Desktop** with Compose v2
+- **8 GB+ RAM** recommended (TTS models are loaded on demand)
+- **GPU** optional (CPU works; set env vars on whisper/tts for CUDA if needed)
 
-### 1. Setup & Launch (Windows)
-We provide a native Windows control script for ease of use:
+---
+
+## Quick start
+
+### Windows
+
 ```powershell
-# Install dependencies
-.\run.bat install
-
-# Start the complete stack
-.\run.bat up
+.\run.bat install   # optional: local Python/Node setup
+.\run.bat up        # docker compose up --build
 ```
 
-### 2. Setup & Launch (Linux/macOS)
+Or:
+
+```powershell
+docker compose up --build
+```
+
+### Linux / macOS
+
 ```bash
-# Start Docker stack
 make docker-up
+# or
+docker compose up --build
 ```
 
-Open the interface at: **`http://localhost:80`** (Nginx) or **`http://localhost:8000`** (Backend Dev).
+Open **http://localhost** (production stack) or run the frontend in dev mode:
+
+```bash
+cd frontend && npm install && npm run dev
+# API proxied to http://localhost:8000
+```
 
 ---
 
-## 🛠️ Configuration
+## Configuration
 
-### Environment Variables (.env)
+Copy `.env.example` to `.env` in the project root.
+
 | Variable | Default | Description |
-|---|---|---|
-| `DEFAULT_MODEL` | `phi3` | The LLM used for chat. |
-| `DEFAULT_LANGUAGE` | `en` | Default language (en, de, ru). |
-| `OLLAMA_URL` | `http://ollama:11434` | URL to Ollama container/service. |
+|----------|---------|-------------|
+| `DEFAULT_MODEL` | `phi3` | Ollama model for chat |
+| `DEFAULT_LANGUAGE` | `en` | Default UI/assistant language |
+| `OLLAMA_URL` | `http://ollama:11434` | Ollama base URL (Docker network) |
+| `TTS_URL` | `http://tts-server:5002` | TTS service |
+| `WHISPER_URL` | `http://whisper-server:5003` | STT service |
+| `RATE_LIMIT` | `60/minute` | API rate limit (slowapi) |
+| `TTS_TIMEOUT` | `120` | Seconds to wait for TTS generation |
+| `ALLOWED_ORIGINS` | localhost URLs | CORS origins (comma-separated) |
+
+### Plugin configuration
+
+Edit `backend/app/core/config/plugin_config.json` to enable/disable plugins (`job_assistant`, `calendar`, etc.).
 
 ---
 
-## 🎮 Interface Guide
+## API overview
 
-- **Settings Dropdown**: Change Language, Voice, and Personality instantly in the header.
-- **Microphone**: Click the mic icon to talk to Voxentia.
-- **Avatar**: Automatically switches gender based on the selected speaker.
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Service health + version |
+| `POST` | `/api/v1/chat` | Send message, get text + optional `audio_url` |
+| `GET` | `/api/v1/chat/history?session_id=` | Paginated history (`limit`, `offset`) |
+| `GET` | `/api/v1/sessions` | List chat sessions |
+| `DELETE` | `/api/v1/sessions/{id}` | Delete one session |
+| `DELETE` | `/api/v1/sessions` | Delete all sessions |
+| `POST` | `/api/v1/transcribe` | Audio → text |
+| `POST` | `/api/v1/documents/upload` | PDF → RAG index |
+| `GET` | `/api/v1/plugins/list` | Installed plugins metadata |
+
+Legacy routes under `/api/...` mirror the above for older clients.
+
+Interactive docs: **http://localhost:8000/docs** (when backend port is exposed).
 
 ---
 
-## 📄 License
-MIT License — 2026 Voxentia Project.
-Intelligence Localized.
+## Development
+
+### Backend
+
+```bash
+pip install -e core
+pip install -r backend/requirements.txt
+pip install -r requirements-dev.txt
+pytest tests/ -v
+```
+
+```powershell
+$env:PYTHONPATH = "core/src;backend"
+python backend/app/main.py
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm run test
+npm run build
+```
+
+Regenerate OpenAPI types after API changes:
+
+```bash
+python scripts/export_openapi.py
+cd frontend && npm run generate:api
+```
+
+---
+
+## UI guide
+
+- **Sidebar — Plugins:** Open calendar, jobs, documents, notes, etc.
+- **Sidebar — History:** Recent chats (preview); link **Show all** / **Alle anzeigen** for full list; trash icon to delete a chat.
+- **Header:** Language, voice, personality.
+- **Chat input:** Text, microphone, file upload (PDF).
+- **Avatar panel:** 3D model centered and scaled to fit; mouth moves with TTS audio.
+
+---
+
+## Security & privacy
+
+- No cloud LLM calls when using the default Docker stack.
+- Do **not** commit `ollama_data/` (SSH keys, model cache) or `.env`.
+- Rate limiting and request IDs are enabled on the API.
+- CORS is restricted to configured origins and standard headers.
+
+---
+
+## Troubleshooting
+
+| Issue | What to check |
+|-------|----------------|
+| No voice | TTS container healthy (`docker compose ps`); backend logs for `TTS service error`; browser console for `audio_url` |
+| Ollama errors | `ollama-init` completed; `docker compose logs ollama` |
+| Empty plugins | `plugin_config.json` enabled flags; `docker compose logs backend` |
+| Frontend build fails | `frontend/.npmrc` (`legacy-peer-deps`); run `npm ci` in `frontend/` |
+
+---
+
+## License
+
+MIT License — © 2026 Voxentia Project.

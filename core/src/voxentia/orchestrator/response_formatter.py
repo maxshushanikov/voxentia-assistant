@@ -1,5 +1,7 @@
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel
-from typing import Any, Optional, Dict
+
 
 class VoxentiaResponse(BaseModel):
     """Einheitliches Antwortformat für das Frontend."""

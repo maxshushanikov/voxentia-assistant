@@ -21,7 +21,7 @@ COPY backend /app/backend
 COPY plugins /app/plugins
 
 # Set environment variables
-ENV PYTHONPATH="/app/core/src:/app:/app/backend:/app/plugins/job_assistant/src:/app/plugins/teacher_assistant/src:/app/plugins/calendar/src"
+ENV PYTHONPATH="/app/core/src:/app:/app/backend"
 
 EXPOSE 8000
 

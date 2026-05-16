@@ -13,9 +13,15 @@ help:
 install:
 	pip install -e core
 	pip install -r backend/requirements.txt
+	pip install -r requirements-dev.txt
+	cd frontend && npm install
 
 test:
-	pytest tests/
+	pytest tests/ -v
+
+lint:
+	ruff check backend/app core/src/voxentia tests
+	cd frontend && npm run lint
 
 docker-up:
 	docker compose up --build

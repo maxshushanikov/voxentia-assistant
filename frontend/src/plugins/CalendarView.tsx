@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Clock, Plus, LayoutGrid, List, X, MapPin, AlignLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { asStringArray } from '../i18n';
+import { useTranslation } from '../i18n/context';
+
 type CalendarTab = 'calendar' | 'events';
 type CalendarViewMode = 'day' | 'week' | 'month';
 
@@ -13,10 +16,6 @@ interface CalendarEvent {
   description: string;
   color: string;
 }
-
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const WEEKDAYS_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const WEEKDAYS_LONG = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
 function toISO(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -38,6 +37,10 @@ function getMondayOfWeek(d: Date): Date {
 }
 
 export default function CalendarView() {
+  const { t } = useTranslation();
+  const MONTHS = asStringArray(t.cal_months);
+  const WEEKDAYS_SHORT = asStringArray(t.cal_weekdaysShort);
+  const WEEKDAYS_LONG = asStringArray(t.cal_weekdaysLong);
   const [activeTab, setActiveTab] = useState<CalendarTab>('calendar');
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,7 +87,7 @@ export default function CalendarView() {
     }
   };
 
-  const todayLabel = viewMode === 'week' ? 'This Week' : 'Today';
+  const todayLabel = viewMode === 'week' ? t.common_thisWeek : t.common_today;
 
   // ─── Month view data ──────────────────────────────────────────────────────────
 
@@ -304,28 +307,28 @@ export default function CalendarView() {
       <div className="p-8 pb-4">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-light text-white mb-2">Calendar</h1>
-            <p className="text-gray-500 text-sm">Professional scheduling and event management.</p>
+            <h1 className="text-3xl font-light text-white mb-2">{t.cal_title}</h1>
+            <p className="text-gray-500 text-sm">{t.cal_subtitle}</p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex bg-white/5 border border-white/10 rounded-[4px] p-1">
-              <ViewButton active={viewMode === 'day'} onClick={() => setViewMode('day')} label="Day" />
-              <ViewButton active={viewMode === 'week'} onClick={() => setViewMode('week')} label="Week" />
-              <ViewButton active={viewMode === 'month'} onClick={() => setViewMode('month')} label="Month" />
+              <ViewButton active={viewMode === 'day'} onClick={() => setViewMode('day')} label={t.common_day} />
+              <ViewButton active={viewMode === 'week'} onClick={() => setViewMode('week')} label={t.common_week} />
+              <ViewButton active={viewMode === 'month'} onClick={() => setViewMode('month')} label={t.common_month} />
             </div>
             <button
               onClick={openCreateModal}
               className="flex items-center px-4 py-2 bg-[#2979ff] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg"
             >
               <Plus className="w-4 h-4 mr-2" />
-              NEW EVENT
+              {t.cal_newEvent}
             </button>
           </div>
         </div>
 
         <div className="flex border-b border-white/5">
-          <TabButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<LayoutGrid className="w-4 h-4" />} label="Calendar" />
-          <TabButton active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<List className="w-4 h-4" />} label="Events" />
+          <TabButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<LayoutGrid className="w-4 h-4" />} label={t.cal_tabCalendar} />
+          <TabButton active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<List className="w-4 h-4" />} label={t.cal_tabEvents} />
         </div>
       </div>
 
@@ -359,54 +362,55 @@ export default function CalendarView() {
 }
 
 function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | null, onClose: () => void, defaultDate: string }) {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md glass-card rounded-[12px] border border-white/10 shadow-2xl overflow-hidden">
         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/2">
-          <h3 className="text-lg font-medium text-white">{event ? 'Event Details' : 'Create New Event'}</h3>
+          <h3 className="text-lg font-medium text-white">{event ? '{t.cal_eventDetails}' : '{t.cal_createEvent}'}</h3>
           <button onClick={onClose} className="p-1 text-gray-500 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-5">
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Event Title</label>
+            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_eventTitle}</label>
             <input
               type="text"
               defaultValue={event?.title || ''}
-              placeholder="e.g. Weekly Sync"
+              placeholder={t.cal_eventTitlePh}
               className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all"
               autoFocus
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Date</label>
+              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.common_date}</label>
               <input type="date" defaultValue={event?.date || defaultDate} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[#2979ff55] transition-all [color-scheme:dark]" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Time</label>
+              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_time}</label>
               <input type="time" defaultValue={event?.time || '10:00'} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[#2979ff55] transition-all [color-scheme:dark]" />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Location</label>
+            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_location}</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
-              <input type="text" defaultValue={event?.location || ''} placeholder="Add location" className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all" />
+              <input type="text" defaultValue={event?.location || ''} placeholder={t.cal_locationPh} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all" />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Description</label>
+            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_description}</label>
             <div className="relative">
               <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-gray-600" />
-              <textarea defaultValue={event?.description || ''} placeholder="Add details..." className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all h-24 resize-none" />
+              <textarea defaultValue={event?.description || ''} placeholder={t.cal_descriptionPh} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all h-24 resize-none" />
             </div>
           </div>
         </div>
         <div className="p-6 bg-white/2 border-t border-white/5 flex justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest">{t.common_cancel}</button>
           <button className="px-6 py-2 bg-[#2979ff] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 uppercase tracking-widest">
-            {event ? 'Update' : 'Create'}
+            {event ? t.common_update : t.common_create}
           </button>
         </div>
       </div>

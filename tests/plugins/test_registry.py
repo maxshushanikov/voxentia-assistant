@@ -1,5 +1,5 @@
-import pytest
 from voxentia.plugins.registry import PluginRegistry
+
 
 def test_registry_initialization():
     registry = PluginRegistry()
@@ -7,8 +7,8 @@ def test_registry_initialization():
     assert len(registry.plugin_classes) == 0
 
 def test_manual_registration():
-    from voxentia.plugins.base import VoxentiaPlugin, PluginMetadata
-    
+    from voxentia.plugins.base import PluginMetadata, VoxentiaPlugin
+
     class MockPlugin(VoxentiaPlugin):
         def get_metadata(self):
             return PluginMetadata(name="test", display_name="Test", version="1.0", description="Test", author="Test")

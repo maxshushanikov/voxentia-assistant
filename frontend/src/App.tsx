@@ -1,16 +1,24 @@
-import { useState, useRef, useCallback } from 'react';
-import { Sparkles, History } from 'lucide-react';
+import { History, Sparkles } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
+
 import Avatar from './components/Avatar';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
 import ChatArea from './components/ChatArea';
 import ChatInput from './components/ChatInput';
-import { useAudioManager } from './hooks/useAudioManager';
-import { speakerGenderMap } from './types';
-import type { Message, Language, Speaker, Personality } from './types';
-
+import Header from './components/Header';
 import SettingsView from './components/SettingsView';
+import Sidebar from './components/Sidebar';
+import {
+  useChatMutation,
+  useLoadSessionMutation,
+  useTranscribeMutation,
+  useUploadDocumentMutation,
+} from './hooks/useChatApi';
+import { useAudioManager } from './hooks/useAudioManager';
 import { plugins } from './plugins/registry';
+import type { Language, Message, Personality, Speaker } from './types';
+import { I18nProvider } from './i18n/context';
+import { formatMessage, getTranslations } from './i18n';
+import { speakerGenderMap } from './types';
 
 function generateSessionId() {
   return 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
@@ -29,98 +37,88 @@ function App() {
   const [sessionId, setSessionId] = useState<string>(generateSessionId);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const { 
-    isSpeaking, 
-    isRecording, 
-    mouthAlpha, 
+
+  const chatMutation = useChatMutation();
+  const transcribeMutation = useTranscribeMutation();
+  const uploadMutation = useUploadDocumentMutation();
+  const loadSessionMutation = useLoadSessionMutation();
+
+  const {
+    isSpeaking,
+    isRecording,
+    mouthAlpha,
     playAudio,
     unlockAudio,
-    startRecording, 
-    stopRecording 
+    startRecording,
+    stopRecording,
   } = useAudioManager();
 
-  const processResponse = useCallback(async (text: string, currentSessionId: string) => {
-    setIsThinking(true);
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+  const processResponse = useCallback(
+    async (text: string, currentSessionId: string) => {
+      setIsThinking(true);
+      try {
+        const data = await chatMutation.mutateAsync({
           message: text,
           session_id: currentSessionId,
           language,
           speaker,
-          personality
-        })
-      });
+          personality,
+        });
 
-      if (!response.ok) throw new Error('Failed to fetch response');
-      const data = await response.json();
-      
-      const assistantMsg: Message = {
-        role: 'assistant',
-        content: data.text,
-        id: (Date.now() + 1).toString()
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+        const assistantMsg: Message = {
+          role: 'assistant',
+          content: data.text,
+          id: (Date.now() + 1).toString(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
 
-      if (data.audio_url) {
-        playAudio(data.audio_url);
+        if (data.audio_url) {
+          await playAudio(data.audio_url);
+        } else {
+          console.warn('No audio_url in chat response — TTS may be unavailable');
+        }
+      } catch (error) {
+        console.error('Error in processing:', error);
+      } finally {
+        setIsThinking(false);
       }
-    } catch (error) {
-      console.error('Error in processing:', error);
-    } finally {
-      setIsThinking(false);
-    }
-  }, [language, speaker, personality, playAudio]);
+    },
+    [chatMutation, language, speaker, personality, playAudio],
+  );
 
   const handleSend = async () => {
     if (!inputText.trim() || isThinking) return;
 
-    // Unlock AudioContext within the user-gesture event (fixes browser autoplay block)
     unlockAudio();
-
     if (activePlugin) setActivePlugin(null);
 
     const userMsg: Message = {
       role: 'user',
       content: inputText,
-      id: Date.now().toString()
+      id: Date.now().toString(),
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     await processResponse(userMsg.content, sessionId);
   };
 
   const handleMicClick = async () => {
-    unlockAudio(); // Ensure audio can play when response arrives
+    unlockAudio();
     if (isRecording) {
       const blob = await stopRecording();
       if (blob) {
-        const formData = new FormData();
-        formData.append('audio', blob, 'recording.webm');
-        formData.append('language', language);
-        
         setIsThinking(true);
         try {
-          const response = await fetch('/api/transcribe', {
-            method: 'POST',
-            body: formData
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.text) {
-              const userMsg: Message = {
-                role: 'user',
-                content: data.text,
-                id: Date.now().toString()
-              };
-              setMessages(prev => [...prev, userMsg]);
-              await processResponse(data.text, sessionId);
-            }
+          const data = await transcribeMutation.mutateAsync({ blob, language });
+          if (data.text) {
+            const userMsg: Message = {
+              role: 'user',
+              content: data.text,
+              id: Date.now().toString(),
+            };
+            setMessages((prev) => [...prev, userMsg]);
+            await processResponse(data.text, sessionId);
           }
         } catch (error) {
           console.error('Transcription error:', error);
@@ -140,47 +138,70 @@ function App() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+    e.target.value = '';
+
+    const t = getTranslations(language);
     const userMsg: Message = {
       role: 'user',
-      content: `[Attached Document: ${file.name}]`,
-      id: Date.now().toString()
+      content: formatMessage(t.chat_docUploadUser, { name: file.name }),
+      id: Date.now().toString(),
     };
-    setMessages(prev => [...prev, userMsg]);
-    
+    setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
-    setTimeout(() => {
-      setIsThinking(false);
+
+    try {
+      const data = await uploadMutation.mutateAsync(file);
       const assistantMsg: Message = {
         role: 'assistant',
-        content: `I have received your document: **${file.name}**. How can I help you with it?`,
-        id: (Date.now() + 1).toString()
+        content: formatMessage(t.chat_docUploaded, {
+          name: file.name,
+          chunks: data.chunks ?? 0,
+        }),
+        id: (Date.now() + 1).toString(),
       };
-      setMessages(prev => [...prev, assistantMsg]);
-    }, 1500);
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (error) {
+      console.error('Document upload error:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: formatMessage(t.chat_docUploadError, { name: file.name }),
+          id: (Date.now() + 1).toString(),
+        },
+      ]);
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   const handleNewChat = () => {
-    // Save current session to history by refreshing sidebar
     if (messages.length > 0) {
-      setHistoryRefreshKey(k => k + 1);
+      setHistoryRefreshKey((k) => k + 1);
     }
-    // Create fresh session
     setSessionId(generateSessionId());
     setActivePlugin(null);
     setMessages([]);
     setInputText('');
   };
 
+  const handleSessionDeleted = (deletedId: string) => {
+    if (deletedId === '*' || deletedId === sessionId) {
+      setSessionId(generateSessionId());
+      setMessages([]);
+      setInputText('');
+      setActivePlugin(null);
+    }
+    setHistoryRefreshKey((k) => k + 1);
+  };
+
   const handleLoadSession = async (sid: string) => {
     try {
-      const response = await fetch(`/api/chat/history?session_id=${sid}`);
-      if (!response.ok) return;
-      const data = await response.json();
-      const historyMessages: Message[] = data.history.map((m: any, index: number) => ({
-        role: m.role,
+      const data = await loadSessionMutation.mutateAsync(sid);
+      const historyMessages: Message[] = data.history.map((m, index) => ({
+        role: m.role as Message['role'],
         content: m.content,
-        id: `hist-${sid}-${index}`
+        id: `hist-${sid}-${index}`,
       }));
       setSessionId(sid);
       setMessages(historyMessages);
@@ -193,111 +214,108 @@ function App() {
   const renderPluginView = () => {
     if (activePlugin === 'settings') {
       return (
-        <SettingsView 
-          language={language} setLanguage={setLanguage}
-          speaker={speaker} setSpeaker={setSpeaker}
-          personality={personality} setPersonality={setPersonality}
+        <SettingsView
+          language={language}
+          setLanguage={setLanguage}
+          speaker={speaker}
+          setSpeaker={setSpeaker}
+          personality={personality}
+          setPersonality={setPersonality}
         />
       );
     }
 
-    const plugin = plugins.find(p => p.id === activePlugin);
-    return plugin ? plugin.component : null;
+    const plugin = plugins.find((p) => p.id === activePlugin);
+    if (!plugin) return null;
+    const PluginComponent = plugin.component;
+    return <PluginComponent />;
   };
 
   return (
+    <I18nProvider language={language}>
     <div className="h-screen bg-[#0b0e14] text-gray-300 flex font-sans overflow-hidden relative">
-      
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        className="hidden" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
         accept=".pdf,.txt,.doc,.docx"
       />
 
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-        language={language}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         activePlugin={activePlugin}
         setActivePlugin={setActivePlugin}
         onNewChat={handleNewChat}
         onLoadSession={handleLoadSession}
+        onSessionDeleted={handleSessionDeleted}
+        activeSessionId={sessionId}
         historyRefreshKey={historyRefreshKey}
       />
 
       <main className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">
-        
-        {/* Left Half: Chat Area or Plugin View */}
-        <section className="flex-1 flex flex-col h-full border-r border-white/10 relative z-10">
-           
-           <Header 
-              onOpenSidebar={() => setIsSidebarOpen(true)}
-              language={language} setLanguage={setLanguage}
-              speaker={speaker} setSpeaker={setSpeaker}
-              personality={personality} setPersonality={setPersonality}
-              isSettingsOpen={isSettingsDropdownOpen}
-              setIsSettingsOpen={setIsSettingsDropdownOpen}
-           />
+        <section className="flex-1 flex flex-col h-full min-w-0 border-r border-white/10 relative z-10 overflow-hidden">
+          <Header
+            onOpenSidebar={() => setIsSidebarOpen(true)}
+            language={language}
+            setLanguage={setLanguage}
+            speaker={speaker}
+            setSpeaker={setSpeaker}
+            personality={personality}
+            setPersonality={setPersonality}
+            isSettingsOpen={isSettingsDropdownOpen}
+            setIsSettingsOpen={setIsSettingsDropdownOpen}
+          />
 
-           <div className="flex-1 flex flex-col overflow-hidden relative">
-             {activePlugin ? (
-               renderPluginView()
-             ) : (
-               <ChatArea 
-                  messages={messages} 
-                  isThinking={isThinking} 
-                  language={language}
-               />
-             )}
-           </div>
+          <div className="flex-1 flex flex-col overflow-hidden relative [scrollbar-gutter:stable]">
+            {activePlugin ? renderPluginView() : (
+              <ChatArea messages={messages} isThinking={isThinking} />
+            )}
+          </div>
 
-           <ChatInput 
-              inputText={inputText}
-              setInputText={setInputText}
-              onSend={handleSend}
-              onMicClick={handleMicClick}
-              onFileClick={handleFileClick}
-              onNewChat={handleNewChat}
-              isRecording={isRecording}
-              isThinking={isThinking}
-              language={language}
-           />
+          <ChatInput
+            inputText={inputText}
+            setInputText={setInputText}
+            onSend={handleSend}
+            onMicClick={handleMicClick}
+            onFileClick={handleFileClick}
+            onNewChat={handleNewChat}
+            isRecording={isRecording}
+            isThinking={isThinking}
+          />
         </section>
 
-        {/* Right Half: Avatar Area */}
-        <section className="flex-[0.8] lg:flex-1 relative bg-black/20 min-h-[400px] lg:min-h-0">
-           
-           {/* Top Right Buttons */}
-           <div className="absolute top-6 right-6 flex space-x-2 z-20">
-              <button className="w-10 h-10 flex items-center justify-center glass-card rounded-[4px] text-gray-400 hover:text-[#2979ff] transition-colors">
-                 <Sparkles className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setActivePlugin(null)}
-                className="w-10 h-10 flex items-center justify-center glass-card rounded-[4px] text-gray-400 hover:text-[#2979ff] transition-colors"
-              >
-                 <History className="w-4 h-4" />
-              </button>
-           </div>
+        <section className="w-full lg:w-[48%] lg:flex-none lg:shrink-0 relative bg-black/20 min-h-[400px] lg:min-h-0 h-full">
+          <div className="absolute top-6 right-6 flex space-x-2 z-20">
+            <button
+              type="button"
+              className="w-10 h-10 flex items-center justify-center glass-card rounded-[4px] text-gray-400 hover:text-[#2979ff] transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePlugin(null)}
+              className="w-10 h-10 flex items-center justify-center glass-card rounded-[4px] text-gray-400 hover:text-[#2979ff] transition-colors"
+            >
+              <History className="w-4 h-4" />
+            </button>
+          </div>
 
-           {/* Avatar Centered in this half */}
-           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-full">
-                <Avatar 
-                  isSpeaking={isSpeaking} 
-                  mouthAlpha={mouthAlpha} 
-                  gender={speakerGenderMap[speaker]}
-                />
-              </div>
-           </div>
-
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-full h-full">
+              <Avatar
+                isSpeaking={isSpeaking}
+                mouthAlpha={mouthAlpha}
+                gender={speakerGenderMap[speaker]}
+              />
+            </div>
+          </div>
         </section>
-
       </main>
-
     </div>
+    </I18nProvider>
   );
 }
 

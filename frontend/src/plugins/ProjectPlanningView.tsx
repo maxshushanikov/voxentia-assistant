@@ -1,6 +1,16 @@
 import { LayoutGrid, Target, Zap, MoreVertical, Plus } from 'lucide-react';
 
+import { useTranslation } from '../i18n/context';
+
 export default function ProjectPlanningView() {
+  const { t } = useTranslation();
+  const statusLabel = (s: string) =>
+    ({
+      "In Progress": t.project_inProgress,
+      Planning: t.project_planning,
+      Review: t.project_review,
+    } as Record<string, string>)[s] ?? s;
+
   const projects = [
     { title: 'Voxentia Core v3.5', status: 'In Progress', progress: 75, team: 4, tasks: 24 },
     { title: 'Mobile App Integration', status: 'Planning', progress: 12, team: 2, tasks: 8 },
@@ -11,22 +21,22 @@ export default function ProjectPlanningView() {
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#0b0e14]">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-light text-white mb-2">Project Planning</h1>
-          <p className="text-gray-500 text-sm">Strategic roadmap and project orchestration.</p>
+          <h1 className="text-3xl font-light text-white mb-2">{t.project_title}</h1>
+          <p className="text-gray-500 text-sm">{t.project_subtitle}</p>
         </div>
         <button className="flex items-center px-4 py-2 bg-[#2979ff] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg">
           <Plus className="w-4 h-4 mr-2" />
-          CREATE PROJECT
+          {t.project_create}
         </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         {/* Statistics row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-           <StatsBox label="ACTIVE PROJECTS" value="12" />
-           <StatsBox label="TOTAL TASKS" value="482" />
-           <StatsBox label="TEAM MEMBERS" value="18" />
-           <StatsBox label="EFFICIENCY" value="94%" />
+           <StatsBox label={t.project_activeProjects} value="12" />
+           <StatsBox label={t.project_totalTasks} value="482" />
+           <StatsBox label={t.project_teamMembers} value="18" />
+           <StatsBox label={t.project_efficiency} value="94%" />
         </div>
 
         {/* Project cards */}
@@ -40,7 +50,7 @@ export default function ProjectPlanningView() {
                       </div>
                       <div>
                          <h4 className="text-white font-medium group-hover:text-[#2979ff] transition-colors">{p.title}</h4>
-                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{p.status}</span>
+                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{statusLabel(p.status)}</span>
                       </div>
                    </div>
                    <button className="text-gray-600 hover:text-white transition-colors">

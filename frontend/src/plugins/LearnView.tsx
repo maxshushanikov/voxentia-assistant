@@ -1,9 +1,19 @@
 import { useState } from 'react';
-import { 
-  Brain, FileText, Languages, 
-  ArrowRight, Zap, Sparkles, 
-  MessageCircle, Mic, Globe, Briefcase
+import {
+  Brain,
+  FileText,
+  Languages,
+  ArrowRight,
+  Sparkles,
+  MessageCircle,
+  Mic,
+  Globe,
+  Briefcase,
+  Award,
 } from 'lucide-react';
+
+import { useTranslation } from '../i18n/context';
+import PluginPlaceholder from './PluginPlaceholder';
 
 type LearnMode = 'dashboard' | 'flashcards' | 'summarize' | 'speaking';
 
@@ -14,21 +24,8 @@ export default function LearnView() {
     switch (mode) {
       case 'dashboard': return <Dashboard onSelect={setMode} />;
       case 'speaking': return <LanguageTraining onBack={() => setMode('dashboard')} />;
-      default: return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8">
-           <div className="w-16 h-16 bg-[#2979ff]/10 rounded-full flex items-center justify-center mb-6">
-              <Zap className="w-8 h-8 text-[#2979ff] animate-pulse" />
-           </div>
-           <h2 className="text-2xl font-light text-white mb-2">Knowledge Module</h2>
-           <p className="text-gray-500 max-w-md mb-8">This feature is currently being optimized for real-time knowledge generation.</p>
-           <button 
-             onClick={() => setMode('dashboard')}
-             className="px-6 py-2 border border-white/10 rounded-[4px] text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all"
-           >
-             BACK TO DASHBOARD
-           </button>
-        </div>
-      );
+      default:
+        return <PluginPlaceholder onBack={() => setMode('dashboard')} />;
     }
   };
 
@@ -40,33 +37,35 @@ export default function LearnView() {
 }
 
 function Dashboard({ onSelect }: { onSelect: (m: LearnMode) => void }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
       <div className="mb-12">
-        <h1 className="text-3xl font-light text-white mb-2">Learn Assistant</h1>
-        <p className="text-gray-500 text-sm">AI-accelerated learning and language mastery.</p>
+        <h1 className="text-3xl font-light text-white mb-2">{t.learn_title}</h1>
+        <p className="text-gray-500 text-sm">{t.learn_subtitle}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <LearnTile 
-          icon={<Brain className="w-6 h-6" />} 
-          title="Create Flashcards" 
-          description="Transform any topic into interactive flashcards for optimized retention."
-          buttonLabel="Create"
+        <LearnTile
+          icon={<Brain className="w-6 h-6" />}
+          title={t.learn_flashcards}
+          description={t.learn_flashcardsDesc}
+          buttonLabel={t.common_create}
           onClick={() => onSelect('flashcards')}
         />
-        <LearnTile 
-          icon={<FileText className="w-6 h-6" />} 
-          title="Summarize Materials" 
-          description="Extract key concepts from PDFs, articles, or complex documents."
-          buttonLabel="Summarize"
+        <LearnTile
+          icon={<FileText className="w-6 h-6" />}
+          title={t.learn_summarize}
+          description={t.learn_summarizeDesc}
+          buttonLabel={t.learn_summarize}
           onClick={() => onSelect('summarize')}
         />
-        <LearnTile 
-          icon={<Languages className="w-6 h-6" />} 
-          title="Voxentia Speaking" 
-          description="Immersive language training with real-time pronunciation feedback."
-          buttonLabel="Start"
+        <LearnTile
+          icon={<Languages className="w-6 h-6" />}
+          title={t.learn_speaking}
+          description={t.learn_speakingDesc}
+          buttonLabel={t.job_startSimulation}
           onClick={() => onSelect('speaking')}
           highlight
         />
@@ -193,4 +192,3 @@ function LanguageTraining({ onBack }: { onBack: () => void }) {
   );
 }
 
-import { Award } from 'lucide-react';
