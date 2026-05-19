@@ -1,192 +1,228 @@
-import os
-import torch
 import hashlib
-import traceback
+import logging
+import os
 import re
+import time
+import traceback
 from pathlib import Path
-from flask import Flask, request, jsonify, send_from_directory
+
+import torch
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-# Configuration
-AUDIO_PATH = Path("/app/audio")
-AUDIO_PATH.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("tts-server")
 
-device = torch.device('cpu')
+AUDIO_PATH = Path(os.getenv("AUDIO_PATH", "/app/tts-cache"))
+AUDIO_PATH.mkdir(parents=True, exist_ok=True)
+MAX_AUDIO_AGE_SECONDS = int(os.getenv("TTS_CACHE_MAX_AGE_SECONDS", str(7 * 24 * 3600)))
+
+device = torch.device("cpu")
 torch.set_num_threads(4)
 
-# Models cache
 models = {}
 
-def get_model(language):
+
+def cleanup_stale_audio() -> int:
+    """Remove wav files older than MAX_AUDIO_AGE_SECONDS."""
+    removed = 0
+    now = time.time()
+    for wav in AUDIO_PATH.glob("*.wav"):
+        try:
+            if now - wav.stat().st_mtime > MAX_AUDIO_AGE_SECONDS:
+                wav.unlink()
+                removed += 1
+        except OSError as e:
+            logger.warning("Could not remove %s: %s", wav, e)
+    if removed:
+        logger.info("Cleaned up %d stale audio file(s)", removed)
+    return removed
+
+
+def get_model(language: str):
     if language in models:
         return models[language]
-    
-    print(f"Loading Silero TTS model for language: {language}...")
-    # Map requested language to Silero model names
+
+    logger.info("Loading Silero TTS model for language: %s", language)
     lang_map = {
-        'ru': ('ru', 'v4_ru'),
-        'en': ('en', 'v3_en'),
-        'de': ('de', 'v3_de')
+        "ru": ("ru", "v4_ru"),
+        "en": ("en", "v3_en"),
+        "de": ("de", "v3_de"),
     }
-    
+
     if language not in lang_map:
-        print(f"Language {language} not supported, falling back to English")
-        language = 'en'
-        
+        logger.warning("Language %s not supported, falling back to English", language)
+        language = "en"
+
     silero_lang, silero_model = lang_map[language]
-    
+
     try:
         model, _ = torch.hub.load(
-            repo_or_dir='snakers4/silero-models',
-            model='silero_tts',
+            repo_or_dir="snakers4/silero-models",
+            model="silero_tts",
             language=silero_lang,
             speaker=silero_model,
-            trust_repo=True
+            trust_repo=True,
         )
         model.to(device)
         models[language] = model
-        print(f"Model for {language} loaded successfully")
+        logger.info("Model for %s loaded successfully", language)
         return model
     except Exception as e:
-        print(f"Error loading model for {language}: {e}")
+        logger.error("Error loading model for %s: %s", language, e)
         return None
 
-# Pre-load default language (Russian as requested previously, or English)
-get_model('ru')
-get_model('en')
-get_model('de')
 
-def sanitize_text(text):
-    """Removes markdown and actions from text before TTS."""
+def sanitize_text(text: str) -> str:
     if not text:
         return ""
-    # Remove markdown asterisks, backticks, tildes
-    text = re.sub(r'[*_~`]', '', text)
-    # Remove bracketed/parenthesized text (like [laughs], (smiles))
-    text = re.sub(r'\[.*?\]|\(.*?\)', '', text)
-    # Replace newlines with spaces
-    text = text.replace('\n', ' ').replace('\r', ' ')
-    # Condense multiple spaces
-    text = re.sub(r'  +', ' ', text)
+    text = re.sub(r"[*_~`]", "", text)
+    text = re.sub(r"\[.*?\]|\(.*?\)", "", text)
+    text = text.replace("\n", " ").replace("\r", " ")
+    text = re.sub(r"  +", " ", text)
     return text.strip()
 
-def split_text(text, max_chars=250):
-    """Splits text into chunks of max_chars, preferably at sentence boundaries."""
-    # Split by punctuation but keep the punctuation
-    parts = re.split(r'([.!?]+)', text)
-    chunks = []
-    current_chunk = ""
-    
-    for i in range(0, len(parts), 2):
-        sentence = parts[i]
-        punct = parts[i+1] if i+1 < len(parts) else ""
-        full_sentence = sentence + punct
-        
-        if len(current_chunk) + len(full_sentence) < max_chars:
-            current_chunk += full_sentence
+
+def split_text(text: str, max_chars: int = 250) -> list[str]:
+    """Split on sentence boundaries; avoids re.split empty-string edge cases."""
+    if not text:
+        return []
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+    if not sentences:
+        return [text[:max_chars]] if text else []
+
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        if len(current) + len(sentence) + 1 <= max_chars:
+            current = f"{current} {sentence}".strip()
         else:
-            if current_chunk:
-                chunks.append(current_chunk.strip())
-            current_chunk = full_sentence
-            
-    if current_chunk:
-        chunks.append(current_chunk.strip())
-        
+            if current:
+                chunks.append(current)
+            if len(sentence) <= max_chars:
+                current = sentence
+            else:
+                for i in range(0, len(sentence), max_chars):
+                    chunks.append(sentence[i : i + max_chars])
+                current = ""
+    if current:
+        chunks.append(current)
     return chunks
+
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "healthy", "service": "tts-server"})
+
 
 @app.route("/tts", methods=["POST"])
 def tts():
     try:
-        data = request.json
-        text = data.get("text", "")
+        cleanup_stale_audio()
+        data = request.json or {}
+        raw_text = data.get("text", "")
         speaker = data.get("speaker", "baya")
-        language = data.get("language", "ru")
-        
-        print(f"🔊 [TTS] GENERATING AUDIO | Language: {language} | Speaker: {speaker} | Text: {text[:50]}...")
-        
+        language = data.get("language", "en")
+        text = sanitize_text(raw_text)
+
+        logger.info(
+            "TTS request | lang=%s speaker=%s chars=%d",
+            language,
+            speaker,
+            len(text),
+        )
+
         if not text:
-            return jsonify({"error": "No text provided"}), 400
-            
+            return jsonify({"error": "No speakable text after sanitization"}), 400
+
         model = get_model(language)
         if not model:
             return jsonify({"error": f"Model for {language} not available"}), 500
 
         sample_rate = 48000
-        
-        # Split text into manageable chunks
         text_chunks = split_text(text)
-        print(f"Generating TTS for {len(text_chunks)} chunks...")
-        
+        logger.info("Generating TTS for %d chunk(s)", len(text_chunks))
+
         audio_tensors = []
         for chunk in text_chunks:
             if not chunk.strip():
                 continue
-            
-            # For EN/DE models, speakers might be different. 
-            # Silero v3_en speakers: en_0, en_1, ... en_117
-            # Silero v3_de speakers: de_0, de_1, de_2, de_3, de_4, de_5
-            # We map generic names if needed
-            effective_speaker = speaker
-            if language == 'en':
-                en_map = {'baya': 'en_0', 'kseniya': 'en_2', 'eugene': 'en_1', 'aidar': 'en_3'}
-                effective_speaker = en_map.get(speaker, 'en_0')
-            elif language == 'de':
-                de_map = {'baya': 'eva_k', 'kseniya': 'hokuspokus', 'eugene': 'bernd_ungerer', 'aidar': 'friedrich'}
-                effective_speaker = de_map.get(speaker, 'eva_k')
 
-            # Skip chunk if it only contains punctuation or spaces
-            clean_chunk = sanitize_text(chunk)
-            if not clean_chunk or re.fullmatch(r'[.,!?;\-\s]+', clean_chunk):
+            effective_speaker = speaker
+            if language == "en":
+                en_map = {"baya": "en_0", "kseniya": "en_2", "eugene": "en_1", "aidar": "en_3"}
+                effective_speaker = en_map.get(speaker, "en_0")
+            elif language == "de":
+                de_map = {
+                    "baya": "eva_k",
+                    "kseniya": "hokuspokus",
+                    "eugene": "bernd_ungerer",
+                    "aidar": "friedrich",
+                }
+                effective_speaker = de_map.get(speaker, "eva_k")
+
+            clean_chunk = chunk.strip()
+            if not clean_chunk or re.fullmatch(r"[.,!?;\-\s]+", clean_chunk):
                 continue
 
             try:
                 chunk_audio = model.apply_tts(
                     text=clean_chunk,
                     speaker=effective_speaker,
-                    sample_rate=sample_rate
+                    sample_rate=sample_rate,
                 )
                 audio_tensors.append(chunk_audio)
             except Exception as e:
-                print(f"Error in apply_tts for chunk '{clean_chunk[:20]}': {e}")
-                # Try fallback speaker if current one fails
-                fallback = 'en_0' if language == 'en' else ('eva_k' if language == 'de' else 'baya')
+                logger.warning("apply_tts failed for chunk: %s", e)
+                fallback = "en_0" if language == "en" else ("eva_k" if language == "de" else "baya")
                 try:
-                    chunk_audio = model.apply_tts(text=clean_chunk, speaker=fallback, sample_rate=sample_rate)
+                    chunk_audio = model.apply_tts(
+                        text=clean_chunk, speaker=fallback, sample_rate=sample_rate
+                    )
                     audio_tensors.append(chunk_audio)
                 except Exception as e2:
-                    print(f"Fallback apply_tts also failed for chunk '{clean_chunk[:20]}': {e2}")
-            
+                    logger.error("Fallback apply_tts failed: %s", e2)
+
         if not audio_tensors:
-            print("Warning: Failed to generate any audio tensors. Returning empty or error.")
             return jsonify({"error": "Failed to generate audio for any text chunk"}), 500
 
         full_audio = torch.cat(audio_tensors)
-        
         text_hash = hashlib.md5(f"{language}:{speaker}:{text}".encode()).hexdigest()
         filename = f"{text_hash}.wav"
         filepath = AUDIO_PATH / filename
-        
+
         import torchaudio
+
         torchaudio.save(str(filepath), full_audio.unsqueeze(0), sample_rate)
-        
-        print(f"✅ [TTS] Saved to {filename}", flush=True)
-        
-        return jsonify({
-            "audio_url": f"/audio/{filename}",
-            "filename": filename
-        })
-        
+        logger.info("Saved TTS audio: %s", filename)
+
+        return jsonify({"audio_url": f"/audio/{filename}", "filename": filename})
+
     except Exception as e:
-        print(f"TTS error: {e}")
+        logger.exception("TTS error: %s", e)
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/audio/<filename>")
 def get_audio(filename):
     return send_from_directory(AUDIO_PATH, filename)
+
+
+# Warm up models on startup
+try:
+    logger.info("Warming up TTS models on startup (en, de, ru)...")
+    for lang in ["en", "de", "ru"]:
+        get_model(lang)
+except Exception as e:
+    logger.error("Failed to warm up models: %s", e)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)

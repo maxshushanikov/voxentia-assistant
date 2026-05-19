@@ -10,76 +10,11 @@ export class UiControls {
         const micBtn = document.getElementById('micBtn');
         const callBtn = document.getElementById('callBtn');
         const webcamBtn = document.getElementById('webcamBtn');
+        const emojiSelect = document.getElementById('emojiSelect');
         const modelSelect = document.getElementById('modelSelect');
         const testSoundBtn = document.getElementById('testSoundBtn');
-        const startLangButtons = document.querySelectorAll('.start-lang-btn');
-        const personaSelect = document.getElementById('personaSelect');
+        const langButtons = document.querySelectorAll('.lang-btn');
         const speakerSelect = document.getElementById('speakerSelect');
-        const toggleSearch = document.getElementById('toggleSearch');
-        const inputAttachBtn = document.getElementById('inputAttachBtn');
-        const topProgress = document.getElementById('topProgress');
-
-        // Initial Tool Chip State
-        if (toggleSearch && appState.toolsEnabled) {
-            toggleSearch.classList.add('active');
-        }
-
-        // Handle Search Toggle
-        if (toggleSearch) {
-            toggleSearch.addEventListener('click', () => {
-                const newState = !appState.toolsEnabled;
-                appState.update('toolsEnabled', newState);
-                toggleSearch.classList.toggle('active', newState);
-                console.log(`🔍 Tools (Search) enabled: ${newState}`);
-                
-                if (this.app.showError) {
-                    const msg = newState ? 'Web Search Enabled' : 'Web Search Disabled';
-                    this.app.showError(msg);
-                }
-            });
-        }
-
-        // Handle Start Screen Language Buttons
-        startLangButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                startLangButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const lang = btn.getAttribute('data-lang');
-
-                this.applyLanguageChange(lang);
-                console.log(`🌐 Language changed via Start-Btn to: ${lang}`);
-            });
-        });
-
-        // Handle Persona Select
-        if (personaSelect) {
-            personaSelect.addEventListener('change', (e) => {
-                const persona = e.target.value;
-                appState.update('avatar.personality', persona);
-                console.log(`🎭 Persona changed to: ${persona}`);
-            });
-        }
-
-        const langSelect = document.getElementById('langSelect');
-
-        // Handle Language Select (Live switching)
-        if (langSelect) {
-            langSelect.addEventListener('change', (e) => {
-                const lang = e.target.value;
-                
-                // Sync with start screen buttons
-                startLangButtons.forEach(btn => {
-                    btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
-                });
-
-                if (this.app.handleLanguageChange) {
-                    this.app.handleLanguageChange(lang);
-                } else {
-                    appState.update('language', lang);
-                }
-                console.log(`🌐 Language changed to: ${lang}`);
-            });
-        }
 
         if (micBtn) micBtn.addEventListener('click', () => this.app.handleMicToggle());
         if (callBtn) callBtn.addEventListener('click', () => this.app.handleCallToggle());
@@ -87,13 +22,8 @@ export class UiControls {
 
         const uploadBtn = document.getElementById('uploadBtn');
         const fileInput = document.getElementById('fileInput');
-        
-        const triggerUpload = () => fileInput.click();
-
-        if (uploadBtn) uploadBtn.addEventListener('click', triggerUpload);
-        if (inputAttachBtn) inputAttachBtn.addEventListener('click', triggerUpload);
-
-        if (fileInput) {
+        if (uploadBtn && fileInput) {
+            uploadBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -101,30 +31,36 @@ export class UiControls {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                if (topProgress) topProgress.classList.remove('hidden');
+                const originalText = uploadBtn.textContent;
+                uploadBtn.textContent = '⏳ ...';
                 uploadBtn.disabled = true;
 
                 try {
-                    const apiUrl = '/api/documents/upload';
+                    // Get API host dynamically from the current URL if possible, fallback to localhost:8000
+                    const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                        ? `http://${window.location.hostname}:8000/api/documents/upload`
+                        : '/api/documents/upload';
+
                     const response = await fetch(apiUrl, {
                         method: 'POST',
                         body: formData
                     });
 
                     if (response.ok) {
-                        appState.update('activeDocument', file.name);
-                        this.updateActiveDocumentIndicator(file.name);
-                        if (this.app.showError) this.app.showError('✅ ' + (i18n.t('upload_success') || 'Document uploaded successfully'));
+                        uploadBtn.textContent = '✅ OK';
                     } else {
                         const err = await response.json();
-                        if (this.app.showError) this.app.showError('❌ ' + (err.detail || 'Upload failed'));
+                        alert('Upload failed: ' + (err.detail || 'Unknown error'));
+                        uploadBtn.textContent = '❌ Fail';
                     }
                 } catch (error) {
                     console.error('Upload error:', error);
-                    if (this.app.showError) this.app.showError('❌ Error connecting to server');
+                    uploadBtn.textContent = '❌ Error';
                 } finally {
-                    if (topProgress) topProgress.classList.add('hidden');
-                    uploadBtn.disabled = false;
+                    setTimeout(() => {
+                        uploadBtn.textContent = originalText;
+                        uploadBtn.disabled = false;
+                    }, 3000);
                     fileInput.value = '';
                 }
             });
@@ -144,6 +80,11 @@ export class UiControls {
             });
         }
 
+        if (emojiSelect) {
+            emojiSelect.addEventListener('change', (e) => {
+                if (this.app.avatar) this.app.avatar.setEmotion(e.target.value);
+            });
+        }
 
         if (modelSelect) {
             modelSelect.addEventListener('change', (e) => this.app.handleModelChange(e.target.value));
@@ -171,8 +112,27 @@ export class UiControls {
             });
         }
 
+        // Language Selection Handling
+        if (langButtons) {
+            langButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const lang = btn.getAttribute('data-lang');
+                    appState.update('language', lang);
 
+                    // Update active button state
+                    langButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
 
+                    // Trigger UI translation update FIRST
+                    if (this.app.updateUiTranslations) {
+                        this.app.updateUiTranslations();
+                    }
+
+                    // Update Speaker Dropdown for the new language AFTER translations are updated
+                    this.updateSpeakerDropdown(lang);
+                });
+            });
+        }
 
         const startBtn = document.getElementById('startBtn');
         const startOverlay = document.getElementById('start-overlay');
@@ -199,43 +159,12 @@ export class UiControls {
             backBtn.addEventListener('click', async () => {
                 // Clear chat and reset session to prevent cross-language context
                 if (this.app.chat) await this.app.chat.clearChat();
-                appState.update('activeDocument', null);
-                this.updateActiveDocumentIndicator(null);
                 appState.update('session.sessionId', 'session_' + Math.random().toString(36).substr(2, 9));
 
                 mainLayout.classList.add('hidden');
                 startOverlay.classList.remove('hidden', 'fade-out');
             });
         }
-    }
-
-    updateActiveDocumentIndicator(filename) {
-        const indicator = document.getElementById('activeDocIndicator');
-        if (!indicator) return;
-
-        if (filename) {
-            indicator.classList.remove('hidden');
-            const nameEl = indicator.querySelector('.doc-name');
-            if (nameEl) nameEl.textContent = filename;
-        } else {
-            indicator.classList.add('hidden');
-        }
-    }
-
-    applyLanguageChange(lang) {
-        appState.update('language', lang);
-
-        // Sync dropdown
-        const langSelect = document.getElementById('langSelect');
-        if (langSelect) langSelect.value = lang;
-
-        // Trigger UI translation update FIRST
-        if (this.app.updateUiTranslations) {
-            this.app.updateUiTranslations();
-        }
-
-        // Update Speaker Dropdown for the new language AFTER translations are updated
-        this.updateSpeakerDropdown(lang);
     }
 
     updateSpeakerDropdown(lang) {

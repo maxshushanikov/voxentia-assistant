@@ -3,15 +3,9 @@
  */
 export class State {
     constructor() {
-        const savedSessionId = localStorage.getItem('voxentia_session_id');
-        const sessionId = savedSessionId || 'session_' + Math.random().toString(36).substr(2, 9);
-        if (!savedSessionId) {
-            localStorage.setItem('voxentia_session_id', sessionId);
-        }
-
         this.session = {
             status: 'disconnected', // disconnected, connecting, connected, error
-            sessionId: sessionId
+            sessionId: 'session_' + Math.random().toString(36).substr(2, 9)
         };
 
         this.chat = {
@@ -25,8 +19,7 @@ export class State {
             currentModel: '/assets/avatar_masculine.glb', // Default
             gender: 'masculine',
             speaker: 'eugene',
-            emotion: 'neutral',
-            personality: 'professional'
+            emotion: 'neutral'
         };
 
         this.voices = {
@@ -57,8 +50,6 @@ export class State {
         };
 
         this.language = 'en';
-        this.toolsEnabled = true;
-        this.activeDocument = null;
 
         this.listeners = [];
     }

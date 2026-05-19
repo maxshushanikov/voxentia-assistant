@@ -2,9 +2,15 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "11434:11434"
+      - "11435:11434"
     volumes:
       - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - avatar-network
 
@@ -19,7 +25,16 @@ services:
     entrypoint: >
       /bin/sh -c "
       echo 'Waiting for Ollama to be ready...' &&
-      until ollama list > /dev/null 2>&1; do sleep 2; done &&
+      MAX_RETRIES=30 &&
+      COUNT=0 &&
+      until ollama list > /dev/null 2>&1; do
+        COUNT=$$((COUNT+1)) &&
+        if [ $$COUNT -ge $$MAX_RETRIES ]; then
+          echo 'Ollama did not start in time. Exiting.' &&
+          exit 1
+        fi &&
+        sleep 5
+      done &&
       echo 'Pulling phi3 model...' &&
       ollama pull phi3 &&
       echo 'Pulling nomic-embed-text model...' &&
@@ -31,8 +46,16 @@ services:
     build: ./tts-server
     ports:
       - "5002:5002"
+    environment:
+      - AUDIO_PATH=/app/tts-cache
     volumes:
       - tts-cache:/app/tts-cache
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5002/health', timeout=3)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - avatar-network
 
@@ -44,26 +67,54 @@ services:
       - whisper-cache:/root/.cache/huggingface
     environment:
       - WHISPER_MODEL=base
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5003/health', timeout=3)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
     networks:
       - avatar-network
 
-  avatar-server:
+  backend:
     build:
       context: .             
-      dockerfile: backend/Dockerfile 
+      dockerfile: deployment/docker/backend.Dockerfile 
     ports:
       - "8000:8000"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - TTS_URL=http://tts-server:5002
+      - WHISPER_URL=http://whisper-server:5003
     volumes:
+      - ./core:/app/core
+      - ./backend:/app/backend
+      - ./plugins:/app/plugins
       - ./data:/app/data
-      - ./assets:/app/assets 
-      - ./frontend:/app/frontend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       ollama-init:
         condition: service_completed_successfully
       tts-server:
-        condition: service_started
+        condition: service_healthy
       whisper-server:
-        condition: service_started
+        condition: service_healthy
+    networks:
+      - avatar-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deployment/docker/frontend.Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
     networks:
       - avatar-network
 

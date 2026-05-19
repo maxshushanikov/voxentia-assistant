@@ -1,53 +1,69 @@
-# 🎨 Voxentia Frontend
+# Voxentia Frontend
 
-The Voxentia frontend is a modern, modular web application built with vanilla JavaScript and Material Design 3 principles.
+React 19 + TypeScript + Vite 8 + Tailwind CSS 4 + Three.js (React Three Fiber).
 
-## 🚀 Technology Stack
-- **Styling**: Vanilla CSS with **Material Design 3 (MD3)** components
-- **3D Engine**: [Three.js](https://threejs.org/) for real-time avatar rendering
-- **Iconography**: [Google Material Symbols](https://fonts.google.com/icons)
-- **Audio**: Web Audio API for playback and microphone management
-- **Architecture**: Modular ES6 Modules (No bundler needed)
+## Structure
 
-## 📂 Directory Structure
-
-```
-frontend/
-├── index.html              # Main entry point & MD3 layout
-└── static/
-    ├── main.js             # App Controller & I18n initialization
-    ├── components/         # MD3 UI Components
-    │   ├── Chat/           # Chat list & message handling
-    │   └── UiControls/     # Selects, Buttons, and Sidebar logic
-    ├── modules/            # Core business logic
-    │   ├── avatar/         # Avatar animation & GLB management
-    │   ├── audio/          # AudioManager & Microphone Reset logic
-    │   ├── scene/          # Three.js lighting, cameras, and loaders
-    │   └── core/           # State Management (appState) & I18n
-    └── styles/             # Main CSS & MD3 tokens
+```text
+frontend/src/
+├── App.tsx              # Main layout, chat flow, TanStack Query
+├── components/
+│   ├── Avatar.tsx       # 3D avatar (Bounds/Center auto-fit)
+│   ├── Sidebar.tsx      # Plugins, history (preview + show all), delete
+│   ├── ChatArea.tsx
+│   └── ...
+├── hooks/
+│   ├── useAudioManager.ts   # Web Audio playback + lip-sync analyser
+│   └── useChatApi.ts        # React Query mutations
+├── api/
+│   ├── client.ts        # fetch wrapper + X-Request-ID
+│   ├── chat.ts          # API functions
+│   └── schema.d.ts      # Generated from OpenAPI
+├── i18n/index.ts        # Loads JSON from ../../i18n/locales
+└── plugins/             # Plugin UI panels + registry
 ```
 
-## 🛠️ Key Systems
+## Scripts
 
-### 1. Material Design 3 UI
-The layout uses a **Navigation Rail** for primary navigation and a **Top App Bar** for contextual settings. Buttons are styled as **Outlined FABs** or **Circular Icon Buttons**, following Google's latest design specifications.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Vite dev server (proxies `/api` → :8000) |
+| `npm run build` | Production build → `dist/` |
+| `npm run test` | Vitest unit tests |
+| `npm run lint` | ESLint |
+| `npm run generate:api` | Regenerate `src/api/schema.d.ts` |
 
-### 2. Reactive State Management
-The `State.js` module provides a lightweight, reactive store. Components can `subscribe` to changes (e.g., language switch, personality change) and update the UI automatically.
+## i18n
 
-### 3. Internationalization (I18n)
-All UI text is externalized in `I18n.js`. The `main.js` controller handles dynamic DOM translation while preserving icons and interactive elements.
+UI strings live in **`/i18n/locales/{en,de,ru}/ui.json`** (single source of truth).  
+Vite alias: `@i18n` → `../i18n/locales`.
 
-### 4. Audio Recovery (Nuclear Reset)
-To handle browser-level microphone locks, the `AudioManager` implements a "Nuclear Reset" strategy: it closes the AudioContext, waits for a hardware release, and attempts a fresh `getUserMedia` call automatically.
+## 3D Avatar
 
-## 🖥️ Development
+- Models: `/assets/avatar_feminine.glb`, `/assets/avatar_masculine.glb` (served by backend/nginx).
+- `@react-three/drei` **Bounds** + **Center** auto-frame the model in the canvas.
+- Lip-sync via morph targets (`mouthOpen`, `jawOpen`, etc.) driven by `useAudioManager`.
 
-Since the app uses native ES modules, you can serve it with any simple static file server:
+## History UI
+
+- Sidebar shows up to **8** recent chats by default.
+- **Show all** / **Alle anzeigen** expands the full list.
+- Hover a chat → trash icon → `DELETE /api/sessions/{id}`.
+- When expanded: **Delete all** clears every session.
+
+## Docker build
+
+Uses `deployment/docker/frontend.Dockerfile`:
+
+- Copies `frontend/.npmrc` (legacy-peer-deps) before `npm ci`
+- Copies `i18n/` for locale JSON imports
+- Nginx serves `dist/` on port 80
+
+## Local development
 
 ```bash
-# Using Python
-python -m http.server 8000
+npm install
+npm run dev
 ```
 
-The frontend expects the backend API to be available at `http://localhost:8000/api`.
+Ensure the backend is running on port 8000 (or adjust `vite.config.ts` proxy).

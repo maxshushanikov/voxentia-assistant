@@ -1,4 +1,3 @@
-```
 # Python
 __pycache__/
 *.py[cod]
@@ -20,18 +19,17 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
-# Virtual environments
+.venv/
 venv/
 ENV/
 env.bak/
-.venv/
 
 # Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+frontend/dist/
 
 # IDE
 .vscode/
@@ -47,10 +45,25 @@ yarn-error.log*
 .env.local
 .env.*
 
-# Coverage
+# Runtime data & caches
+data/
+ollama_data/
+ollama_data/**
+!ollama_data/.gitignore
+!ollama_data/README.md
+**/id_ed25519
+**/id_ed25519.pub
+**/model-recommendations.json
+*.db
+*.sqlite3
+
+# Coverage & test artifacts
 .coverage
 htmlcov/
 .coverage.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Build outputs
 dist/
@@ -61,4 +74,3 @@ build/
 # OS
 .DS_Store
 Thumbs.db
-```

@@ -3,18 +3,18 @@ import { Scene, Group, AnimationMixer, LoopOnce } from 'three';
 export class AvatarController {
     constructor(sceneManager) {
         this.sceneManager = sceneManager;
-        this.avatar = null;         // The loaded GLB scene
-        this.mixer = null;          // AnimationMixer for skeletal animations
-        this.animations = new Map(); // Store for all animation clips
+        this.avatar = null;
+        this.mixer = null;
+        this.animations = new Map();
         this.currentAnimation = null;
         this.isSpeaking = false;
         this.currentEmotion = 'neutral';
-        this.morphMeshes = [];      // Meshes that support morph targets (lip-sync, blinking)
-        this.mouthAlpha = 0;        // Current mouth opening value
+        this.morphMeshes = [];
+        this.mouthAlpha = 0;
 
         // Autonomous Behavior state
         this.blinkTimer = 0;
-        this.blinkTarget = 2 + Math.random() * 3; // Time until next blink
+        this.blinkTarget = 2 + Math.random() * 3;
         this.isBlinking = false;
         this.blinkDuration = 0.15;
     }
@@ -208,10 +208,6 @@ export class AvatarController {
     }
 
     update(deltaTime, volume = 0) {
-        /**
-         * Main animation update loop. Called on every frame.
-         * Updates skeletal animations, autonomous blinking, and lip-sync based on audio volume.
-         */
         const time = performance.now() * 0.001;
 
         if (this.mixer) {
@@ -262,10 +258,6 @@ export class AvatarController {
     }
 
     setSpeaking(speaking) {
-        /**
-         * Switches the avatar between idle and talking states.
-         * Plays random talk variations for a more natural look.
-         */
         if (this.isSpeaking === speaking) return;
         this.isSpeaking = speaking;
 

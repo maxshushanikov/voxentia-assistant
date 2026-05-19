@@ -1,69 +1,64 @@
-/* ============================================================
-   AURA AI — Design Tokens & Base Reset  (variables.css)
-   ============================================================ */
-
 :root {
-  /* Colors */
-  --color-bg:            #080810;
-  --color-surface:       rgba(18, 18, 30, 0.85);
-  --color-surface-solid: #12121e;
-  --color-glass:         rgba(255, 255, 255, 0.04);
-  --color-glass-strong:  rgba(255, 255, 255, 0.07);
-  --color-primary:       #6366f1;
-  --color-primary-dark:  #4f46e5;
-  --color-primary-glow:  rgba(99, 102, 241, 0.35);
-  --color-accent:        #a78bfa;
-  --color-text:          #f1f1f8;
-  --color-text-muted:    #6b7280;
-  --color-text-sub:      #9ca3af;
-  --color-border:        rgba(255, 255, 255, 0.07);
-  --color-border-strong: rgba(255, 255, 255, 0.13);
-  --color-success:       #10b981;
-  --color-error:         #ef4444;
-  --color-warning:       #f59e0b;
-
-  /* Layout */
-  --sidebar-width:  380px;
-  --rail-width:      72px;
-  --topbar-height:   72px;
-
+  /* Color palette */
+  --color-bg: #0c0f14;
+  --color-ui-bg: rgba(0, 0, 0, 0.35);
+  --color-ui-bg-hover: rgba(0, 0, 0, 0.5);
+  --color-primary: #4a7bd8;
+  --color-primary-light: #6b9aff;
+  --color-primary-dark: #2c5cb2;
+  --color-secondary: #7b4bd8;
+  --color-accent: #d84b7b;
+  --color-success: #4bd87b;
+  --color-warning: #d8b74b;
+  --color-error: #d84b4b;
+  --color-text: #f8f9fa;
+  --color-text-secondary: #adb5bd;
+  --color-border: rgba(255, 255, 255, 0.1);
+  
+  /* Typography */
+  --font-family: 'Inter', system-ui, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+  
   /* Border radius */
-  --radius-sm:   8px;
-  --radius-md:  16px;
-  --radius-lg:  24px;
-  --radius-xl:  32px;
-  --radius-full: 999px;
-
-  /* Blur */
-  --blur-sm:  blur(8px);
-  --blur-md:  blur(16px);
-  --blur-lg:  blur(32px);
-
+  --border-radius-sm: 6px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 18px;
+  --border-radius-xl: 24px;
+  --border-radius-full: 9999px;
+  
   /* Shadows */
-  --shadow-sm:   0 2px 8px rgba(0,0,0,0.3);
-  --shadow-md:   0 8px 24px rgba(0,0,0,0.4);
-  --shadow-lg:   0 16px 48px rgba(0,0,0,0.5);
-  --shadow-glow: 0 0 40px var(--color-primary-glow);
-
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --shadow-primary: 0 4px 12px rgba(79, 123, 216, 0.4);
+  
   /* Transitions */
-  --transition-fast:   0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base:   0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 0.4s  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  /* Z-index */
+  --z-below: -1;
+  --z-base: 1;
+  --z-above: 10;
+  --z-overlay: 100;
+  --z-modal: 1000;
 }
-
-/* Reset */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 100%; height: 100%; overflow: hidden; }
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-#app { width: 100vw; height: 100vh; position: relative; }
-
-.hidden { display: none !important; }

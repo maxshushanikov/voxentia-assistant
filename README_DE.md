@@ -1,147 +1,171 @@
-# 🤖 Voxentia – KI-Digitalassistent
+# Voxentia — Modularer lokaler KI-Assistent
 
-> **Ein premium, vollständig lokales KI-Avatar-System** mit Echtzeit-3D-Rendering, Multimodaler Vision, mehrsprachiger Sprachinteraktion und dokumentenbasiertem Wissen. 100% Privat. 100% Lokal.
+> Ein datenschutzfreundlicher Digitalassistent mit 3D-Avatar, Sprachsteuerung, Dokumenten-RAG und Plugin-Architektur. Läuft vollständig auf Ihrer Hardware via Docker.
 
-**[🇬🇧 English Version](README.md) | [🇷🇺 Русская версия](README_RU.md)**
-
----
-
-## ✨ Funktionen & Highlights
-
-Voxentia ist als hochwertiger persönlicher Assistent konzipiert, der vollständig auf deiner eigenen Hardware läuft und eine moderne, modulare Architektur nutzt.
-
-| Funktion | Beschreibung |
-|---|---|
-| 🧠 **Lokales LLM** | Betrieben von [Ollama](https://ollama.com/) (Standard: `phi3`) — läuft lokal mit hoher Performance. |
-| 🎨 **Premium UI** | Modernes "Claude-meets-Material-You" Interface. Schwebende Glas-Paneele, responsive Navigation Rail und flüssige Mikro-Animationen. |
-| 🎭 **Persona-System** | Wähle zwischen **Experten-Berater**, **Freundlichem Begleiter** und **Akademischem Tutor**, um das Verhalten anzupassen. |
-| 🎙️ **Latenzfreie Stimme** | Integriertes [faster-whisper](https://github.com/SYSTRAN/faster-whisper) für STT und [Silero TTS](https://github.com/snakers4/silero-models) für mehrsprachige Sprachsynthese. |
-| 🧍 **3D Digitaler Avatar** | Echtzeit-Rendering via [Three.js](https://threejs.org/) mit prozeduralen Animationen, Lip-Sync und manueller Mimik-Steuerung. |
-| 📄 **Dokumenten-KI** | PDF-Upload für sofortige RAG-Analysen (Retrieval-Augmented Generation) via [ChromaDB](https://www.trychroma.com/). |
-| 🔍 **Websuche-Tool** | Integrierte Suchfunktion ermöglicht es dem Assistenten, Echtzeit-Informationen abzurufen. |
-| 📹 **Multimodale Vision** | Webcam-Integration, die es dem Assistenten ermöglicht, seine Umgebung oder den Benutzer zu "sehen" und zu beschreiben. |
-| 🔒 **Privacy First** | Alle Dienste laufen in Docker-Containern. Keine Telemetrie, keine Cloud-API-Aufrufe und kein Datentracking. |
+**Sprachen:** [English](README.md) · [Русский](README_RU.md)
 
 ---
 
-## 🏗️ Technische Architektur
+## Überblick
 
-Voxentia basiert auf einer verteilten Microservices-Architektur, die über Docker Compose koordiniert wird.
+Voxentia verbindet ein **React + Three.js** Frontend, ein **FastAPI** Backend, den **voxentia-core** Orchestrator und optionale **Plugins** (Kalender, Jobs, Lernen, Dokumente). Sprache nutzt **Ollama** (LLM), **Whisper** (STT) und **Silero** (TTS). PDFs werden in **ChromaDB** für RAG-Antworten indexiert.
 
+| Eigenschaft | Wert |
+|-----------|------|
+| Standard-LLM | `phi3` (über Ollama) |
+| Sprachen | Deutsch, Englisch, Russisch |
+| API | `/api/v1` (+ Legacy `/api`) |
+| UI | http://localhost (Nginx) oder Vite-Dev :5173 |
+
+---
+
+## Funktionen
+
+| Bereich | Details |
+|---------|---------|
+| **Chat** | Sitzungsbasierte Historie, Persönlichkeiten, Modellwahl |
+| **Stimme** | Mikrofon → Whisper; Antworten → Silero TTS mit Lippensync |
+| **Avatar** | GLB-Modelle, automatisch zentriert und skaliert |
+| **Dokumente** | PDF-Upload → RAG-Kontext im Chat |
+| **Plugins** | Erweiterungen über `plugin_config.json` |
+| **Historie** | Nach Zeitraum gruppiert; Vorschau; **Chats löschen** (einzeln oder alle) |
+| **Betrieb** | Healthchecks, Rate-Limiting, Request-IDs, Logging |
+
+---
+
+## Architektur
+
+```text
+Browser (React) → Nginx (:80) → FastAPI (:8000)
+                                    ├── SQLite (Chat, WAL)
+                                    ├── ChromaDB (Dokumente)
+                                    ├── voxentia-core + Plugins
+                                    ├── Ollama — LLM
+                                    ├── tts-server — Silero
+                                    └── whisper-server — STT
 ```
+
+### Projektstruktur
+
+```text
 voxentia-assistant/
-├── backend/                    # FastAPI — Kernlogik & Orchestrierung
-│   ├── api/                    # REST-Endpunkte (Chat, Dokumente, Transkription, WebRTC)
-│   ├── core/                   # Konfiguration, Datenbank-Setup & System-Prompts
-│   ├── models/                 # Pydantic-Modelle für API-Validierung
-│   └── services/
-│       ├── llm.py              # Ollama-Interaktion (Phi3/Llava) + Tool-Calling
-│       ├── tools.py            # Tool-Definitionen (Suche, Wetter, Zeit)
-│       ├── tts.py              # Client für Silero TTS Synthese
-│       └── rag.py              # Dokumenten-Parsing & Vektorsuche (ChromaDB)
-│
-├── frontend/                   # Vanilla JS — Modulare Web-App
-│   ├── index.html              # MD3 Layout & Einstiegspunkt
-│   └── static/
-│       ├── main.js             # App-Controller & Lebenszyklus
-│       ├── components/         # UI-Module (Chat-Fenster, Bedienelemente)
-│       ├── modules/            # Engine-Logik (Three.js Szene, Avatar-Animation, Audio)
-│       ├── stores/             # Globales State-Management (Zustandsverwaltung)
-│       ├── utils/              # API-Helfer, WebRTC & Formatierung
-│       └── styles/             # Modularisierte CSS-Styles
-│
-├── tts-server/                 # Silero TTS Engine (Flask/Python Wrapper)
-├── whisper-server/             # faster-whisper STT Engine (Flask/Python Wrapper)
-├── data/                       # Persistenz: Vektor-DB, Chat-History, Dokumente
-└── assets/                     # Statische Medien: 3D-Modelle (.glb), Texturen
+├── backend/app/      # FastAPI (kanonische API)
+├── core/             # voxentia-core
+├── frontend/         # React UI
+├── plugins/          # Python-Plugins
+├── i18n/locales/     # UI-Texte (de, en, ru)
+├── tts-server/       # TTS-Microservice
+├── whisper-server/   # STT-Microservice
+└── data/             # Laufzeitdaten (nicht in Git)
 ```
 
 ---
 
-## 🚀 Schnellstart (Installation)
+## Voraussetzungen
 
-### Voraussetzungen
-- **Docker Desktop** (mit Compose v2+)
-- **NVIDIA GPU** (Optional, für bessere Performance, läuft aber auch auf CPU)
-- **Mindestens 8GB RAM** (16GB empfohlen)
+- **Docker Desktop** mit Compose v2
+- **8 GB+ RAM** empfohlen
+- **GPU** optional
 
-### 1. Klonen & Setup
-```bash
-git clone <deine-repo-url>
-cd digital_avatar
-cp .env.example .env
+---
+
+## Schnellstart
+
+### Windows
+
+```powershell
+.\run.bat up
+# oder
+docker compose up --build
 ```
 
-### 2. KI-Modelle laden
-```bash
-# Ollama starten
-docker compose up ollama -d
+### Linux / macOS
 
-# Benötigte Modelle laden
-docker exec -it digital_avatar-ollama-1 ollama pull phi3
-docker exec -it digital_avatar-ollama-1 ollama pull nomic-embed-text
-```
-
-### 3. System starten
 ```bash
 docker compose up --build
 ```
-Öffne das Interface unter: **`http://localhost:8000`**
+
+Öffnen: **http://localhost**
+
+Entwicklung Frontend:
+
+```bash
+cd frontend && npm install && npm run dev
+```
 
 ---
 
-## 🛠️ Konfiguration & Anpassung
+## Konfiguration
 
-### Umgebungsvariablen (.env)
+`.env.example` nach `.env` kopieren.
+
 | Variable | Standard | Beschreibung |
-|---|---|---|
-| `DEFAULT_MODEL` | `phi3` | Das LLM für den Chat. |
-| `DEFAULT_LANGUAGE` | `de` | Standard-Sprache (en, de, ru). |
-| `OLLAMA_TIMEOUT` | `120` | Max. Wartezeit auf LLM-Antwort (Sekunden). |
-| `OLLAMA_URL` | `http://ollama:11434` | URL zum Ollama Container. |
+|----------|----------|--------------|
+| `DEFAULT_MODEL` | `phi3` | Ollama-Modell |
+| `DEFAULT_LANGUAGE` | `de` | Standardsprache |
+| `OLLAMA_URL` | `http://ollama:11434` | Ollama-URL |
+| `TTS_URL` | `http://tts-server:5002` | TTS-Dienst |
+| `WHISPER_URL` | `http://whisper-server:5003` | STT-Dienst |
+| `RATE_LIMIT` | `60/minute` | API-Limit |
+| `TTS_TIMEOUT` | `120` | TTS-Timeout (Sekunden) |
 
-### Eigene Persönlichkeiten (Personas)
-Bearbeite `backend/core/config.py`, um neue Rollen hinzuzufügen. Jede Persona unterstützt lokalisierte System-Prompts für alle unterstützten Sprachen.
-
----
-
-## 🎮 Interface-Guide
-
-### Responsive Navigation Rail
-Die Sidebar auf der linken Seite bietet schnellen Zugriff auf Kernfunktionen:
-- 🏠 **Home**: Aktuelle Session zurücksetzen.
-- 📄 **Upload**: Dokumente für die KI-Analyse anhängen.
-- 📹 **Video Call**: Immersiven Kommunikationsmodus aktivieren.
-- 📷 **Kamera**: Webcam für Vision-Aufgaben umschalten.
-- 🔊 **Audio-Test**: Audioausgabe prüfen und Kontext reaktivieren.
-
-### Chat-Sidebar (Claude-Stil)
-Ein sauberes, hochwertiges Panel für Textinteraktionen:
-- **Sprecher-Auswahl**: Wähle zwischen 4 verschiedenen Stimmen (Baya, Kseniya, Eugene, Aidar).
-- **Sprach-Auswahl**: Wechsle im laufenden Betrieb zwischen Englisch, Deutsch und Russisch.
-- **Persona-Dropdown**: Ändere die Persönlichkeit der KI sofort.
-- **Suche umschalten**: Echtzeit-Websuche aktivieren/deaktivieren.
+Plugins: `backend/app/core/config/plugin_config.json`
 
 ---
 
-## 🔍 Fehlerbehebung
+## API (Auszug)
 
-| Problem | Lösung |
-|---|---|
-| **NotReadableError** (Mikro) | Schließe andere Apps, die das Mikro nutzen. Voxentia versucht es automatisch erneut. |
-| **Keine Sprachausgabe** | Klicke auf "Audio-Test", um den Audio-Kontext des Browsers zu wecken. |
-| **Hohe Latenz** | Stelle sicher, dass genug RAM vorhanden ist. Nutze ggf. das `tiny` Whisper-Modell in `docker-compose.yml`. |
-| **Prompt Leakage** | Stelle sicher, dass du die neueste `llm.py` mit den aktualisierten Stop-Tokens nutzt. |
+| Methode | Pfad | Beschreibung |
+|---------|------|--------------|
+| `POST` | `/api/v1/chat` | Nachricht senden |
+| `GET` | `/api/v1/sessions` | Sitzungen auflisten |
+| `DELETE` | `/api/v1/sessions/{id}` | Einen Chat löschen |
+| `DELETE` | `/api/v1/sessions` | Alle Chats löschen |
+| `POST` | `/api/v1/documents/upload` | PDF indexieren |
 
----
-
-## 🗺️ Roadmap v6.0
-- [ ] **Visem-basiertes Lip-Sync**: Fortschrittliche Mundbewegungen synchron zu Audio-Phonemen.
-- [ ] **Emotionserkennung**: Echtzeit-Gesichtsanalyse via Webcam.
-- [ ] **Langzeitgedächtnis**: Datenbankgestützte Speicherung von Benutzerprofilen.
-- [ ] **Plugin-System**: Einfache Integration von eigenen Tools und API-Connectoren.
+Dokumentation: **http://localhost:8000/docs**
 
 ---
 
-## 📄 Lizenz
-MIT-Lizenz — 2026 Voxentia Project.
+## Entwicklung
+
+```bash
+pip install -e core && pip install -r backend/requirements.txt -r requirements-dev.txt
+pytest tests/ -v
+```
+
+```bash
+cd frontend && npm install && npm run test && npm run build
+```
+
+OpenAPI-Typen aktualisieren:
+
+```bash
+python scripts/export_openapi.py
+cd frontend && npm run generate:api
+```
+
+---
+
+## Bedienung
+
+- **Sidebar — Plugins:** Kalender, Jobs, Dokumente, …
+- **Sidebar — Historie:** Vorschau der letzten Chats; **Alle anzeigen** für die vollständige Liste; Papierkorb zum Löschen.
+- **Kopfzeile:** Sprache, Stimme, Persönlichkeit.
+- **Avatar:** Zentriert, volle Sichtbarkeit im Panel.
+
+---
+
+## Fehlerbehebung
+
+| Problem | Prüfen |
+|---------|--------|
+| Keine Stimme | `docker compose ps` (tts-server healthy); Backend-Logs; Browser-Konsole |
+| Ollama | `docker compose logs ollama-init` |
+| Build Frontend | `npm ci` in `frontend/` (`.npmrc` mit legacy-peer-deps) |
+
+---
+
+## Lizenz
+
+MIT-Lizenz — © 2026 Voxentia Project.
