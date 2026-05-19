@@ -98,51 +98,63 @@ export function useAppController() {
         const assistantId = `asst-${Date.now()}`;
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '', id: assistantId, streaming: true },
+          { role: 'assistant', content: '', id: assistantId, streaming: true, timestamp: new Date().toISOString() },
         ]);
 
+        let retryCount = 0;
         await new Promise<void>((resolve) => {
-          void postChatStream(
-            requestBody,
-            {
-              onToken: (token) => {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: m.content + token } : m,
-                  ),
-                );
+          const doStream = () => {
+            void postChatStream(
+              requestBody,
+              {
+                onToken: (token) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: m.content + token } : m,
+                    ),
+                  );
+                },
+                onAudio: (audioUrl) => {
+                  queueAudio(audioUrl);
+                },
+                onDone: (data) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? { ...m, content: data.text, streaming: false }
+                        : m,
+                    ),
+                  );
+                  if ((data as any).emotion) {
+                    useAppStore.getState().setAvatarEmotion((data as any).emotion);
+                  }
+                  resolve();
+                },
+                onError: (error) => {
+                  console.error('Stream error:', error);
+                  if (retryCount < 3 && !abort.signal.aborted) {
+                    retryCount++;
+                    setTimeout(doStream, 1500);
+                    return;
+                  }
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            content: m.content || 'Sorry, streaming failed.',
+                            streaming: false,
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
               },
-              onAudio: (audioUrl) => {
-                queueAudio(audioUrl);
-              },
-              onDone: (data) => {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? { ...m, content: data.text, streaming: false }
-                      : m,
-                  ),
-                );
-                resolve();
-              },
-              onError: (error) => {
-                console.error('Stream error:', error);
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          content: m.content || 'Sorry, streaming failed.',
-                          streaming: false,
-                        }
-                      : m,
-                  ),
-                );
-                resolve();
-              },
-            },
-            abort.signal,
-          );
+              abort.signal,
+            );
+          };
+          doStream();
         });
         return;
       }
@@ -155,6 +167,7 @@ export function useAppController() {
           role: 'assistant',
           content: data.text,
           id: (Date.now() + 1).toString(),
+          timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
         await playResponseAudio(data.audio_url);
@@ -188,6 +201,7 @@ export function useAppController() {
       role: 'user',
       content: inputText,
       id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
@@ -208,6 +222,7 @@ export function useAppController() {
               role: 'user',
               content: data.text,
               id: Date.now().toString(),
+              timestamp: new Date().toISOString(),
             };
             setMessages((prev) => [...prev, userMsg]);
             await processResponse(data.text, sessionId);
@@ -234,6 +249,7 @@ export function useAppController() {
       role: 'user',
       content: formatMessage(t.chat_docUploadUser, { name: file.name }),
       id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
@@ -249,6 +265,7 @@ export function useAppController() {
             chunks: data.chunks ?? 0,
           }),
           id: (Date.now() + 1).toString(),
+          timestamp: new Date().toISOString(),
         },
       ]);
     } catch {
@@ -258,6 +275,7 @@ export function useAppController() {
           role: 'assistant',
           content: formatMessage(t.chat_docUploadError, { name: file.name }),
           id: (Date.now() + 1).toString(),
+          timestamp: new Date().toISOString(),
         },
       ]);
     } finally {
@@ -282,6 +300,7 @@ export function useAppController() {
         role: m.role as Message['role'],
         content: m.content,
         id: `hist-${sid}-${index}`,
+        timestamp: (m as any).timestamp,
       }));
       setSessionId(sid);
       setMessages(() => historyMessages);
@@ -289,6 +308,25 @@ export function useAppController() {
     } catch (error) {
       console.error('Error loading session:', error);
     }
+  };
+
+  const handleEditMessage = (_id: string, newText: string) => {
+    setInputText(newText);
+  };
+  
+  const handleRegenerate = async (id: string) => {
+    if (isThinking) return;
+    const msgIndex = messages.findIndex(m => m.id === id);
+    if (msgIndex === -1) return;
+    let lastUserMsgContent = '';
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        lastUserMsgContent = messages[i].content;
+        break;
+      }
+    }
+    if (!lastUserMsgContent) return;
+    await processResponse(lastUserMsgContent, sessionId);
   };
 
   const openPlugin = (id: string) => {
@@ -328,6 +366,8 @@ export function useAppController() {
     handleNewChat,
     handleSessionDeleted,
     handleLoadSession,
+    handleEditMessage,
+    handleRegenerate,
     openPlugin,
   };
 }

@@ -16,8 +16,9 @@ class IntentDetector:
         "generate_quiz": [r"quiz", r"test", r"abfragen", r"lernen"],
     }
 
-    def __init__(self, llm_client: BaseLLMClient):
+    def __init__(self, llm_client: BaseLLMClient, registry=None):
         self.llm = llm_client
+        self.registry = registry
 
     def _detect_via_keywords(self, text: str) -> Optional[str]:
         """Einfache Regex-basierte Erkennung."""
@@ -40,10 +41,15 @@ class IntentDetector:
         # 1. Schneller Keyword-Check
         keyword_intent = self._detect_via_keywords(text)
 
+        available = list(self.KEYWORD_PATTERNS.keys()) + ["search_web", "add_event"]
+        if self.registry:
+            available.extend(self.registry.get_all_intents())
+        available = list(set(available))
+
         # 2. LLM-Analyse
         prompt = f"""
         Analyze the following user message and extract the intent and entities.
-        Available intents: {list(self.KEYWORD_PATTERNS.keys())} + search_web, add_event
+        Available intents: {available}
 
         Respond ONLY in JSON format:
         {{

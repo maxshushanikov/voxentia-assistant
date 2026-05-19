@@ -29,8 +29,8 @@ def transcribe():
         return jsonify({"error": "No audio file provided"}), 400
 
     audio_file = request.files["audio"]
-    language = request.form.get("language", "en")
-    whisper_lang = LANG_MAP.get(language, "en")
+    language = request.form.get("language", "auto")
+    whisper_lang = LANG_MAP.get(language, None)
 
     # Save to temp file
     suffix = Path(audio_file.filename).suffix if audio_file.filename else ".webm"

@@ -4,6 +4,7 @@ export interface Message {
   id: string;
   /** True while SSE tokens are still arriving */
   streaming?: boolean;
+  timestamp?: string;
 }
 
 export type Language = 'en' | 'de' | 'ru';

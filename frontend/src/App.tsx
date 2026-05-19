@@ -47,6 +47,8 @@ function App() {
     handleNewChat,
     handleSessionDeleted,
     handleLoadSession,
+    handleEditMessage,
+    handleRegenerate,
     openPlugin,
   } = useAppController();
 
@@ -77,7 +79,13 @@ function App() {
         />
       );
     }
-    return <ChatArea messages={messages} isThinking={isThinking} />;
+    return <ChatArea 
+      messages={messages} 
+      isThinking={isThinking} 
+      onTileClick={setInputText} 
+      onEditMessage={handleEditMessage}
+      onRegenerate={handleRegenerate}
+    />;
   };
 
   return (
@@ -88,7 +96,7 @@ function App() {
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
-          accept=".pdf,.txt,.doc,.docx"
+          accept=".pdf,application/pdf"
         />
 
         <Sidebar

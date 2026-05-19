@@ -76,6 +76,22 @@ services:
     networks:
       - avatar-network
 
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=voxentia
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d voxentia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - avatar-network
+
   backend:
     build:
       context: .             
@@ -86,6 +102,7 @@ services:
       - OLLAMA_URL=http://ollama:11434
       - TTS_URL=http://tts-server:5002
       - WHISPER_URL=http://whisper-server:5003
+      - DB_PATH=postgresql+psycopg2://user:pass@db:5432/voxentia
     volumes:
       - ./core:/app/core
       - ./backend:/app/backend
@@ -104,6 +121,8 @@ services:
         condition: service_healthy
       whisper-server:
         condition: service_healthy
+      db:
+        condition: service_healthy
     networks:
       - avatar-network
 
@@ -112,9 +131,22 @@ services:
       context: .
       dockerfile: deployment/docker/frontend.Dockerfile
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - backend
+    networks:
+      - avatar-network
+
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CADDY_GLOBAL_OPTIONS=auto_https disable_redirects
+    command: caddy reverse-proxy --from https://localhost --to http://frontend:80 --internal-certs
+    depends_on:
+      - frontend
     networks:
       - avatar-network
 
@@ -122,6 +154,7 @@ volumes:
   ollama:
   tts-cache:
   whisper-cache:
+  postgres_data:
 
 networks:
   avatar-network:

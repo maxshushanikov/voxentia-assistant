@@ -23,6 +23,7 @@ from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -78,7 +79,13 @@ app.include_router(
     documents_router, prefix="/api/documents", tags=["Legacy Documents"], dependencies=_auth
 )
 
-app.mount("/api/tts-audio", StaticFiles(directory=str(settings.AUDIO_CACHE_DIR)), name="tts-audio")
+@app.get("/api/tts-audio/{filename}", dependencies=_auth)
+async def serve_audio(filename: str):
+    path = settings.AUDIO_CACHE_DIR / filename
+    if not path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Audio not found")
+    return FileResponse(path)
 assets_path = settings.REPO_ROOT / "assets"
 if assets_path.exists():
     app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")

@@ -142,6 +142,16 @@ class ChatService:
             else str(request.personality)
         )
 
+        limit = getattr(settings, "HISTORY_LIMIT", 20)
+        previous_messages = (
+            db.query(ChatMessage)
+            .filter_by(session_id=request.session_id)
+            .order_by(ChatMessage.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+        history = [{"role": m.role, "content": m.content} for m in reversed(previous_messages)]
+
         user_msg = ChatMessage(session_id=request.session_id, role="user", content=request.message)
         db.add(user_msg)
         db.commit()
@@ -157,12 +167,20 @@ class ChatService:
         import re
         full_text = ""
         current_sentence = ""
+        current_emotion = "neutral"
         async for token in self.llm_client.generate_stream(
-            message, model=model, system=system_prompt or None, temperature=request.temperature
+            message, model=model, system=system_prompt or None, temperature=request.temperature, history=history
         ):
             full_text += token
             current_sentence += token
             yield {"event": "token", "data": token}
+
+            emotion_match = re.search(r"\[(happy|thinking|neutral|sad|angry|excited)\]", current_sentence)
+            if emotion_match:
+                emotion = emotion_match.group(1)
+                if emotion != current_emotion:
+                    current_emotion = emotion
+                    yield {"event": "emotion", "data": emotion}
 
             # If the token contains a sentence-ending punctuation and the sentence is long enough, generate TTS
             if len(current_sentence) > 20 and any(char in token for char in [".", "!", "?", "\n"]):
@@ -199,10 +217,11 @@ class ChatService:
         yield {
             "event": "done",
             "data": {
-                "text": full_text,
+                "text": re.sub(r"\[.*?\]|<.*?>", "", full_text).strip(),
                 "audio_url": None,
                 "session_id": request.session_id,
                 "intent": "stream",
+                "emotion": current_emotion,
             },
         }
 

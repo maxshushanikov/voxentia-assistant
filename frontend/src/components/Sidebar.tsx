@@ -104,6 +104,15 @@ export default function Sidebar({
   const [allGroups, setAllGroups] = useState<HistoryGroup[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [version, setVersion] = useState<string>('...');
+
+  useEffect(() => {
+    fetch('/api/v1/health')
+      .then((r) => r.json())
+      .then((d) => setVersion(d.version || '...'))
+      .catch(() => {});
+  }, []);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -122,11 +131,19 @@ export default function Sidebar({
   const totalSessions = useMemo(() => countSessions(allGroups), [allGroups]);
 
   const visibleGroups = useMemo(() => {
-    if (showAllHistory) {
-      return allGroups;
+    let groups = allGroups;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      groups = allGroups.map(g => ({
+        ...g,
+        sessions: g.sessions.filter(s => s.title.toLowerCase().includes(q))
+      })).filter(g => g.sessions.length > 0);
     }
-    return limitHistoryGroups(allGroups, SIDEBAR_HISTORY_PREVIEW_LIMIT).groups;
-  }, [allGroups, showAllHistory]);
+    if (showAllHistory || searchQuery.trim()) {
+      return groups;
+    }
+    return limitHistoryGroups(groups, SIDEBAR_HISTORY_PREVIEW_LIMIT).groups;
+  }, [allGroups, showAllHistory, searchQuery]);
 
   const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -224,6 +241,16 @@ export default function Sidebar({
             )}
           </div>
 
+          <div className="mb-4">
+             <input
+               type="text"
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               placeholder={t.common_search || 'Search...'}
+               className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded px-3 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-colors"
+             />
+          </div>
+
           {visibleGroups.length === 0 ? (
             <p className="text-[10px] text-gray-700 px-4 italic">{t.noHistory}</p>
           ) : (
@@ -299,7 +326,7 @@ export default function Sidebar({
       <div className="p-4 border-t border-black/5 dark:border-white/5 bg-black/5 dark:bg-black/20">
         <div className="flex justify-between items-center px-2">
           <span className="text-[10px] text-[var(--text-secondary)]/50 font-bold uppercase tracking-widest">
-            Voxentia v3.2
+            Voxentia v{version}
           </span>
           <span className="text-[10px] text-[#2979ff] font-bold uppercase tracking-widest">Pro</span>
         </div>

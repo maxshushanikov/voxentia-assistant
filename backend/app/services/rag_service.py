@@ -98,12 +98,15 @@ async def process_document(filepath: str, filename: str) -> dict:
 
     chunks = split_text(text)
     stored = 0
+    
+    import hashlib
+    file_hash = hashlib.md5(text.encode('utf-8', errors='ignore')).hexdigest()[:8]
 
     for i, chunk in enumerate(chunks):
         embedding = await get_embedding(chunk)
         if not embedding:
             continue
-        doc_id = f"{filename}_chunk_{i}"
+        doc_id = f"{file_hash}_{filename}_chunk_{i}"
         _collection.upsert(
             embeddings=[embedding],
             documents=[chunk],
@@ -174,4 +177,6 @@ async def delete_document(filename: str) -> int:
     upload_path = settings.UPLOADS_DIR / filename
     if upload_path.exists():
         upload_path.unlink()
+    else:
+        logger.warning(f"File {filename} not found in UPLOADS_DIR during deletion")
     return len(ids)

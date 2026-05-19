@@ -19,7 +19,9 @@ export default function ModelSelect() {
       .then((data) => {
         const names = data.models.map((m) => m.name);
         setModels(names);
-        if (!selectedModel && data.default) {
+        if (selectedModel && !names.includes(selectedModel)) {
+          setSelectedModel(data.default);
+        } else if (!selectedModel && data.default) {
           setSelectedModel(data.default);
         }
       })

@@ -1,4 +1,5 @@
 import { Plus, Paperclip, Mic, Send } from 'lucide-react';
+import { useRef, useEffect } from 'react';
 
 import { useTranslation } from '../i18n/context';
 import { cn } from '../utils/cn';
@@ -20,6 +21,14 @@ export default function ChatInput({
   isRecording, isThinking,
 }: ChatInputProps) {
   const { t } = useTranslation();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  }, [inputText]);
 
   return (
     <div className="p-6 bg-[var(--bg-primary)]/50 backdrop-blur-md">
@@ -28,6 +37,7 @@ export default function ChatInput({
         isRecording ? 'border-red-500/50 ring-1 ring-red-500/20' : 'focus-within:border-[var(--accent)]/55',
       )}>
         <textarea
+          ref={textareaRef}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={(e) => {

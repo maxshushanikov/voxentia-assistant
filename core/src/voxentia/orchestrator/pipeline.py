@@ -30,7 +30,7 @@ class OrchestratorPipeline:
     def __init__(self, registry: PluginRegistry, llm: BaseLLMClient) -> None:
         self.registry = registry
         self.llm = llm
-        self.intent_detector = IntentDetector(llm)
+        self.intent_detector = IntentDetector(llm, registry)
 
     def normalize_input(self, ctx: PipelineContext) -> PipelineContext:
         ctx.message = " ".join(ctx.raw_message.split()).strip()
@@ -86,10 +86,7 @@ class OrchestratorPipeline:
                 )
             except Exception as e:
                 logger.exception("Plugin error for intent %s: %s", ctx.intent, e)
-                return VoxentiaResponse(
-                    text="This module encountered an error. Please try again.",
-                    intent=ctx.intent,
-                )
+                return await self.llm_fallback(ctx)
         return None
 
     async def llm_fallback(self, ctx: PipelineContext) -> VoxentiaResponse:

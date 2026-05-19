@@ -57,14 +57,13 @@ class JobAssistantPlugin(VoxentiaPlugin):
     async def _handle_cv_check(self, entities: Dict[str, Any], lang: str) -> PluginResponse:
         cv_text = entities.get("cv_text", "")
         prompt = f"Analyze this CV and provide 3 improvement tips for a high-end position: {cv_text}"
-        # In a real app, we'd use self.context.llm.generate(prompt)
-        response_text = "Your CV looks solid. 1. Add more metrics to your accomplishments. 2. Highlight your leadership roles. 3. Ensure your tech stack is up to date."
+        response_text = await self.context.llm.generate(prompt)
         return PluginResponse(text=response_text)
 
     async def _handle_cover_letter(self, entities: Dict[str, Any], lang: str) -> PluginResponse:
         job_desc = entities.get("job_description", "")
         prompt = f"Generate a professional cover letter for this job: {job_desc}"
-        response_text = "Dear Hiring Manager, I am writing to express my strong interest in the position..."
+        response_text = await self.context.llm.generate(prompt)
         return PluginResponse(text=response_text)
 
     async def _handle_interview(self, entities: Dict[str, Any], lang: str) -> PluginResponse:

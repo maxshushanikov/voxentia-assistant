@@ -47,6 +47,10 @@ export function deleteAllSessions() {
   });
 }
 
+export function createSession() {
+  return apiFetch<{ session_id: string }>('/api/v1/sessions/new', { method: 'POST' });
+}
+
 export function listModels() {
   return apiFetch<{ models: { name: string }[]; default: string }>('/api/v1/models');
 }

@@ -1,4 +1,4 @@
-import { Radio, Shield, Bell, Volume2, Moon, User } from 'lucide-react';
+import { Radio, Shield, User } from 'lucide-react';
 import type { Language, Speaker, Personality } from '../types';
 import { useTranslation } from '../i18n/context';
 import { useAppStore } from '../store/appStore';
@@ -100,24 +100,6 @@ export default function SettingsView({
           </div>
 
           <div className="space-y-4">
-            <ToggleSetting
-              icon={<Bell className="w-4 h-4" />}
-              label={t.settings_notifications}
-              description={t.settings_notificationsDesc}
-              defaultChecked
-            />
-            <ToggleSetting
-              icon={<Volume2 className="w-4 h-4" />}
-              label={t.settings_audioOutput}
-              description={t.settings_audioOutputDesc}
-              defaultChecked
-            />
-            <ToggleSetting
-              icon={<Moon className="w-4 h-4" />}
-              label={t.settings_darkMode}
-              description={t.settings_darkModeDesc}
-              defaultChecked
-            />
             <ToggleSetting
               icon={<Radio className="w-4 h-4" />}
               label={(t as unknown as Record<string, string>).settings_streamResponses ?? 'Stream responses'}

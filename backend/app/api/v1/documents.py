@@ -51,10 +51,21 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
             },
         )
 
-    dest: Path = settings.UPLOADS_DIR / file.filename
+    safe_name = Path(file.filename).name
+    if not safe_name or safe_name.startswith('.'):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "invalid_filename",
+                "message": "Invalid filename",
+                "details": {},
+            },
+        )
+
+    dest: Path = settings.UPLOADS_DIR / safe_name
     dest.write_bytes(content)
 
-    result = await rag_service.process_document(str(dest), file.filename)
+    result = await rag_service.process_document(str(dest), safe_name)
     if result.get("error"):
         raise HTTPException(
             status_code=422,

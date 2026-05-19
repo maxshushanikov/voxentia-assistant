@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -97,6 +98,12 @@ async def get_sessions(
     }
 
 
+@router.post("/sessions/new")
+@limiter.limit("20/minute")
+async def new_session(request: Request):
+    return {"session_id": f"sess_{uuid.uuid4().hex[:12]}"}
+
+
 @router.delete("/sessions/{session_id}")
 @limiter.limit("30/minute")
 async def delete_session(
@@ -130,6 +137,11 @@ async def transcribe_endpoint(
     language: str = Form("en"),
 ):
     audio_bytes = await audio.read()
+    if audio.content_type not in ("audio/webm", "audio/wav", "audio/ogg", "audio/mp4", "audio/mp3", "audio/mpeg"):
+        raise HTTPException(415, "Unsupported audio format")
+    if len(audio_bytes) > settings.MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "Audio file too large")
+
     text = await transcribe_audio_file(
         audio_bytes, audio.filename, audio.content_type, language
     )
