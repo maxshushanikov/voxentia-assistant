@@ -7,7 +7,7 @@ import {
   useUploadDocumentMutation,
 } from './useChatApi';
 import { useAudioManager } from './useAudioManager';
-import type { Message } from '../types';
+import type { Message, AvatarEmotion } from '../types';
 import { useAppStore } from '../store/appStore';
 import { formatMessage, getTranslations } from '../i18n';
 
@@ -159,8 +159,9 @@ export function useAppController() {
                         : m,
                     ),
                   );
-                  if ((data as Record<string, unknown>).emotion) {
-                    useAppStore.getState().setAvatarEmotion((data as Record<string, unknown>).emotion as string);
+                  const emotion = (data as unknown as Record<string, unknown>).emotion;
+                  if (emotion) {
+                    useAppStore.getState().setAvatarEmotion(emotion as AvatarEmotion);
                   }
                   resolve();
                 },
@@ -314,8 +315,9 @@ export function useAppController() {
                         : m,
                     ),
                   );
-                  if ((data as Record<string, unknown>).emotion) {
-                    useAppStore.getState().setAvatarEmotion((data as Record<string, unknown>).emotion as string);
+                  const emotion = (data as unknown as Record<string, unknown>).emotion;
+                  if (emotion) {
+                    useAppStore.getState().setAvatarEmotion(emotion as AvatarEmotion);
                   }
                   resolve();
                 },
@@ -491,7 +493,7 @@ export function useAppController() {
         role: m.role as Message['role'],
         content: m.content,
         id: `hist-${sid}-${index}`,
-        timestamp: (m as Record<string, unknown>).timestamp as string,
+        timestamp: (m as unknown as Record<string, unknown>).timestamp as string,
         model: m.model,
       }));
       setSessionId(sid);
