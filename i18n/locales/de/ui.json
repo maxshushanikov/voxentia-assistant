@@ -42,5 +42,15 @@
   "deleteChat": "Chat löschen",
   "deleteAllChats": "Alle löschen",
   "confirmDeleteChat": "Diesen Chat endgültig löschen?",
-  "confirmDeleteAllChats": "Gesamte Chat-Historie endgültig löschen?"
+  "confirmDeleteAllChats": "Gesamte Chat-Historie endgültig löschen?",
+  "dashboard_subtitle": "Dein Kontrollzentrum",
+  "dashboard_continue": "Letzte Sitzung fortsetzen",
+  "dashboard_plugins": "Schnellaktionen",
+  "dashboard_discover": "Plugins entdecken",
+  "theme_dark": "Dunkel",
+  "theme_light": "Hell",
+  "theme_glass": "Glas",
+  "export_chat": "Chat exportieren",
+  "settings_streamResponses": "Antworten streamen",
+  "settings_streamResponsesDesc": "Tokens live anzeigen (direktes LLM; aus für volles Plugin-Routing)."
 }

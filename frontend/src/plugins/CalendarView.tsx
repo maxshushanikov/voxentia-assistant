@@ -130,23 +130,23 @@ export default function CalendarView() {
       <div className="flex items-center space-x-3">
         <button
           onClick={() => navigate(-1)}
-          className="w-8 h-8 flex items-center justify-center rounded-[4px] text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+          className="w-8 h-8 flex items-center justify-center rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/10 dark:hover:bg-black/10 dark:hover:bg-black/10 dark:bg-white/10 transition-all"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <h3 className="text-lg font-medium text-white min-w-[260px] text-center select-none">
+        <h3 className="text-lg font-medium text-[var(--text-primary)] min-w-[260px] text-center select-none">
           {getHeaderLabel()}
         </h3>
         <button
           onClick={() => navigate(1)}
-          className="w-8 h-8 flex items-center justify-center rounded-[4px] text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+          className="w-8 h-8 flex items-center justify-center rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/10 dark:hover:bg-black/10 dark:hover:bg-black/10 dark:bg-white/10 transition-all"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
       <button
         onClick={goToToday}
-        className="text-[10px] font-bold uppercase tracking-widest text-[#2979ff] hover:text-blue-400 transition-colors px-3 py-1 rounded-[4px] border border-[#2979ff33] hover:border-[#2979ff66]"
+        className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] hover:text-blue-400 transition-colors px-3 py-1 rounded-[4px] border border-[var(--accent)]/33 hover:border-[var(--accent)]/66"
       >
         {todayLabel}
       </button>
@@ -160,9 +160,9 @@ export default function CalendarView() {
       const dayISO = toISO(currentDate);
       const dayEvents = events.filter(e => e.date === dayISO);
       return (
-        <div className="w-full glass-card rounded-[8px] p-8 border border-white/5">
+        <div className="w-full glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
           <NavBar />
-          <div className="space-y-0 divide-y divide-white/5">
+          <div className="space-y-0 divide-y divide-black/5 dark:divide-white/5">
             {Array.from({ length: 14 }).map((_, i) => {
               const hour = i + 7;
               const label = `${hour.toString().padStart(2,'0')}:00`;
@@ -172,8 +172,8 @@ export default function CalendarView() {
                   className="flex py-3 group cursor-pointer"
                   onDoubleClick={openCreateModal}
                 >
-                  <div className="w-16 shrink-0 text-[10px] font-bold text-gray-600 uppercase pt-1">{label}</div>
-                  <div className="flex-1 min-h-[56px] rounded-[4px] hover:bg-white/2 transition-all p-1 space-y-1">
+                  <div className="w-16 shrink-0 text-[10px] font-bold text-[var(--text-secondary)] uppercase pt-1">{label}</div>
+                  <div className="flex-1 min-h-[56px] rounded-[4px] hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2 transition-all p-1 space-y-1">
                     {dayEvents.map(ev => (
                       <div
                         key={ev.id}
@@ -195,28 +195,28 @@ export default function CalendarView() {
 
     if (viewMode === 'week') {
       return (
-        <div className="w-full glass-card rounded-[8px] border border-white/5 overflow-hidden">
-          <div className="p-8 border-b border-white/5">
+        <div className="w-full glass-card rounded-[8px] border border-black/5 dark:border-white/5 overflow-hidden">
+          <div className="p-8 border-b border-black/5 dark:border-white/5">
             <NavBar />
           </div>
           {/* Day headers */}
-          <div className="grid grid-cols-8 divide-x divide-white/5 border-b border-white/5">
-            <div className="p-3 bg-white/2" />
+          <div className="grid grid-cols-8 divide-x divide-black/5 dark:divide-white/5 border-b border-black/5 dark:border-white/5">
+            <div className="p-3 bg-black/2 dark:bg-white/2" />
             {weekDays.map((day, i) => {
               const isToday = toISO(day) === todayISO;
               return (
-                <div key={i} className="p-3 text-center bg-white/2">
-                  <p className="text-[9px] font-bold text-gray-600 uppercase mb-1">{WEEKDAYS_SHORT[i]}</p>
+                <div key={i} className="p-3 text-center bg-black/2 dark:bg-white/2">
+                  <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase mb-1">{WEEKDAYS_SHORT[i]}</p>
                   <p className={`text-sm font-bold ${isToday ? 'text-[#2979ff]' : 'text-white'}`}>{day.getDate()}</p>
                 </div>
               );
             })}
           </div>
           {/* Time slots */}
-          <div className="grid grid-cols-8 divide-x divide-white/5 max-h-[520px] overflow-y-auto custom-scrollbar">
-            <div className="divide-y divide-white/5">
+          <div className="grid grid-cols-8 divide-x divide-black/5 dark:divide-white/5 max-h-[520px] overflow-y-auto custom-scrollbar">
+            <div className="divide-y divide-black/5 dark:divide-white/5">
               {Array.from({ length: 14 }).map((_, i) => (
-                <div key={i} className="h-16 p-2 text-[9px] font-bold text-gray-700 text-right">{(i+7).toString().padStart(2,'0')}:00</div>
+                <div key={i} className="h-16 p-2 text-[9px] font-bold text-[var(--text-secondary)] text-right">{(i+7).toString().padStart(2,'0')}:00</div>
               ))}
             </div>
             {weekDays.map((day, i) => {
@@ -226,11 +226,11 @@ export default function CalendarView() {
               return (
                 <div
                   key={i}
-                  className={`divide-y divide-white/5 relative ${isToday ? 'bg-[#2979ff06]' : ''}`}
+                  className={`divide-y divide-black/5 dark:divide-white/5 relative ${isToday ? 'bg-[#2979ff06]' : ''}`}
                   onDoubleClick={openCreateModal}
                 >
                   {Array.from({ length: 14 }).map((_, j) => (
-                    <div key={j} className="h-16 hover:bg-white/2 transition-colors relative">
+                    <div key={j} className="h-16 hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2 transition-colors relative">
                       {j === 0 && dayEvents.length > 0 && dayEvents.map(ev => (
                         <div
                           key={ev.id}
@@ -253,14 +253,14 @@ export default function CalendarView() {
 
     // Month view (default)
     return (
-      <div className="w-full glass-card rounded-[8px] p-8 border border-white/5">
+      <div className="w-full glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
         <NavBar />
         <div className="grid grid-cols-7 text-center mb-0">
           {WEEKDAYS_SHORT.map(day => (
-            <div key={day} className="text-[10px] font-bold text-gray-600 uppercase tracking-widest py-3 border-b border-white/5">{day}</div>
+            <div key={day} className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest py-3 border-b border-black/5 dark:border-white/5">{day}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 border-l border-t border-white/5">
+        <div className="grid grid-cols-7 border-l border-t border-black/5 dark:border-white/5">
           {monthDates.map((date, i) => {
             const dateStr = date
               ? `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(date).padStart(2,'0')}`
@@ -272,14 +272,14 @@ export default function CalendarView() {
               <div
                 key={i}
                 onDoubleClick={() => date && openCreateModal()}
-                className={`aspect-square flex flex-col items-start p-2 border-r border-b border-white/5 transition-all cursor-pointer
-                  ${date ? 'hover:bg-white/2' : 'bg-black/5'}
+                className={`aspect-square flex flex-col items-start p-2 border-r border-b border-black/5 dark:border-white/5 transition-all cursor-pointer
+                  ${date ? 'hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2' : 'bg-black/10 dark:bg-black/5'}
                   ${isToday ? 'bg-[#2979ff]/5' : ''}
                 `}
               >
                 {date && (
                   <>
-                    <span className={`text-[10px] mb-1 font-medium ${isToday ? 'text-[#2979ff] font-bold' : 'text-gray-500'}`}>{date}</span>
+                    <span className={`text-[10px] mb-1 font-medium ${isToday ? 'text-[#2979ff] font-bold' : 'text-[var(--text-secondary)]'}`}>{date}</span>
                     <div className="w-full space-y-0.5 overflow-hidden">
                       {dayEvents.map(event => (
                         <div
@@ -303,22 +303,22 @@ export default function CalendarView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0b0e14] overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden">
       <div className="p-8 pb-4">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-light text-white mb-2">{t.cal_title}</h1>
-            <p className="text-gray-500 text-sm">{t.cal_subtitle}</p>
+            <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2">{t.cal_title}</h1>
+            <p className="text-[var(--text-secondary)] text-sm">{t.cal_subtitle}</p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="flex bg-white/5 border border-white/10 rounded-[4px] p-1">
+            <div className="flex bg-black/10 dark:bg-black/5 dark:bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-1">
               <ViewButton active={viewMode === 'day'} onClick={() => setViewMode('day')} label={t.common_day} />
               <ViewButton active={viewMode === 'week'} onClick={() => setViewMode('week')} label={t.common_week} />
               <ViewButton active={viewMode === 'month'} onClick={() => setViewMode('month')} label={t.common_month} />
             </div>
             <button
               onClick={openCreateModal}
-              className="flex items-center px-4 py-2 bg-[#2979ff] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg"
+              className="flex items-center px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg"
             >
               <Plus className="w-4 h-4 mr-2" />
               {t.cal_newEvent}
@@ -326,7 +326,7 @@ export default function CalendarView() {
           </div>
         </div>
 
-        <div className="flex border-b border-white/5">
+        <div className="flex border-b border-black/5 dark:border-white/5">
           <TabButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<LayoutGrid className="w-4 h-4" />} label={t.cal_tabCalendar} />
           <TabButton active={activeTab === 'events'} onClick={() => setActiveTab('events')} icon={<List className="w-4 h-4" />} label={t.cal_tabEvents} />
         </div>
@@ -366,50 +366,50 @@ function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | nu
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md glass-card rounded-[12px] border border-white/10 shadow-2xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/2">
-          <h3 className="text-lg font-medium text-white">{event ? '{t.cal_eventDetails}' : '{t.cal_createEvent}'}</h3>
-          <button onClick={onClose} className="p-1 text-gray-500 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+      <div className="relative w-full max-w-md glass-card rounded-[12px] border border-black/10 dark:border-black/10 dark:border-white/10 shadow-2xl overflow-hidden">
+        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/2 dark:bg-white/2">
+          <h3 className="text-lg font-medium text-[var(--text-primary)]">{event ? '{t.cal_eventDetails}' : '{t.cal_createEvent}'}</h3>
+          <button onClick={onClose} className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-5">
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_eventTitle}</label>
+            <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_eventTitle}</label>
             <input
               type="text"
               defaultValue={event?.title || ''}
               placeholder={t.cal_eventTitlePh}
-              className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all"
+              className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-sm text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all"
               autoFocus
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.common_date}</label>
-              <input type="date" defaultValue={event?.date || defaultDate} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[#2979ff55] transition-all [color-scheme:dark]" />
+              <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.common_date}</label>
+              <input type="date" defaultValue={event?.date || defaultDate} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_time}</label>
-              <input type="time" defaultValue={event?.time || '10:00'} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[#2979ff55] transition-all [color-scheme:dark]" />
+              <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_time}</label>
+              <input type="time" defaultValue={event?.time || '10:00'} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_location}</label>
+            <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_location}</label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
-              <input type="text" defaultValue={event?.location || ''} placeholder={t.cal_locationPh} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
+              <input type="text" defaultValue={event?.location || ''} placeholder={t.cal_locationPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all" />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">{t.cal_description}</label>
+            <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_description}</label>
             <div className="relative">
-              <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-gray-600" />
-              <textarea defaultValue={event?.description || ''} placeholder={t.cal_descriptionPh} className="w-full bg-white/5 border border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[#2979ff55] transition-all h-24 resize-none" />
+              <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-[var(--text-secondary)]" />
+              <textarea defaultValue={event?.description || ''} placeholder={t.cal_descriptionPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all h-24 resize-none" />
             </div>
           </div>
         </div>
-        <div className="p-6 bg-white/2 border-t border-white/5 flex justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest">{t.common_cancel}</button>
-          <button className="px-6 py-2 bg-[#2979ff] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 uppercase tracking-widest">
+        <div className="p-6 bg-black/2 dark:bg-white/2 border-t border-black/5 dark:border-white/5 flex justify-end space-x-3">
+          <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] uppercase tracking-widest">{t.common_cancel}</button>
+          <button className="px-6 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 uppercase tracking-widest">
             {event ? t.common_update : t.common_create}
           </button>
         </div>
@@ -420,7 +420,7 @@ function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | nu
 
 function TabButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
   return (
-    <button onClick={onClick} className={`flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${active ? 'text-[#2979ff]' : 'text-gray-600 hover:text-gray-400'}`}>
+    <button onClick={onClick} className={`flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${active ? 'text-[#2979ff]' : 'text-[var(--text-secondary)] hover:text-[var(--text-secondary)]'}`}>
       <span className="mr-3">{icon}</span>
       {label}
       {active && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#2979ff]" />}
@@ -430,7 +430,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
 
 function ViewButton({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) {
   return (
-    <button onClick={onClick} className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-[2px] transition-all ${active ? 'bg-[#2979ff] text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+    <button onClick={onClick} className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-[2px] transition-all ${active ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
       {label}
     </button>
   );
@@ -438,18 +438,18 @@ function ViewButton({ active, onClick, label }: { active: boolean, onClick: () =
 
 function EventListItem({ date, time, title, location, color, onClick }: { date: string, time: string, title: string, location: string, color: string, onClick: (e: React.MouseEvent) => void }) {
   return (
-    <div onClick={onClick} className="glass-card rounded-[8px] p-5 border border-white/5 hover:border-[#2979ff33] transition-all cursor-pointer group flex items-center space-x-6">
+    <div onClick={onClick} className="glass-card rounded-[8px] p-5 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 transition-all cursor-pointer group flex items-center space-x-6">
       <div className="w-1 h-12 rounded-full shrink-0" style={{ backgroundColor: color }} />
       <div className="flex-1">
-        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-1">{date}</p>
-        <h4 className="text-white font-medium group-hover:text-[#2979ff] transition-colors">{title}</h4>
+        <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-1">{date}</p>
+        <h4 className="text-[var(--text-primary)] font-medium group-hover:text-[var(--accent)] transition-colors">{title}</h4>
       </div>
       <div className="text-right">
-        <div className="flex items-center justify-end text-gray-400 text-xs mb-1">
+        <div className="flex items-center justify-end text-[var(--text-secondary)] text-xs mb-1">
           <Clock className="w-3 h-3 mr-2" />
           {time}
         </div>
-        <p className="text-[10px] text-gray-600 uppercase font-bold tracking-widest">{location}</p>
+        <p className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-widest">{location}</p>
       </div>
     </div>
   );

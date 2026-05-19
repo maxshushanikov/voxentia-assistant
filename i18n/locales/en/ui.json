@@ -42,5 +42,15 @@
   "deleteChat": "Delete chat",
   "deleteAllChats": "Delete all",
   "confirmDeleteChat": "Delete this chat permanently?",
-  "confirmDeleteAllChats": "Delete all chat history permanently?"
+  "confirmDeleteAllChats": "Delete all chat history permanently?",
+  "dashboard_subtitle": "Your control center",
+  "dashboard_continue": "Continue last session",
+  "dashboard_plugins": "Quick actions",
+  "dashboard_discover": "Discover plugins",
+  "theme_dark": "Dark",
+  "theme_light": "Light",
+  "theme_glass": "Glass",
+  "export_chat": "Export chat",
+  "settings_streamResponses": "Stream responses",
+  "settings_streamResponsesDesc": "Show tokens live as the model generates (direct LLM; disable for full plugin routing)."
 }

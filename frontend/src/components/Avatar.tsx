@@ -3,7 +3,6 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import {
   useGLTF,
   useAnimations,
-  Environment,
   OrbitControls,
   ContactShadows,
   Center,
@@ -12,6 +11,8 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+
+import type { AvatarEmotion } from '../types';
 
 const FEMININE_IDLE = '/assets/idle/feminine/F_Talking_Variations_001.glb';
 const MASCULINE_IDLE = '/assets/idle/masculine/M_Talking_Variations_001.glb';
@@ -65,11 +66,13 @@ function AvatarModel({
   animUrl,
   isSpeaking,
   mouthAlpha,
+  emotion = 'neutral',
 }: {
   url: string;
   animUrl: string;
   isSpeaking: boolean;
   mouthAlpha: number;
+  emotion?: AvatarEmotion;
 }) {
   const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
@@ -156,7 +159,10 @@ function AvatarModel({
 
     if (group.current) {
       const time = performance.now() * 0.001;
-      group.current.rotation.y = Math.sin(time * 0.3) * 0.04;
+      const sway = emotion === 'thinking' ? 0.06 : emotion === 'happy' ? 0.05 : 0.04;
+      const breath = 1 + Math.sin(time * 1.2) * 0.012;
+      group.current.rotation.y = Math.sin(time * 0.3) * sway;
+      group.current.scale.setScalar(breath);
     }
   });
 
@@ -176,12 +182,14 @@ interface AvatarProps {
   gender?: 'feminine' | 'masculine';
   isSpeaking?: boolean;
   mouthAlpha?: number;
+  emotion?: AvatarEmotion;
 }
 
 function Avatar({
   gender = 'feminine',
   isSpeaking = false,
   mouthAlpha = 0,
+  emotion = 'neutral',
 }: AvatarProps) {
   const modelUrl = `/assets/avatar_${gender}.glb`;
   const animUrl = gender === 'feminine' ? FEMININE_IDLE : MASCULINE_IDLE;
@@ -205,17 +213,19 @@ function Avatar({
         <directionalLight position={[2, 4, 5]} intensity={1.5} />
         <directionalLight position={[-2, 3, -3]} intensity={0.5} color="#7777bb" />
 
-        <Environment preset="city" />
+
 
         <React.Suspense fallback={null}>
           <Bounds fit clip margin={fitMargin} maxDuration={0}>
             <FitOnce modelKey={fitKey} />
             <Center>
               <AvatarModel
+                key={modelUrl}
                 url={modelUrl}
                 animUrl={animUrl}
                 isSpeaking={isSpeaking}
                 mouthAlpha={mouthAlpha}
+                emotion={emotion}
               />
             </Center>
           </Bounds>

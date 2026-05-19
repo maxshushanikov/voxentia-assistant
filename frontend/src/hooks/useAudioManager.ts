@@ -11,6 +11,10 @@ export function useAudioManager() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioQueueRef = useRef<string[]>([]);
+  const isPlayingQueueRef = useRef(false);
+
   const initAudio = useCallback(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -39,52 +43,100 @@ export function useAudioManager() {
     animationFrameRef.current = requestAnimationFrame(updateMouth);
   }, []);
 
-  const playAudio = useCallback(async (url: string) => {
-    initAudio();
-    const ctx = audioContextRef.current!;
-    const analyser = analyserRef.current!;
-
-    try {
-      // CRITICAL: Must await resume() — browser blocks audio until first user interaction
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
+  const stopAudio = useCallback(() => {
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.stop();
+      } catch (e) {
+        // Already stopped or not started
       }
+      sourceRef.current = null;
+    }
+    setIsSpeaking(false);
+    setMouthAlpha(0);
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+  }, []);
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error(`Audio fetch failed: ${response.status} ${url}`);
-        return;
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      if (arrayBuffer.byteLength === 0) {
-        console.error('Audio buffer is empty:', url);
-        return;
-      }
+  const playAudio = useCallback((url: string): Promise<void> => {
+    return new Promise(async (resolve) => {
+      initAudio();
+      const ctx = audioContextRef.current!;
+      const analyser = analyserRef.current!;
 
-      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      try {
+        // Stop any current playback
+        stopAudio();
 
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
+        }
 
-      setIsSpeaking(true);
-      source.start(0);
-      updateMouth();
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(`Audio fetch failed: ${response.status} ${url}`);
+          resolve();
+          return;
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        if (arrayBuffer.byteLength === 0) {
+          console.error('Audio buffer is empty:', url);
+          resolve();
+          return;
+        }
 
-      source.onended = () => {
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+        const source = ctx.createBufferSource();
+        sourceRef.current = source;
+        source.buffer = audioBuffer;
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+
+        setIsSpeaking(true);
+        source.start(0);
+        updateMouth();
+
+        source.onended = () => {
+          setIsSpeaking(false);
+          setMouthAlpha(0);
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+          sourceRef.current = null;
+          resolve();
+        };
+      } catch (error) {
+        console.error('Audio playback error:', error);
         setIsSpeaking(false);
         setMouthAlpha(0);
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      };
-    } catch (error) {
-      console.error('Audio playback error:', error);
-      setIsSpeaking(false);
-      setMouthAlpha(0);
+        resolve();
+      }
+    });
+  }, [initAudio, updateMouth, stopAudio]);
+
+  const playQueue = useCallback(async () => {
+    if (isPlayingQueueRef.current || audioQueueRef.current.length === 0) return;
+    isPlayingQueueRef.current = true;
+
+    while (audioQueueRef.current.length > 0) {
+      const nextUrl = audioQueueRef.current.shift()!;
+      await playAudio(nextUrl);
     }
-  }, [initAudio, updateMouth]);
+
+    isPlayingQueueRef.current = false;
+  }, [playAudio]);
+
+  const queueAudio = useCallback((url: string) => {
+    audioQueueRef.current.push(url);
+    void playQueue();
+  }, [playQueue]);
+
+  const clearAudioQueue = useCallback(() => {
+    audioQueueRef.current = [];
+    stopAudio();
+  }, [stopAudio]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -137,6 +189,9 @@ export function useAudioManager() {
     isRecording,
     mouthAlpha,
     playAudio,
+    stopAudio,
+    queueAudio,
+    clearAudioQueue,
     unlockAudio,
     startRecording,
     stopRecording

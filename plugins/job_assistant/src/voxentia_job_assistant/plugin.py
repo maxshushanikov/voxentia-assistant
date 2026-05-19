@@ -5,6 +5,13 @@ from typing import Dict, Any
 class JobAssistantPlugin(VoxentiaPlugin):
     """Plugin zur Unterstützung bei der Jobsuche und Karriereplanung."""
 
+    supported_intents = [
+        "job_search",
+        "cv_check",
+        "generate_cover_letter",
+        "interview_simulation",
+    ]
+
     def get_metadata(self) -> PluginMetadata:
         return PluginMetadata(
             name="job_assistant",

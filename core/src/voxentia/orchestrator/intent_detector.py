@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from voxentia.services.llm_client import LLMClient
+from voxentia.services.llm_base import BaseLLMClient
 from voxentia.utils.logging import logger
 
 
@@ -16,7 +16,7 @@ class IntentDetector:
         "generate_quiz": [r"quiz", r"test", r"abfragen", r"lernen"],
     }
 
-    def __init__(self, llm_client: LLMClient):
+    def __init__(self, llm_client: BaseLLMClient):
         self.llm = llm_client
 
     def _detect_via_keywords(self, text: str) -> Optional[str]:

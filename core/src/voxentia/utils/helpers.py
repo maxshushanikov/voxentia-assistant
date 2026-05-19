@@ -1,7 +1,8 @@
 import asyncio
-from typing import Any, Coroutine, Optional
 import functools
 import time
+from typing import Any, Coroutine
+
 
 async def with_timeout(coro: Coroutine, timeout_seconds: float = 5.0) -> Any:
     """Führt eine Coroutine mit einem Timeout aus."""

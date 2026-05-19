@@ -1,4 +1,5 @@
 import logging
+import re
 
 import chromadb
 import httpx
@@ -9,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 _chroma_client = chromadb.PersistentClient(path=str(settings.CHROMA_DIR))
 _collection = _chroma_client.get_or_create_collection(name="documents")
+
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def get_collection():
@@ -42,16 +45,50 @@ def extract_text_from_pdf(filepath: str) -> str:
     return text
 
 
-def split_text(text: str, chunk_size: int | None = None, overlap: int | None = None) -> list[str]:
-    size = chunk_size or settings.RAG_CHUNK_SIZE
-    overlap_val = overlap or settings.RAG_CHUNK_OVERLAP
+def split_text_sentences(
+    text: str, max_chars: int | None = None, overlap: int | None = None
+) -> list[str]:
+    """Sentence-aware chunking with character cap per chunk."""
+    max_chars = max_chars or settings.RAG_CHUNK_SIZE
+    overlap = overlap or settings.RAG_CHUNK_OVERLAP
+    sentences = [s.strip() for s in _SENTENCE_SPLIT.split(text) if s.strip()]
+    if not sentences:
+        return split_text_chars(text, max_chars, overlap)
+
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        candidate = f"{current} {sentence}".strip() if current else sentence
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            if current:
+                chunks.append(current)
+            current = sentence if len(sentence) <= max_chars else sentence[:max_chars]
+    if current:
+        chunks.append(current)
+
+    if overlap > 0 and len(chunks) > 1:
+        overlapped = [chunks[0]]
+        for i in range(1, len(chunks)):
+            tail = chunks[i - 1][-overlap:] if len(chunks[i - 1]) > overlap else chunks[i - 1]
+            overlapped.append(f"{tail} {chunks[i]}".strip())
+        return overlapped
+    return chunks
+
+
+def split_text_chars(text: str, chunk_size: int, overlap: int) -> list[str]:
     chunks: list[str] = []
     start = 0
     while start < len(text):
-        end = start + size
+        end = start + chunk_size
         chunks.append(text[start:end])
-        start += size - overlap_val
+        start += chunk_size - overlap
     return chunks
+
+
+def split_text(text: str, chunk_size: int | None = None, overlap: int | None = None) -> list[str]:
+    return split_text_sentences(text, chunk_size, overlap)
 
 
 async def process_document(filepath: str, filename: str) -> dict:
@@ -81,10 +118,15 @@ async def process_document(filepath: str, filename: str) -> dict:
     return {"message": f"Processed {stored} chunks from {filename}", "chunks": stored}
 
 
-async def search_context(query: str, n_results: int = 3) -> str:
+def _distance_to_confidence(distance: float) -> float:
+    return max(0.0, min(1.0, 1.0 - distance))
+
+
+async def search_context(query: str, n_results: int | None = None) -> str:
     if _collection.count() == 0:
         return ""
 
+    n_results = n_results or settings.RAG_MAX_CHUNKS
     query_embedding = await get_embedding(query)
     if not query_embedding:
         return ""
@@ -92,11 +134,21 @@ async def search_context(query: str, n_results: int = 3) -> str:
     results = _collection.query(
         query_embeddings=[query_embedding],
         n_results=min(n_results, _collection.count()),
+        include=["documents", "distances"],
     )
 
-    if results and results.get("documents") and results["documents"][0]:
-        return "\n\n".join(results["documents"][0])
-    return ""
+    documents = (results.get("documents") or [[]])[0]
+    distances = (results.get("distances") or [[]])[0]
+    if not documents:
+        return ""
+
+    relevant: list[str] = []
+    for doc, dist in zip(documents, distances):
+        confidence = _distance_to_confidence(dist)
+        if confidence >= settings.RAG_MIN_CONFIDENCE:
+            relevant.append(doc)
+
+    return "\n\n".join(relevant)
 
 
 def list_documents() -> list[dict]:

@@ -6,6 +6,8 @@ import uuid
 class CalendarPlugin(VoxentiaPlugin):
     """Plugin zur Verwaltung von Terminen und Kalenderereignissen."""
 
+    supported_intents = ["get_events", "add_event"]
+
     def get_metadata(self) -> PluginMetadata:
         return PluginMetadata(
             name="calendar",

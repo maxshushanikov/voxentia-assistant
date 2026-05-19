@@ -4,6 +4,13 @@ from typing import Dict, Any
 class TeacherAssistantPlugin(VoxentiaPlugin):
     """Plugin für edukative Unterstützung, Quizze und Sprachtraining."""
 
+    supported_intents = [
+        "generate_quiz",
+        "generate_flashcards",
+        "summarize",
+        "language_training",
+    ]
+
     def get_metadata(self) -> PluginMetadata:
         return PluginMetadata(
             name="teacher_assistant",

@@ -7,6 +7,8 @@ from voxentia.utils.logging import logger
 class CoreAssistantPlugin(VoxentiaPlugin):
     """Bietet Basis-Funktionen wie Wetter und Websuche."""
 
+    supported_intents = ["get_weather", "search_web"]
+
     def get_metadata(self) -> PluginMetadata:
         return PluginMetadata(
             name="core_assistant",

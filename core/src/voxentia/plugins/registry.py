@@ -1,13 +1,14 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Dict, Type, Optional, Any
-from voxentia.plugins.base import VoxentiaPlugin, PluginResponse
+from typing import Any, Dict, Optional, Type
+
+from voxentia.plugins.base import PluginResponse, VoxentiaPlugin
 from voxentia.utils.logging import logger
-from voxentia.config.settings import settings
+
 
 class PluginRegistry:
     """Verwaltet die Registrierung und Instanziierung von Plugins."""
-    
+
     def __init__(self):
         self.plugins: Dict[str, VoxentiaPlugin] = {}
         self.plugin_classes: Dict[str, Type[VoxentiaPlugin]] = {}
@@ -39,13 +40,13 @@ class PluginRegistry:
     async def initialize_plugins(self, context, config: Dict[str, Any]):
         """Initialisiert nur die in der Konfiguration aktivierten Plugins."""
         plugin_config = config.get("plugins", {})
-        
+
         for name, cls in self.plugin_classes.items():
             settings = plugin_config.get(name, {})
             if not settings.get("enabled", False):
                 logger.debug(f"Plugin deaktiviert (via Config): {name}")
                 continue
-                
+
             try:
                 instance = cls(context)
                 # Hier könnten wir auch einen Timeout für die Initialisierung setzen
@@ -67,3 +68,16 @@ class PluginRegistry:
 
     def get_plugin(self, name: str) -> Optional[VoxentiaPlugin]:
         return self.plugins.get(name)
+
+    def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
+        """Resolve plugin by declared supported_intents (no hardcoded routing)."""
+        for plugin in self.plugins.values():
+            if intent in plugin.get_intents():
+                return plugin
+        return None
+
+    def all_intents(self) -> list[str]:
+        intents: list[str] = []
+        for plugin in self.plugins.values():
+            intents.extend(plugin.get_intents())
+        return sorted(set(intents))

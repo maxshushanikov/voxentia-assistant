@@ -1,8 +1,7 @@
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field
-
 from app.schemas.enums import Language, Personality, Speaker
+from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):

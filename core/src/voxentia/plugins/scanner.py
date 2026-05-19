@@ -1,7 +1,9 @@
 import ast
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from voxentia.utils.logging import logger
+
 
 def extract_plugin_metadata_safe(plugin_path: Path) -> Optional[Dict[str, Any]]:
     """
@@ -12,14 +14,14 @@ def extract_plugin_metadata_safe(plugin_path: Path) -> Optional[Dict[str, Any]]:
     init_file = plugin_path / "__init__.py"
     if not init_file.exists():
         init_file = plugin_path / "plugin.py"
-        
+
     if not init_file.exists():
         return None
-    
+
     try:
         tree = ast.parse(init_file.read_text(encoding="utf-8"))
         metadata = {}
-        
+
         for node in ast.walk(tree):
             # Wir suchen nach Zuweisungen an eine Variable namens 'metadata'
             if isinstance(node, ast.Assign):

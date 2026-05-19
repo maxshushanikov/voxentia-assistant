@@ -1,12 +1,12 @@
-from fastapi import APIRouter
-
-from app.services.chat_service import chat_service
+from app.core.deps import get_chat_service
+from app.services.chat_service import ChatService
+from fastapi import APIRouter, Depends
 
 router = APIRouter()
 
 
 @router.get("/list")
-async def list_plugins():
+async def list_plugins(chat_service: ChatService = Depends(get_chat_service)):
     await chat_service.initialize()
     plugins = []
 
@@ -19,6 +19,7 @@ async def list_plugins():
                 "version": meta.version,
                 "description": meta.description,
                 "status": "active",
+                "intents": instance.get_intents(),
             }
         )
 
@@ -33,6 +34,7 @@ async def list_plugins():
                 "version": meta.version,
                 "description": meta.description,
                 "status": "disabled",
+                "intents": cls.get_intents(),
             }
         )
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 _test_root = Path(tempfile.mkdtemp(prefix="voxentia_pytest_"))
 os.environ.setdefault("DATA_DIR", str(_test_root))
+os.environ.setdefault("AUTH_ENABLED", "false")
 os.environ.setdefault("RATE_LIMIT", "1000/minute")
 os.environ.setdefault("CHROMA_DIR", str(_test_root / "chroma"))
 os.environ.setdefault("DB_PATH", f"sqlite:///{_test_root / 'test.db'}")

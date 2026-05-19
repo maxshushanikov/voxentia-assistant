@@ -1,0 +1,333 @@
+:root {
+  /* Colors */
+  --color-bg: #111116;
+  --color-surface: #1c1c24;
+  --color-primary: #5850ec;
+  --color-primary-dark: #4338ca;
+  --color-text: #ffffff;
+  --color-text-muted: #9ca3af;
+  --color-border: rgba(255, 255, 255, 0.08);
+  
+  /* Layout */
+  --sidebar-width: 380px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  overflow: hidden;
+  height: 100vh;
+}
+
+#app {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Start Overlay */
+#start-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: radial-gradient(circle at center, #1e1e2d 0%, #0a0a0f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease-out, visibility 0.5s;
+}
+
+#start-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.start-card {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  max-width: 450px;
+}
+
+.start-card h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.start-card p {
+  color: var(--color-text-muted);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.language-selector {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+
+.lang-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.lang-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.lang-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(88, 80, 236, 0.3);
+}
+
+#startBtn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+#startBtn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+}
+
+/* Main Layout */
+.main-container {
+  display: flex; /* Flex instead of Grid for simpler flow */
+  height: 100vh;
+  width: 100vw;
+}
+
+.main-container.hidden {
+  display: none;
+}
+
+/* 3D Scene - Occupies remaining space */
+.controls select {
+    background: rgba(45, 45, 55, 0.95);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.controls select:hover {
+    background: rgba(60, 60, 75, 1);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.controls select option {
+    background: #2d2d37;
+    color: white;
+    padding: 10px;
+}
+
+#scene-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#scene {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Controls overlay on scene */
+.scene-overlay {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  background: rgba(28, 28, 36, 0.7);
+  padding: 8px;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
+  pointer-events: auto;
+}
+
+.controls button, .controls select {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.controls button:hover, .controls select:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Sidebar Chat */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-header h2 {
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#history {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: var(--color-primary);
+}
+
+.message.assistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+}
+
+.input-area {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.input-box {
+  display: flex;
+  gap: 8px;
+  background: var(--color-bg);
+  padding: 6px;
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+}
+
+#textInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  outline: none;
+}
+
+#sendBtn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+  .main-container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: 40%;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.thinking {
+  font-style: italic;
+  color: var(--color-text-muted);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+#micBtn.active {
+    background: #ef4444 !important;
+    color: white !important;
+    animation: pulse 1s infinite;
+    border-color: #f87171 !important;
+}
+
+#micBtn.recording {
+    background: #dc2626 !important;
+}

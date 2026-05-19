@@ -1,8 +1,7 @@
-from fastapi.testclient import TestClient
-
 from app.core.database import SessionLocal, init_db
 from app.main import app
 from app.models.chat import ChatMessage
+from fastapi.testclient import TestClient
 
 client = TestClient(app, raise_server_exceptions=False)
 

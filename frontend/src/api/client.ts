@@ -9,13 +9,24 @@ export function getLastRequestId(): string | null {
 export class ApiError extends Error {
   status: number;
   code?: string;
+  errorCode?: string;
+  details?: Record<string, unknown>;
   requestId?: string | null;
 
-  constructor(message: string, status: number, code?: string, requestId?: string | null) {
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    requestId?: string | null,
+    errorCode?: string,
+    details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.errorCode = errorCode;
+    this.details = details;
     this.requestId = requestId;
   }
 }
@@ -39,16 +50,25 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
-    let detail = response.statusText;
+    let message = response.statusText;
     let code: string | undefined;
+    let errorCode: string | undefined;
+    let details: Record<string, unknown> | undefined;
     try {
       const body = await response.json();
-      detail = body.detail ?? detail;
-      code = body.code;
+      if (body.error_code) {
+        errorCode = body.error_code;
+        message = body.message ?? message;
+        details = body.details;
+        code = body.error_code;
+      } else {
+        message = body.detail ?? body.message ?? message;
+        code = body.code ?? body.error_code;
+      }
     } catch {
       /* non-JSON error body */
     }
-    throw new ApiError(detail, response.status, code, requestId);
+    throw new ApiError(message, response.status, code, requestId, errorCode, details);
   }
 
   if (response.status === 204) {

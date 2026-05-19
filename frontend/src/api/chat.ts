@@ -47,6 +47,22 @@ export function deleteAllSessions() {
   });
 }
 
+export function listModels() {
+  return apiFetch<{ models: { name: string }[]; default: string }>('/api/v1/models');
+}
+
+export function listPlugins() {
+  return apiFetch<{
+    plugins: {
+      id: string;
+      name: string;
+      status: string;
+      description?: string;
+      intents?: string[];
+    }[];
+  }>('/api/v1/plugins/list');
+}
+
 export function uploadDocument(formData: FormData) {
   return apiFetch<DocumentUploadResponse>('/api/documents/upload', {
     method: 'POST',

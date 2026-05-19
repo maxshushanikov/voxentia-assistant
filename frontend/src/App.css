@@ -17,21 +17,7 @@
   background: rgba(41, 121, 255, 0.4);
 }
 
-/* Glassmorphism Effect */
-.glass-card {
-  background: rgba(22, 24, 33, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
 
-/* Base Styles */
-body {
-  margin: 0;
-  padding: 0;
-  background: #0b0e14;
-  overflow: hidden;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
 
 /* Animation for thinking indicator */
 @keyframes bounce {

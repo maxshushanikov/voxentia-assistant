@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from sqlalchemy.orm import Session
+import json
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.deps import get_chat_service
 from app.core.rate_limit import limiter
 from app.schemas.chat import (
     ChatRequest,
@@ -12,8 +12,11 @@ from app.schemas.chat import (
     SessionListResponse,
     SessionSummary,
 )
-from app.services.chat_service import chat_service
+from app.services.chat_service import ChatService
 from app.services.voice_service import transcribe_audio_file
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
@@ -24,6 +27,7 @@ async def chat_endpoint(
     request: Request,
     body: ChatRequest,
     db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
     text, audio_url, intent, plugin_data = await chat_service.process_message(db, body)
     return {
@@ -35,6 +39,26 @@ async def chat_endpoint(
     }
 
 
+@router.post("/chat/stream")
+@limiter.limit(settings.RATE_LIMIT)
+async def chat_stream_endpoint(
+    request: Request,
+    body: ChatRequest,
+    db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
+):
+    async def event_generator():
+        async for item in chat_service.process_message_stream(db, body):
+            if item["event"] == "token":
+                yield f"data: {json.dumps({'token': item['data']})}\n\n"
+            elif item["event"] == "audio":
+                yield f"data: {json.dumps({'audio': item['data']})}\n\n"
+            else:
+                yield f"data: {json.dumps({'done': item['data']})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 @router.get("/chat/history", response_model=HistoryResponse)
 @limiter.limit(settings.RATE_LIMIT)
 async def get_chat_history(
@@ -43,30 +67,30 @@ async def get_chat_history(
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
     history, total = chat_service.get_history(db, session_id, limit=limit, offset=offset)
     formatted_history = [
         MessageHistory(role=m.role, content=m.content, timestamp=m.timestamp.isoformat())
         for m in history
     ]
-    return {
-        "history": formatted_history,
-        "total": total,
-        "offset": offset,
-        "limit": limit,
-    }
+    return {"history": formatted_history, "total": total, "offset": offset, "limit": limit}
 
 
 @router.get("/sessions", response_model=SessionListResponse)
 @limiter.limit(settings.RATE_LIMIT)
-async def get_sessions(request: Request, db: Session = Depends(get_db)):
+async def get_sessions(
+    request: Request,
+    db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
+):
     sessions = chat_service.get_sessions(db)
     return {
         "sessions": [
             SessionSummary(
-                session_id=s["session_id"],
-                title=s["title"],
-                timestamp=s["timestamp"],
+                session_id=s.session_id,
+                title=s.title,
+                timestamp=s.last_timestamp.isoformat(),
             )
             for s in sessions
         ]
@@ -79,6 +103,7 @@ async def delete_session(
     request: Request,
     session_id: str,
     db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
 ):
     deleted = chat_service.delete_session(db, session_id)
     if deleted == 0:
@@ -88,7 +113,11 @@ async def delete_session(
 
 @router.delete("/sessions")
 @limiter.limit("10/minute")
-async def delete_all_sessions(request: Request, db: Session = Depends(get_db)):
+async def delete_all_sessions(
+    request: Request,
+    db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
+):
     deleted = chat_service.delete_all_sessions(db)
     return {"message": "All sessions deleted", "deleted_messages": deleted}
 

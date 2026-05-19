@@ -8,3 +8,6 @@ chromadb==0.4.21
 numpy<2.0.0
 pypdf==3.17.4
 slowapi==0.1.9
+PyJWT>=2.8.0
+PyYAML>=6.0.1
+structlog==24.1.0

@@ -2,10 +2,10 @@ from app.services import rag_service
 
 
 def test_split_text_produces_chunks():
-    text = "a" * 1200
+    text = ". ".join([f"Sentence number {i} with some words." for i in range(40)])
     chunks = rag_service.split_text(text, chunk_size=500, overlap=50)
     assert len(chunks) >= 2
-    assert all(len(c) <= 500 for c in chunks)
+    assert all(len(c) <= 550 for c in chunks)
 
 
 def test_extract_text_from_empty_pdf(tmp_path):

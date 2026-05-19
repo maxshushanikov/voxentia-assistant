@@ -42,5 +42,15 @@
   "deleteChat": "Удалить чат",
   "deleteAllChats": "Удалить все",
   "confirmDeleteChat": "Удалить этот чат навсегда?",
-  "confirmDeleteAllChats": "Удалить всю историю чатов навсегда?"
+  "confirmDeleteAllChats": "Удалить всю историю чатов навсегда?",
+  "dashboard_subtitle": "Ваш центр управления",
+  "dashboard_continue": "Продолжить последнюю сессию",
+  "dashboard_plugins": "Быстрые действия",
+  "dashboard_discover": "Обнаружить плагины",
+  "theme_dark": "Тёмная",
+  "theme_light": "Светлая",
+  "theme_glass": "Стекло",
+  "export_chat": "Экспорт чата",
+  "settings_streamResponses": "Потоковые ответы",
+  "settings_streamResponsesDesc": "Показывать токены по мере генерации (прямой LLM; выкл. для плагинов)."
 }

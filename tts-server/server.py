@@ -215,5 +215,14 @@ def get_audio(filename):
     return send_from_directory(AUDIO_PATH, filename)
 
 
+# Warm up models on startup
+try:
+    logger.info("Warming up TTS models on startup (en, de, ru)...")
+    for lang in ["en", "de", "ru"]:
+        get_model(lang)
+except Exception as e:
+    logger.error("Failed to warm up models: %s", e)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)

@@ -1,22 +1,18 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { X, Settings, Plus, Trash2 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { useTranslation } from '../i18n/context';
 import { plugins } from '../plugins/registry';
 import { deleteAllSessions, deleteSession, getSessions } from '../api/chat';
+import { cn } from '../utils/cn';
 
 const SIDEBAR_HISTORY_PREVIEW_LIMIT = 8;
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 interface SessionSummary {
   session_id: string;
   title: string;
   timestamp: string;
 }
+
 
 interface HistoryGroup {
   label: string;
@@ -112,7 +108,7 @@ export default function Sidebar({
   const loadSessions = useCallback(async () => {
     try {
       const data = await getSessions();
-      setAllGroups(groupSessions(data.sessions || [], t as unknown as Record<string, string>));
+      setAllGroups(groupSessions(data.sessions || [], (t as any)));
     } catch (err) {
       console.error('Failed to load sessions:', err);
     }
@@ -172,12 +168,12 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 lg:relative lg:translate-x-0 transition-transform duration-300 z-50 w-[260px] flex flex-col h-screen bg-[#0d1117] border-r border-white/5 shrink-0',
+        'fixed inset-y-0 left-0 lg:relative lg:translate-x-0 transition-transform duration-300 z-50 w-[260px] flex flex-col h-screen bg-[var(--bg-secondary)] border-r border-black/5 dark:border-white/5 shrink-0',
         isOpen ? 'translate-x-0' : '-translate-x-full',
       )}
     >
-      <div className="p-4 flex items-center justify-between lg:hidden border-b border-white/5 mb-4">
-        <span className="font-bold uppercase tracking-widest text-xs text-gray-500">{t.menu}</span>
+      <div className="p-4 flex items-center justify-between lg:hidden border-b border-black/5 dark:border-white/5 mb-4">
+        <span className="font-bold uppercase tracking-widest text-xs text-[var(--text-secondary)]">{t.menu}</span>
         <button type="button" onClick={onClose} className="p-1">
           <X className="w-5 h-5" />
         </button>
@@ -187,7 +183,7 @@ export default function Sidebar({
         <button
           type="button"
           onClick={onNewChat}
-          className="w-full mb-8 flex items-center justify-center space-x-2 py-3 bg-white/5 border border-white/10 rounded-[4px] text-xs font-bold text-gray-400 hover:text-[#2979ff] hover:border-[#2979ff33] transition-all"
+          className="w-full mb-8 flex items-center justify-center space-x-2 py-3 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-[4px] text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span className="uppercase tracking-widest">{t.newChat}</span>
@@ -242,14 +238,14 @@ export default function Sidebar({
                         <div
                           key={session.session_id}
                           className={cn(
-                            'group flex items-center rounded-[4px] hover:bg-white/5',
-                            activeSessionId === session.session_id && 'bg-white/5',
+                            'group flex items-center rounded-[4px] hover:bg-black/5 dark:hover:bg-white/5',
+                            activeSessionId === session.session_id && 'bg-black/5 dark:bg-white/5',
                           )}
                         >
                           <button
                             type="button"
                             onClick={() => onLoadSession(session.session_id)}
-                            className="flex-1 min-w-0 text-left px-4 py-2 text-[11px] text-gray-500 hover:text-gray-300 transition-colors truncate"
+                            className="flex-1 min-w-0 text-left px-4 py-2 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors truncate"
                             title={session.title}
                           >
                             {session.title}
@@ -258,7 +254,7 @@ export default function Sidebar({
                             type="button"
                             onClick={(e) => handleDeleteSession(session.session_id, e)}
                             disabled={deletingId === session.session_id}
-                            className="p-2 mr-1 text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all disabled:opacity-40"
+                            className="p-2 mr-1 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all disabled:opacity-40"
                             title={t.deleteChat}
                             aria-label={t.deleteChat}
                           >
@@ -299,9 +295,9 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="p-4 border-t border-white/5 bg-black/10">
+      <div className="p-4 border-t border-black/5 dark:border-white/5 bg-black/5 dark:bg-black/20">
         <div className="flex justify-between items-center px-2">
-          <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">
+          <span className="text-[10px] text-[var(--text-secondary)]/50 font-bold uppercase tracking-widest">
             Voxentia v3.2
           </span>
           <span className="text-[10px] text-[#2979ff] font-bold uppercase tracking-widest">Pro</span>
@@ -330,10 +326,10 @@ function SidebarButton({
         'w-full flex items-center px-4 py-2.5 text-xs font-bold rounded-[4px] transition-all duration-200 group text-left',
         active
           ? 'bg-[#2979ff] text-white shadow-lg shadow-blue-900/20'
-          : 'text-gray-500 hover:bg-white/5 hover:text-gray-300',
+          : 'text-[var(--text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[var(--text-primary)]',
       )}
     >
-      <span className={cn('mr-4', active ? 'text-white' : 'text-gray-600 group-hover:text-gray-400')}>
+      <span className={cn('mr-4', active ? 'text-white' : 'text-[var(--text-secondary)]/60 group-hover:text-[var(--text-primary)]/80')}>
         {icon}
       </span>
       <span className="uppercase tracking-widest">{label}</span>

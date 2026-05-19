@@ -1,5 +1,6 @@
 import logging
 
+from app.core.errors import VoxentiaError
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -8,10 +9,39 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 logger = logging.getLogger("voxentia.api")
 
 
-async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+def _structured(
+    error_code: str,
+    message: str,
+    details: dict | None = None,
+    *,
+    legacy_code: str | None = None,
+) -> dict:
+    payload = {
+        "error_code": error_code,
+        "message": message,
+        "details": details or {},
+    }
+    if legacy_code:
+        payload["code"] = legacy_code
+        payload["detail"] = message
+    return payload
+
+
+async def voxentia_error_handler(request: Request, exc: VoxentiaError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail, "code": "http_error"},
+        content=_structured(exc.error_code, exc.message, exc.details, legacy_code=exc.error_code),
+    )
+
+
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    detail = exc.detail
+    if isinstance(detail, dict) and "error_code" in detail:
+        return JSONResponse(status_code=exc.status_code, content=detail)
+    message = detail if isinstance(detail, str) else str(detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=_structured("http_error", message, legacy_code="http_error"),
     )
 
 
@@ -20,7 +50,12 @@ async def validation_exception_handler(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=422,
-        content={"detail": "Invalid request.", "code": "validation_error", "errors": exc.errors()},
+        content=_structured(
+            "validation_error",
+            "Invalid request.",
+            {"errors": exc.errors()},
+            legacy_code="validation_error",
+        ),
     )
 
 
@@ -34,5 +69,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
     return JSONResponse(
         status_code=500,
-        content={"detail": "An internal error occurred.", "code": "internal_error"},
+        content=_structured(
+            "internal_error",
+            "An internal error occurred.",
+            legacy_code="internal_error",
+        ),
     )
