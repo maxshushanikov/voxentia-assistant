@@ -13,6 +13,7 @@ export default function ViewTransition({ viewKey, children, className = '' }: Vi
 
   useEffect(() => {
     if (viewKey === currentKey) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisible(false);
     const t = window.setTimeout(() => {
       setCurrentKey(viewKey);

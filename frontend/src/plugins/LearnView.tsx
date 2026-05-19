@@ -84,7 +84,7 @@ function Dashboard({ onSelect }: { onSelect: (m: LearnMode) => void }) {
   );
 }
 
-function LearnTile({ icon, title, description, buttonLabel, onClick, highlight = false }: { icon: any, title: string, description: string, buttonLabel: string, onClick: () => void, highlight?: boolean }) {
+function LearnTile({ icon, title, description, buttonLabel, onClick, highlight = false }: { icon: React.ReactNode, title: string, description: string, buttonLabel: string, onClick: () => void, highlight?: boolean }) {
   return (
     <div className={`glass-card rounded-[12px] p-8 border transition-all group flex flex-col h-full
       ${highlight ? 'border-[#2979ff]/30 bg-[#2979ff]/5' : 'border-white/5 hover:border-black/10 dark:border-white/10'}
@@ -176,6 +176,7 @@ function LanguageTraining({ onBack }: { onBack: () => void }) {
                 <p className="text-[var(--text-secondary)] mb-12 uppercase tracking-widest text-[10px] font-bold">Scenario: {trainingModes.find(m => m.id === activeMode)?.label}</p>
                 <div className="flex justify-center space-x-1 mb-12 h-8 items-center">
                    {[...Array(12)].map((_, i) => (
+                      // eslint-disable-next-line react-hooks/purity
                       <div key={i} className="w-1 bg-[#2979ff] rounded-full" style={{ height: `${Math.random() * 100}%`, transition: 'height 0.2s ease' }}></div>
                    ))}
                 </div>

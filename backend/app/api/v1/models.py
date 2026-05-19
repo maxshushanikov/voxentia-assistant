@@ -31,10 +31,10 @@ async def list_ollama_models(request: Request):
     default = settings.DEFAULT_MODEL
     # Try to resolve default model name robustly (e.g., match 'phi3' with 'phi3:latest')
     matching = [
-        m.get("name") 
-        for m in data.get("models", []) 
+        m.get("name")
+        for m in data.get("models", [])
         if m.get("name") and (
-            m.get("name").lower() == default.lower() or 
+            m.get("name").lower() == default.lower() or
             m.get("name").lower() == f"{default.lower()}:latest"
         )
     ]

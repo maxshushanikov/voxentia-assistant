@@ -1,6 +1,6 @@
 """SSE chat stream endpoint tests."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 from app.core.deps import get_chat_service
 from app.main import app

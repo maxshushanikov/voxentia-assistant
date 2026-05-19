@@ -120,9 +120,9 @@ export default function SettingsView({
             />
             <ToggleSetting
               icon={<Radio className="w-4 h-4" />}
-              label={(t as any).settings_streamResponses ?? 'Stream responses'}
+              label={(t as unknown as Record<string, string>).settings_streamResponses ?? 'Stream responses'}
               description={
-                (t as any).settings_streamResponsesDesc ??
+                (t as unknown as Record<string, string>).settings_streamResponsesDesc ??
                 'Show tokens as they are generated (LLM direct; plugins use standard mode).'
               }
               checked={streamEnabled}

@@ -108,14 +108,15 @@ export default function Sidebar({
   const loadSessions = useCallback(async () => {
     try {
       const data = await getSessions();
-      setAllGroups(groupSessions(data.sessions || [], (t as any)));
+      setAllGroups(groupSessions(data.sessions || [], (t as unknown as Record<string, string>)));
     } catch (err) {
       console.error('Failed to load sessions:', err);
     }
   }, [t]);
 
   useEffect(() => {
-    loadSessions();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadSessions();
   }, [historyRefreshKey, loadSessions]);
 
   const totalSessions = useMemo(() => countSessions(allGroups), [allGroups]);

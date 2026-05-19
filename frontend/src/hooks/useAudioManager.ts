@@ -17,6 +17,7 @@ export function useAudioManager() {
 
   const initAudio = useCallback(() => {
     if (!audioContextRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
@@ -26,7 +27,7 @@ export function useAudioManager() {
     }
   }, []);
 
-  const updateMouth = useCallback(() => {
+  const updateMouth = useCallback(function updateMouth() {
     if (!analyserRef.current) return;
 
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -40,6 +41,7 @@ export function useAudioManager() {
     const alpha = Math.min(average / 128, 1.0); 
     setMouthAlpha(alpha * 0.8); 
 
+
     animationFrameRef.current = requestAnimationFrame(updateMouth);
   }, []);
 
@@ -47,7 +49,7 @@ export function useAudioManager() {
     if (sourceRef.current) {
       try {
         sourceRef.current.stop();
-      } catch (e) {
+      } catch {
         // Already stopped or not started
       }
       sourceRef.current = null;
@@ -60,6 +62,7 @@ export function useAudioManager() {
   }, []);
 
   const playAudio = useCallback((url: string): Promise<void> => {
+    // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolve) => {
       initAudio();
       const ctx = audioContextRef.current!;
@@ -145,8 +148,8 @@ export function useAudioManager() {
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
+      mediaRecorder.ondataavailable = (_e) => {
+        if (_e.data.size > 0) chunksRef.current.push(_e.data);
       };
 
       mediaRecorder.start();

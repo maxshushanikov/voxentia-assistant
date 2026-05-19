@@ -94,7 +94,11 @@ function AvatarModel({
 
   const [isBlinking, setIsBlinking] = useState(false);
   const blinkTimer = useRef(0);
-  const blinkTarget = useRef(2 + Math.random() * 3);
+  const blinkTarget = useRef(0);
+
+  useEffect(() => {
+    blinkTarget.current = 2 + Math.random() * 3;
+  }, []);
   const morphMeshes = useRef<THREE.Mesh[]>([]);
 
   useEffect(() => {
