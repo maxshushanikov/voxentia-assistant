@@ -2,9 +2,15 @@ import { FileText, CheckCircle2, Circle, Search, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n/context';
 
+interface Note {
+  title: string;
+  date: string;
+  preview: string;
+}
+
 export default function NotesView() {
   const { t } = useTranslation();
-  const [notes, setNotes] = useState(() => {
+  const [notes, setNotes] = useState<Note[]>(() => {
     const saved = localStorage.getItem('voxentia-notes');
     return saved ? JSON.parse(saved) : [
       { title: 'Project Overview', date: 'May 12, 2026', preview: 'The goal is to stabilize the frontend architecture...' },
@@ -55,7 +61,7 @@ export default function NotesView() {
             {t.notes_recent}
           </h3>
           <div className="space-y-4">
-            {notes.map((note: any, i: number) => (
+            {notes.map((note, i) => (
               <div
                 key={i}
                 className="glass-card rounded-[8px] p-5 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 transition-all cursor-pointer group"

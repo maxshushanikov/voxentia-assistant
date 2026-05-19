@@ -5,12 +5,6 @@ import re
 import time
 from typing import Any, List, Optional, Tuple
 
-# Explaining Constants for TTS voice generation tuning
-MIN_SENTENCE_CHARS_FOR_TTS = 20
-MIN_CLEANED_CHARS_FOR_TTS = 10
-MIN_TRAILING_CHARS_FOR_TTS = 2
-TTS_PARALLEL_WORKERS = 3
-
 from app.core.config import settings
 from app.core.errors import PluginError, VoxentiaError
 from app.core.personalities import load_personalities
@@ -27,6 +21,12 @@ from voxentia.plugins.registry import PluginRegistry
 from voxentia.services.llm_client import OllamaClient
 
 logger = logging.getLogger("voxentia.api")
+
+# Explaining Constants for TTS voice generation tuning
+MIN_SENTENCE_CHARS_FOR_TTS = 20
+MIN_CLEANED_CHARS_FOR_TTS = 10
+MIN_TRAILING_CHARS_FOR_TTS = 2
+TTS_PARALLEL_WORKERS = 3
 
 
 class ChatService:
@@ -197,9 +197,9 @@ class ChatService:
                 item = await tts_queue.get()
                 if item is None:
                     break
-                text_to_speak, spk, l = item
+                text_to_speak, spk, lang = item
                 try:
-                    url = await generate_tts_audio(text_to_speak, spk, l)
+                    url = await generate_tts_audio(text_to_speak, spk, lang)
                     if url:
                         await audio_queue.put(url)
                 except Exception as e:
@@ -318,7 +318,7 @@ class ChatService:
             .filter(ChatMessage.role == "user")
             .subquery()
         )
-        
+
         subq_max = (
             db.query(
                 ChatMessage.session_id,

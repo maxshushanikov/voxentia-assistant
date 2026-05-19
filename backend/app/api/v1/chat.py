@@ -16,7 +16,7 @@ from app.schemas.chat import (
 from app.services.chat_service import ChatService
 from app.services.voice_service import transcribe_audio_file
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -113,18 +113,18 @@ async def upload_custom_avatar(
 ):
     if not file.filename or not file.filename.lower().endswith(".glb"):
         raise HTTPException(status_code=400, detail="Only GLB files are supported.")
-    
+
     content = await file.read()
     if len(content) > 30 * 1024 * 1024:  # max 30MB
         raise HTTPException(status_code=413, detail="File too large (max 30MB).")
-        
+
     # Check for valid GLB magic bytes: 0x676C5446 ("glTF")
     if not content.startswith(b"glTF"):
         raise HTTPException(
             status_code=400,
             detail="Invalid GLB file content (failed magic bytes check)."
         )
-        
+
     avatar_path = settings.DATA_DIR / "custom_avatar.glb"
     avatar_path.parent.mkdir(parents=True, exist_ok=True)
     avatar_path.write_bytes(content)

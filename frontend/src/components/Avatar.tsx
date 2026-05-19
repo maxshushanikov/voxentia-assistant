@@ -213,7 +213,10 @@ function Avatar({
           setResolvedModelUrl(`/assets/avatar_${gender}.glb`);
         });
     } else {
-      setResolvedModelUrl(`/assets/avatar_${gender}.glb`);
+      const target = `/assets/avatar_${gender}.glb`;
+      Promise.resolve().then(() => {
+        setResolvedModelUrl(target);
+      });
     }
   }, [avatarSource, gender]);
 
@@ -223,11 +226,10 @@ function Avatar({
   const cameraY = gender === 'masculine' ? 0.08 : 0.05;
   const fitKey = `${modelUrl}|${animUrl}`;
 
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false);
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 768px)');
-    setIsMobile(media.matches);
     const listener = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     media.addEventListener('change', listener);
     return () => media.removeEventListener('change', listener);

@@ -3,6 +3,14 @@ import { useState, useEffect } from 'react';
 
 import { useTranslation } from '../i18n/context';
 
+interface Project {
+  title: string;
+  status: string;
+  progress: number;
+  team: number;
+  tasks: number;
+}
+
 export default function ProjectPlanningView() {
   const { t } = useTranslation();
   const statusLabel = (s: string) =>
@@ -12,7 +20,7 @@ export default function ProjectPlanningView() {
       Review: t.project_review,
     } as Record<string, string>)[s] ?? s;
 
-  const [projects, setProjects] = useState(() => {
+  const [projects, setProjects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('voxentia-projects');
     return saved ? JSON.parse(saved) : [
       { title: 'Voxentia Core v3.5', status: 'In Progress', progress: 75, team: 4, tasks: 24 },
@@ -30,10 +38,10 @@ export default function ProjectPlanningView() {
     if (title) setProjects([{ title, status: 'Planning', progress: 0, team: 1, tasks: 0 }, ...projects]);
   };
 
-  const activeCount = projects.filter((p: any) => p.status !== 'Done').length;
-  const totalTasks = projects.reduce((sum: number, p: any) => sum + p.tasks, 0);
-  const totalTeam = projects.reduce((sum: number, p: any) => sum + p.team, 0);
-  const avgProgress = projects.length ? Math.round(projects.reduce((sum: number, p: any) => sum + p.progress, 0) / projects.length) : 0;
+  const activeCount = projects.filter((p) => p.status !== 'Done').length;
+  const totalTasks = projects.reduce((sum, p) => sum + p.tasks, 0);
+  const totalTeam = projects.reduce((sum, p) => sum + p.team, 0);
+  const avgProgress = projects.length ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length) : 0;
 
   return (
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]">
@@ -59,7 +67,7 @@ export default function ProjectPlanningView() {
 
         {/* Project cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-           {projects.map((p: any, i: number) => (
+           {projects.map((p, i) => (
              <div key={i} className="glass-card rounded-[8px] p-6 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 transition-all group">
                 <div className="flex justify-between items-start mb-6">
                    <div className="flex items-center space-x-4">

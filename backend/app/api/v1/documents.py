@@ -1,5 +1,4 @@
 from pathlib import Path
-from pydantic import BaseModel, HttpUrl
 
 from app.core.config import settings
 from app.core.rate_limit import limiter
@@ -11,6 +10,7 @@ from app.schemas.documents import (
 )
 from app.services import rag_service
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from pydantic import BaseModel, HttpUrl
 
 router = APIRouter()
 
@@ -31,7 +31,7 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
             status_code=400,
             detail={
                 "error_code": "invalid_file_type",
-                "message": f"Only PDF, DOCX, TXT, MD, JSON, and CSV files are supported.",
+                "message": "Only PDF, DOCX, TXT, MD, JSON, and CSV files are supported.",
                 "details": {},
             },
         )

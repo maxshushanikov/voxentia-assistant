@@ -40,19 +40,19 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
             icon={<Zap className="w-4 h-4 text-amber-500" />}
             title={t.chat_quickAnalysis}
             desc={t.chat_quickAnalysisDesc}
-            onClick={() => onTileClick?.((t as any).chat_quickAnalysisPrompt || t.chat_quickAnalysis)}
+            onClick={() => onTileClick?.((t as unknown as Record<string, string>).chat_quickAnalysisPrompt || t.chat_quickAnalysis)}
           />
           <WelcomeTile
             icon={<MessageSquare className="w-4 h-4 text-[var(--accent)]" />}
             title={t.chat_creativeWriting}
             desc={t.chat_creativeWritingDesc}
-            onClick={() => onTileClick?.((t as any).chat_creativeWritingPrompt || t.chat_creativeWriting)}
+            onClick={() => onTileClick?.((t as unknown as Record<string, string>).chat_creativeWritingPrompt || t.chat_creativeWriting)}
           />
           <WelcomeTile
             icon={<Shield className="w-4 h-4 text-emerald-500" />}
             title={t.chat_privateSecure}
             desc={t.chat_privateSecureDesc}
-            onClick={() => onTileClick?.((t as any).chat_privateSecurePrompt || t.chat_privateSecure)}
+            onClick={() => onTileClick?.((t as unknown as Record<string, string>).chat_privateSecurePrompt || t.chat_privateSecure)}
           />
         </div>
       </div>
@@ -121,7 +121,7 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                         components={{
                           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                           code: (props) => {
-                            const { children, className, node, ...rest } = props;
+                            const { children, className, ...rest } = props;
                             const match = /language-(\w+)/.exec(className || '');
                             return match ? (
                               <div className="relative group/code mt-2 mb-4">
@@ -165,7 +165,7 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                         components={{
                           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                           code: (props) => {
-                            const { children, className, node, ...rest } = props;
+                            const { children, className, ...rest } = props;
                             const match = /language-(\w+)/.exec(className || '');
                             return match ? (
                               <div className="relative group/code mt-2 mb-4">
@@ -199,7 +199,7 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                   components={{
                     p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                     code: (props) => {
-                      const { children, className, node, ...rest } = props;
+                      const { children, className, ...rest } = props;
                       const match = /language-(\w+)/.exec(className || '');
                       return match ? (
                         <div className="relative group/code mt-2 mb-4">

@@ -2,10 +2,11 @@ import ipaddress
 import logging
 import re
 import socket
+import xml.etree.ElementTree as ET
+import zipfile
 from urllib.parse import urlparse
 
 import chromadb
-import httpx
 from app.core.config import settings
 from pypdf import PdfReader
 
@@ -43,21 +44,21 @@ def validate_url_for_ssrf(url: str) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError("Only http and https schemes are allowed.")
-    
+
     host = parsed.hostname
     if not host:
         raise ValueError("Invalid URL host.")
-    
+
     try:
         addr_info = socket.getaddrinfo(host, parsed.port or (80 if parsed.scheme == "http" else 443))
         ips = [info[4][0] for info in addr_info]
     except Exception as e:
         raise ValueError(f"Could not resolve host: {e}")
-        
+
     for ip in ips:
         if not _is_safe_ip(ip):
             raise ValueError(f"URL resolves to an unsafe local or private address: {ip}")
-            
+
     return url
 
 
@@ -141,9 +142,6 @@ def split_text_chars(text: str, chunk_size: int, overlap: int) -> list[str]:
     return chunks
 
 
-import zipfile
-import xml.etree.ElementTree as ET
-
 def extract_text_from_docx(filepath: str) -> str:
     try:
         with zipfile.ZipFile(filepath) as docx:
@@ -189,7 +187,7 @@ async def process_document(filepath: str, filename: str) -> dict:
 
     chunks = split_text(text)
     stored = 0
-    
+
     import hashlib
     file_hash = hashlib.md5(text.encode('utf-8', errors='ignore')).hexdigest()[:8]
 
@@ -219,7 +217,7 @@ async def process_url(url: str) -> dict:
     try:
         # Prevent SSRF (including DNS rebinding attacks)
         validate_url_for_ssrf(url)
-        
+
         from app.core.http_client import shared_client
         response = await shared_client.get(url, timeout=10.0)
         response.raise_for_status()
@@ -227,7 +225,7 @@ async def process_url(url: str) -> dict:
 
         import html
         from html.parser import HTMLParser
-        
+
         class HTMLTextExtractor(HTMLParser):
             def __init__(self):
                 super().__init__()

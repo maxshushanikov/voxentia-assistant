@@ -159,8 +159,8 @@ export function useAppController() {
                         : m,
                     ),
                   );
-                  if ((data as any).emotion) {
-                    useAppStore.getState().setAvatarEmotion((data as any).emotion);
+                  if ((data as Record<string, unknown>).emotion) {
+                    useAppStore.getState().setAvatarEmotion((data as Record<string, unknown>).emotion as string);
                   }
                   resolve();
                 },
@@ -314,8 +314,8 @@ export function useAppController() {
                         : m,
                     ),
                   );
-                  if ((data as any).emotion) {
-                    useAppStore.getState().setAvatarEmotion((data as any).emotion);
+                  if ((data as Record<string, unknown>).emotion) {
+                    useAppStore.getState().setAvatarEmotion((data as Record<string, unknown>).emotion as string);
                   }
                   resolve();
                 },
@@ -491,7 +491,7 @@ export function useAppController() {
         role: m.role as Message['role'],
         content: m.content,
         id: `hist-${sid}-${index}`,
-        timestamp: (m as any).timestamp,
+        timestamp: (m as Record<string, unknown>).timestamp as string,
         model: m.model,
       }));
       setSessionId(sid);

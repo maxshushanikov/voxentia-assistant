@@ -1,27 +1,17 @@
 import collections
-from contextlib import asynccontextmanager
 import json
 import logging
 import time
+from contextlib import asynccontextmanager
+
 import uvicorn
-
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 from app.api.v1.chat import router as chat_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.models import router as models_router
 from app.api.v1.plugins import router as plugin_router
-from app.core.auth import require_auth, _validate_token
+from app.core.auth import _validate_token, require_auth
 from app.core.config import settings
-from app.core.database import init_db, get_db
+from app.core.database import get_db, init_db
 from app.core.errors import VoxentiaError
 from app.core.exceptions import (
     http_exception_handler,
@@ -36,6 +26,14 @@ from app.core.rate_limit import limiter
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService
 from app.services.health_service import full_health
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # Initialize global rate limit tracking for WebSocket sessions
 ws_rate_limit_records = collections.defaultdict(list)
@@ -139,20 +137,20 @@ async def websocket_chat_endpoint(websocket: WebSocket):
     """Establishes real-time speech and emotion streaming websocket with rate limiting."""
     db_gen = get_db()
     db = next(db_gen)
-    
+
     try:
         if settings.AUTH_ENABLED:
             token = websocket.query_params.get("token") or websocket.query_params.get("api_key")
             if not token or not _validate_token(token):
                 await websocket.close(code=4001, reason="Unauthorized")
                 return
-        
+
         await websocket.accept()
         chat_service = app.state.chat_service
-        
+
         while True:
             data = await websocket.receive_text()
-            
+
             client_ip = websocket.client.host if websocket.client else "unknown"
             if not check_ws_rate_limit(client_ip, max_requests=20, period_seconds=60):
                 await websocket.send_json({
@@ -167,7 +165,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
             except Exception as e:
                 await websocket.send_json({"event": "error", "data": f"Invalid request: {str(e)}"})
                 continue
-            
+
             try:
                 async for item in chat_service.process_message_stream(db, body):
                     await websocket.send_json(item)

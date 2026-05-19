@@ -1,9 +1,9 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from app.services.rag_service import validate_url_for_ssrf
 from app.main import app
+from app.services.rag_service import validate_url_for_ssrf
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock
-from pathlib import Path
 
 
 def test_ssrf_validation_blocks_local_ips():
@@ -48,7 +48,7 @@ def test_avatar_upload_fails_on_invalid_magic_bytes():
 
     # 3. Valid extension and valid magic bytes
     files = {"file": ("avatar.glb", b"glTF_and_some_fake_body_data_here", "application/octet-stream")}
-    with patch("pathlib.Path.write_bytes") as mock_write:
+    with patch("pathlib.Path.write_bytes"):
         response = client.post("/api/v1/avatar/custom", files=files)
         assert response.status_code == 200
         assert response.json()["message"] == "Custom avatar uploaded successfully"
@@ -57,7 +57,7 @@ def test_avatar_upload_fails_on_invalid_magic_bytes():
 @patch("app.services.rag_service.process_document", new_callable=AsyncMock)
 def test_upload_document_prevents_file_overwrite(mock_process):
     mock_process.return_value = {"message": "Processed successfully", "chunks": 2}
-    
+
     client = TestClient(app)
     files1 = {"file": ("test_doc.txt", b"Hello original text file", "text/plain")}
     files2 = {"file": ("test_doc.txt", b"Hello overridden text file", "text/plain")}
@@ -74,7 +74,7 @@ def test_upload_document_prevents_file_overwrite(mock_process):
 
         assert res1.status_code == 200
         assert res2.status_code == 200
-        
+
         # Verify two distinct filenames with distinct content were written
         assert len(written_files) == 2
         file1_name, file1_content = written_files[0]

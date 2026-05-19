@@ -1,5 +1,4 @@
 import httpx
-from app.core.config import settings
 
 # A shared, highly performant AsyncClient with optimized Keep-Alive connection pooling.
 # Reusing TCP connections eliminates handshake overhead, massively improving latency for TTS and Whisper.

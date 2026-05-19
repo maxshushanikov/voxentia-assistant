@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from voxentia.services.llm_base import BaseLLMClient
 from voxentia.utils.logging import logger
 
-
 TOOLS_METADATA = [
     {
         "type": "function",
