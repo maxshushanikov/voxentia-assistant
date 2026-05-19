@@ -75,6 +75,11 @@ class VoxentiaSettings(BaseSettings):
                 "de": "Du bist ein herzlicher Freund. Nutze Emotion-Tags wie [happy].",
                 "ru": "Ты теплый друг. Используй теги эмоций, таких как [happy].",
             },
+            "academic": {
+                "en": "You are an academic tutor. Explain concepts clearly with examples.",
+                "de": "Du bist ein akademischer Tutor. Erkläre Konzepte klar mit Beispielen.",
+                "ru": "Ты академический наставник. Объясняй концепции ясно с примерами.",
+            },
         }
     )
 

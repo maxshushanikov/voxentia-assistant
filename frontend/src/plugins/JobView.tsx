@@ -209,7 +209,9 @@ function InterviewSimulation({ onBack }: { onBack: () => void }) {
                   key={i}
                   className="w-1 bg-[#2979ff]"
                   style={{
+                    // eslint-disable-next-line react-hooks/purity
                     height: `${Math.random() * 40 + 10}px`,
+                    // eslint-disable-next-line react-hooks/purity
                     opacity: Math.random() * 0.5 + 0.5,
                   }}
                 />
