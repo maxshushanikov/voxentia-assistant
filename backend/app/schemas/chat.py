@@ -26,6 +26,7 @@ class MessageHistory(BaseModel):
     role: str
     content: str
     timestamp: str
+    model: Optional[str] = None
 
 
 class HistoryResponse(BaseModel):
@@ -39,6 +40,7 @@ class SessionSummary(BaseModel):
     session_id: str
     title: str
     timestamp: str
+    model: Optional[str] = None
 
 
 class SessionListResponse(BaseModel):

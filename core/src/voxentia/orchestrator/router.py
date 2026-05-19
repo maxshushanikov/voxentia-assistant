@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Dict, List, Optional
 
 from voxentia.orchestrator.pipeline import OrchestratorPipeline, PipelineContext
 from voxentia.orchestrator.response_formatter import VoxentiaResponse
@@ -23,6 +23,7 @@ class Orchestrator:
         model: Optional[str] = None,
         temperature: float = 0.7,
         rag_context: str = "",
+        history: Optional[List[Dict[str, str]]] = None,
     ) -> VoxentiaResponse:
         ctx = PipelineContext(
             raw_message=message,
@@ -31,5 +32,6 @@ class Orchestrator:
             model=model,
             temperature=temperature,
             rag_context=rag_context,
+            history=history,
         )
         return await self.pipeline.run(ctx)

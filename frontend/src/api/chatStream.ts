@@ -1,8 +1,4 @@
-import { ApiError, getLastRequestId } from './client';
 import type { ChatRequestBody, ChatResponseBody } from './types';
-import { consumeSseBuffer } from '../utils/parseSse';
-
-const REQUEST_ID_HEADER = 'X-Request-ID';
 
 export interface StreamCallbacks {
   onToken: (token: string) => void;
@@ -16,71 +12,53 @@ export async function postChatStream(
   callbacks: StreamCallbacks,
   signal?: AbortSignal,
 ): Promise<void> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'text/event-stream',
-  };
-  const lastId = getLastRequestId();
-  if (lastId) headers[REQUEST_ID_HEADER] = lastId;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/api/v1/chat/ws`;
 
-  let response: Response;
-  try {
-    response = await fetch('/api/v1/chat/stream', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal,
-    });
-  } catch (err) {
-    callbacks.onError(err instanceof Error ? err : new Error(String(err)));
-    return;
-  }
+  return new Promise<void>((resolve) => {
+    const ws = new WebSocket(wsUrl);
 
-  if (!response.ok) {
-    let message = response.statusText;
-    try {
-      const errBody = await response.json();
-      message = errBody.message ?? errBody.detail ?? message;
-    } catch {
-      /* non-json */
-    }
-    callbacks.onError(new ApiError(message, response.status));
-    return;
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    callbacks.onError(new Error('Streaming not supported'));
-    return;
-  }
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      buffer = consumeSseBuffer(buffer, (parsed) => {
-        const row = parsed as { token?: string; audio?: string; done?: ChatResponseBody };
-        if (row.token) callbacks.onToken(row.token);
-        if (row.audio && callbacks.onAudio) callbacks.onAudio(row.audio);
-        if (row.done) callbacks.onDone(row.done);
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        ws.close();
+        resolve();
       });
     }
 
-    if (buffer.trim()) {
-      consumeSseBuffer(buffer + '\n', (parsed) => {
-        const row = parsed as { token?: string; audio?: string; done?: ChatResponseBody };
-        if (row.token) callbacks.onToken(row.token);
-        if (row.audio && callbacks.onAudio) callbacks.onAudio(row.audio);
-        if (row.done) callbacks.onDone(row.done);
-      });
-    }
-  } catch (err) {
-    if (signal?.aborted) return;
-    callbacks.onError(err instanceof Error ? err : new Error(String(err)));
-  }
+    ws.onopen = () => {
+      ws.send(JSON.stringify(body));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.event === 'token') {
+          callbacks.onToken(payload.data);
+        } else if (payload.event === 'audio') {
+          if (callbacks.onAudio) callbacks.onAudio(payload.data);
+        } else if (payload.event === 'done') {
+          callbacks.onDone(payload.data);
+          ws.close();
+          resolve();
+        } else if (payload.event === 'error') {
+          callbacks.onError(new Error(payload.data));
+          ws.close();
+          resolve();
+        }
+      } catch (err) {
+        callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        ws.close();
+        resolve();
+      }
+    };
+
+    ws.onerror = () => {
+      callbacks.onError(new Error('WebSocket connection error'));
+      resolve();
+    };
+
+    ws.onclose = () => {
+      resolve();
+    };
+  });
 }

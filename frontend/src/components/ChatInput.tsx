@@ -70,6 +70,18 @@ export default function ChatInput({
             </button>
           </div>
           <div className="flex items-center space-x-2">
+            {isRecording && (
+              <div className="flex items-center space-x-1 px-3 py-1 bg-red-500/10 rounded-full border border-red-500/20 mr-1 animate-pulse">
+                <span className="text-[10px] text-red-500 font-medium uppercase tracking-wider">Listening</span>
+                <div className="flex items-end space-x-[2px] h-[8px]">
+                  <span className="w-[1.5px] bg-red-500 rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '30%', animationDelay: '0.1s', transformOrigin: 'bottom' }} />
+                  <span className="w-[1.5px] bg-red-500 rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '70%', animationDelay: '0.3s', transformOrigin: 'bottom' }} />
+                  <span className="w-[1.5px] bg-red-500 rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '100%', animationDelay: '0.5s', transformOrigin: 'bottom' }} />
+                  <span className="w-[1.5px] bg-red-500 rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '60%', animationDelay: '0.2s', transformOrigin: 'bottom' }} />
+                  <span className="w-[1.5px] bg-red-500 rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '40%', animationDelay: '0.4s', transformOrigin: 'bottom' }} />
+                </div>
+              </div>
+            )}
             <button
               type="button"
               onClick={onMicClick}
@@ -78,6 +90,8 @@ export default function ChatInput({
                 isRecording ? 'text-red-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]',
               )}
               title={isRecording ? 'Stop recording' : 'Start recording'}
+              aria-label={isRecording ? 'Sprachaufnahme stoppen' : 'Sprachaufnahme starten'}
+              role="button"
             >
               <Mic className="w-4 h-4" />
               {isRecording && <span className="absolute inset-0 rounded-full animate-ping bg-red-500/20" />}
@@ -88,6 +102,8 @@ export default function ChatInput({
               disabled={isThinking}
               className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
               title="Send"
+              aria-label="Nachricht senden"
+              role="button"
             >
               <Send className="w-4 h-4" />
             </button>

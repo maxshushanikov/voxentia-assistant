@@ -37,3 +37,15 @@ class BaseLLMClient(ABC):
         """Default: yield full response as single chunk."""
         text = await self.generate(prompt, model=model, system=system, temperature=temperature)
         yield text
+
+    async def chat_with_tools(
+        self,
+        prompt: str,
+        tools: List[Dict[str, Any]],
+        model: Optional[str] = None,
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        history: Optional[List[Dict[str, str]]] = None,
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Optional tool-calling method — returns a list of tool calls or None."""
+        return None

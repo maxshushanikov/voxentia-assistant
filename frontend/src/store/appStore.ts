@@ -37,6 +37,11 @@ function loadLanguage(): Language {
   return (v as Language) || 'en';
 }
 
+function loadAvatarSource(): 'default' | 'custom' {
+  const v = localStorage.getItem('voxentia-avatar-source');
+  return v === 'custom' ? 'custom' : 'default';
+}
+
 function loadSpeaker(): Speaker {
   const v = localStorage.getItem('voxentia-speaker');
   return (v as Speaker) || 'baya';
@@ -66,6 +71,12 @@ interface AppState {
   avatarEmotion: AvatarEmotion;
   viewKey: string;
   streamEnabled: boolean;
+  avatarSource: 'default' | 'custom';
+  compareMode: boolean;
+  selectedModelB: string | null;
+  setCompareMode: (v: boolean) => void;
+  setSelectedModelB: (model: string | null) => void;
+  setAvatarSource: (source: 'default' | 'custom') => void;
 
   setSessionId: (id: string) => void;
   setMessages: (fn: (prev: Message[]) => Message[]) => void;
@@ -107,6 +118,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   avatarEmotion: 'neutral',
   viewKey: 'dashboard',
   streamEnabled: loadStreamEnabled(),
+  avatarSource: loadAvatarSource(),
+  compareMode: false,
+  selectedModelB: null,
 
   setSessionId: (id) => set({ sessionId: id }),
   setMessages: (fn) => set((s) => ({ messages: fn(s.messages) })),
@@ -161,6 +175,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     localStorage.setItem(STREAM_KEY, String(streamEnabled));
     set({ streamEnabled });
   },
+  setAvatarSource: (avatarSource) => {
+    localStorage.setItem('voxentia-avatar-source', avatarSource);
+    set({ avatarSource });
+  },
+  setCompareMode: (compareMode) => set({ compareMode }),
+  setSelectedModelB: (selectedModelB) => set({ selectedModelB }),
   resetChat: async () => {
     try {
       const data = await createSession();

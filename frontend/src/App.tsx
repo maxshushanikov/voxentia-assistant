@@ -34,6 +34,7 @@ function App() {
     isRecording,
     mouthAlpha,
     computedViewKey,
+    avatarSource,
     setInputText,
     setLanguage,
     setSpeaker,
@@ -153,6 +154,7 @@ function App() {
                   mouthAlpha={mouthAlpha}
                   gender={speakerGenderMap[speaker]}
                   emotion={avatarEmotion}
+                  avatarSource={avatarSource}
                 />
               </div>
             </section>

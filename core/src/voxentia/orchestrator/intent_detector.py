@@ -5,6 +5,119 @@ from voxentia.services.llm_base import BaseLLMClient
 from voxentia.utils.logging import logger
 
 
+TOOLS_METADATA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get the current weather and temperature for a given city or location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "The city and/or country, e.g. Munich, Germany or Berlin"
+                    }
+                },
+                "required": ["location"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_web",
+            "description": "Search the web for real-time information or answers to general knowledge queries.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The web search query string"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_events",
+            "description": "List upcoming events, meetings, or calendar items for the user.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_event",
+            "description": "Add a new event, meeting, or appointment to the user's calendar.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The title or subject of the event"
+                    },
+                    "date": {
+                        "type": "string",
+                        "description": "The date of the event, e.g. YYYY-MM-DD"
+                    },
+                    "time": {
+                        "type": "string",
+                        "description": "The time of the event, e.g. HH:MM"
+                    }
+                },
+                "required": ["title", "date"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_quiz",
+            "description": "Create a practice quiz or multiple-choice test on a specified academic topic for study purposes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "description": "The educational subject or topic, e.g. Chemistry, European History"
+                    }
+                },
+                "required": ["topic"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "job_search",
+            "description": "Search for open job listings, career postings, or employment opportunities.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The job title or keywords, e.g. Frontend Engineer"
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "The location to search in, e.g. Munich or Remote"
+                    }
+                },
+                "required": ["title"]
+            }
+        }
+    }
+]
+
+
 class IntentDetector:
     """Hybride Intent-Erkennung: LLM-basiert mit Keyword-Fallbacks."""
 
@@ -40,13 +153,46 @@ class IntentDetector:
 
         # 1. Schneller Keyword-Check
         keyword_intent = self._detect_via_keywords(text)
+        if keyword_intent:
+            logger.info("Fast keyword intent matched: %s", keyword_intent)
+            entities = {}
+            if keyword_intent == "job_search":
+                match = re.search(r"(?:in|nach)\s+([a-zA-Z\s\u00c0-\u017f]+)", text, re.IGNORECASE)
+                if match:
+                    entities["location"] = match.group(1).strip()
+                title_match = re.search(r"als\s+([a-zA-Z\s\u00c0-\u017f]+)", text, re.IGNORECASE)
+                if title_match:
+                    entities["title"] = title_match.group(1).strip()
+            return keyword_intent, entities
 
         available = list(self.KEYWORD_PATTERNS.keys()) + ["search_web", "add_event"]
         if self.registry:
             available.extend(self.registry.get_all_intents())
         available = list(set(available))
 
-        # 2. LLM-Analyse
+        # 2. Native Ollama Tool calling
+        tools = [tool for tool in TOOLS_METADATA if tool["function"]["name"] in available]
+        if tools:
+            try:
+                tool_calls = await self.llm.chat_with_tools(
+                    text,
+                    tools=tools,
+                    system=system or None,
+                    model=model,
+                    temperature=temperature,
+                )
+                if tool_calls:
+                    call = tool_calls[0]
+                    func = call.get("function", {})
+                    intent = func.get("name")
+                    entities = func.get("arguments", {})
+                    if intent in available:
+                        logger.info("Native Ollama tool call detected: %s with args %s", intent, entities)
+                        return intent, entities
+            except Exception as e:
+                logger.error("Native tool call failed: %s", e)
+
+        # 3. LLM-Analyse Fallback (JSON prompt)
         prompt = f"""
         Analyze the following user message and extract the intent and entities.
         Available intents: {available}

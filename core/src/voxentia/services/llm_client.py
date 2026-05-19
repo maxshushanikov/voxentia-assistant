@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
@@ -113,6 +113,33 @@ class OllamaClient(BaseLLMClient):
                         yield token
                 except json.JSONDecodeError:
                     continue
+
+    async def chat_with_tools(
+        self,
+        prompt: str,
+        tools: List[Dict[str, Any]],
+        model: Optional[str] = None,
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        history: Optional[List[Dict[str, str]]] = None,
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Send tools definition to Ollama and return detected tool calls."""
+        payload = {
+            "model": model or self.default_model,
+            "messages": self._build_messages(prompt, system, history),
+            "stream": False,
+            "tools": tools,
+            "options": {"temperature": temperature, "num_ctx": 2048},
+        }
+        try:
+            response = await self._client.post(f"{self.base_url}/api/chat", json=payload)
+            response.raise_for_status()
+            result = response.json()
+            message = result.get("message", {})
+            return message.get("tool_calls")
+        except Exception as e:
+            logger.error("LLM tool chat failed: %s", e)
+            return None
 
 
 # Backward-compatible alias

@@ -12,9 +12,22 @@ CORS(app)
 # Options: tiny, base, small, medium, large-v3
 MODEL_SIZE = os.environ.get("WHISPER_MODEL", "base")
 
-print(f"Loading Whisper model: {MODEL_SIZE}...")
-model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
-print(f"Whisper model '{MODEL_SIZE}' loaded successfully!")
+# Check CUDA GPU support optionally
+use_cuda_env = os.environ.get("USE_CUDA", "false").lower() in ("true", "1", "yes")
+if use_cuda_env:
+    try:
+        import torch
+        if torch.cuda.is_available():
+            model = WhisperModel(MODEL_SIZE, device="cuda", compute_type="float16")
+            print(f"Whisper model '{MODEL_SIZE}' loaded successfully on GPU (CUDA)!")
+        else:
+            raise RuntimeError("CUDA not available in PyTorch")
+    except Exception as e:
+        print(f"CUDA initialization failed ({e}), falling back to CPU...")
+        model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+else:
+    model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+    print(f"Whisper model '{MODEL_SIZE}' loaded successfully on CPU!")
 
 # Language code mapping
 LANG_MAP = {

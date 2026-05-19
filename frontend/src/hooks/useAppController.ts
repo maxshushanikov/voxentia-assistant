@@ -28,6 +28,9 @@ export function useAppController() {
   const avatarEmotion = useAppStore((s) => s.avatarEmotion);
   const viewKey = useAppStore((s) => s.viewKey);
   const streamEnabled = useAppStore((s) => s.streamEnabled);
+  const avatarSource = useAppStore((s) => s.avatarSource);
+  const compareMode = useAppStore((s) => s.compareMode);
+  const selectedModelB = useAppStore((s) => s.selectedModelB);
 
   const setInputText = useAppStore((s) => s.setInputText);
   const setMessages = useAppStore((s) => s.setMessages);
@@ -35,6 +38,7 @@ export function useAppController() {
   const setLanguage = useAppStore((s) => s.setLanguage);
   const setSpeaker = useAppStore((s) => s.setSpeaker);
   const setPersonality = useAppStore((s) => s.setPersonality);
+  const setSelectedModel = useAppStore((s) => s.setSelectedModel);
   const setActivePlugin = useAppStore((s) => s.setActivePlugin);
   const setIsThinking = useAppStore((s) => s.setIsThinking);
   const setIsSidebarOpen = useAppStore((s) => s.setIsSidebarOpen);
@@ -42,6 +46,9 @@ export function useAppController() {
   const bumpHistoryRefresh = useAppStore((s) => s.bumpHistoryRefresh);
   const resetChat = useAppStore((s) => s.resetChat);
   const setVoiceState = useAppStore((s) => s.setVoiceState);
+  const setAvatarSource = useAppStore((s) => s.setAvatarSource);
+  const setCompareMode = useAppStore((s) => s.setCompareMode);
+  const setSelectedModelB = useAppStore((s) => s.setSelectedModelB);
 
   const streamAbortRef = useRef<AbortController | null>(null);
 
@@ -93,6 +100,188 @@ export function useAppController() {
           await playAudio(audioUrl);
         }
       };
+
+      if (compareMode && selectedModelB) {
+        const assistantId = `asst-comp-${Date.now()}`;
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '',
+            id: assistantId,
+            timestamp: new Date().toISOString(),
+            comparison: {
+              modelA: selectedModel || 'Default Model',
+              contentA: '',
+              modelB: selectedModelB,
+              contentB: '',
+              streamingA: true,
+              streamingB: true,
+            },
+          },
+        ]);
+
+        if (streamEnabled) {
+          const streamA = new Promise<void>((resolve) => {
+            void postChatStream(
+              { ...requestBody, model: selectedModel },
+              {
+                onToken: (token) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentA: m.comparison.contentA + token,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                },
+                onAudio: (audioUrl) => {
+                  queueAudio(audioUrl);
+                },
+                onDone: (data) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentA: data.text,
+                              streamingA: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  if ((data as any).emotion) {
+                    useAppStore.getState().setAvatarEmotion((data as any).emotion);
+                  }
+                  resolve();
+                },
+                onError: (error) => {
+                  console.error('Stream A error:', error);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentA: m.comparison.contentA || 'Failed to stream from Model A',
+                              streamingA: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
+              },
+              abort.signal,
+            );
+          });
+
+          const streamB = new Promise<void>((resolve) => {
+            void postChatStream(
+              { ...requestBody, model: selectedModelB },
+              {
+                onToken: (token) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentB: m.comparison.contentB + token,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                },
+                onAudio: () => {},
+                onDone: (data) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentB: data.text,
+                              streamingB: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
+                onError: (error) => {
+                  console.error('Stream B error:', error);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentB: m.comparison.contentB || 'Failed to stream from Model B',
+                              streamingB: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
+              },
+              abort.signal,
+            );
+          });
+
+          await Promise.all([streamA, streamB]);
+          return;
+        } else {
+          setIsThinking(true);
+          try {
+            const [dataA, dataB] = await Promise.all([
+              chatMutation.mutateAsync({ ...requestBody, model: selectedModel }),
+              chatMutation.mutateAsync({ ...requestBody, model: selectedModelB }),
+            ]);
+
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId && m.comparison
+                  ? {
+                      ...m,
+                      comparison: {
+                        ...m.comparison,
+                        contentA: dataA.text,
+                        contentB: dataB.text,
+                        streamingA: false,
+                        streamingB: false,
+                      },
+                    }
+                  : m,
+              ),
+            );
+            await playResponseAudio(dataA.audio_url);
+          } catch (error) {
+            console.error('Non-stream comparison error:', error);
+          } finally {
+            setIsThinking(false);
+          }
+          return;
+        }
+      }
 
       if (streamEnabled) {
         const assistantId = `asst-${Date.now()}`;
@@ -189,6 +378,8 @@ export function useAppController() {
       clearAudioQueue,
       setMessages,
       setIsThinking,
+      compareMode,
+      selectedModelB,
     ],
   );
 
@@ -301,10 +492,23 @@ export function useAppController() {
         content: m.content,
         id: `hist-${sid}-${index}`,
         timestamp: (m as any).timestamp,
+        model: m.model,
       }));
       setSessionId(sid);
       setMessages(() => historyMessages);
       setActivePlugin(null);
+
+      // Extract last used model from history to support Hot-Swap model persistence!
+      let lastModel: string | null = null;
+      for (let i = data.history.length - 1; i >= 0; i--) {
+        if (data.history[i].model) {
+          lastModel = data.history[i].model ?? null;
+          break;
+        }
+      }
+      if (lastModel) {
+        setSelectedModel(lastModel);
+      }
     } catch (error) {
       console.error('Error loading session:', error);
     }
@@ -353,6 +557,9 @@ export function useAppController() {
     isRecording,
     mouthAlpha,
     computedViewKey,
+    avatarSource,
+    compareMode,
+    selectedModelB,
     setInputText,
     setLanguage,
     setSpeaker,
@@ -360,6 +567,9 @@ export function useAppController() {
     setIsSidebarOpen,
     setIsSettingsOpen,
     setActivePlugin,
+    setAvatarSource,
+    setCompareMode,
+    setSelectedModelB,
     handleSend,
     handleMicClick,
     handleFileChange,

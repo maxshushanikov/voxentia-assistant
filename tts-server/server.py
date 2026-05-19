@@ -23,14 +23,23 @@ AUDIO_PATH = Path(os.getenv("AUDIO_PATH", "/app/tts-cache"))
 AUDIO_PATH.mkdir(parents=True, exist_ok=True)
 MAX_AUDIO_AGE_SECONDS = int(os.getenv("TTS_CACHE_MAX_AGE_SECONDS", str(7 * 24 * 3600)))
 
-device = torch.device("cpu")
-torch.set_num_threads(4)
+use_cuda_env = os.getenv("USE_CUDA", "false").lower() in ("true", "1", "yes")
+if use_cuda_env and torch.cuda.is_available():
+    device = torch.device("cuda")
+    logger.info("CUDA GPU support is enabled and available for Silero TTS.")
+else:
+    device = torch.device("cpu")
+    torch.set_num_threads(4)
+    logger.info("Using CPU for Silero TTS.")
 
 models = {}
 
 
+MAX_CACHE_SIZE_MB = int(os.getenv("TTS_CACHE_MAX_SIZE_MB", "500"))
+
+
 def cleanup_stale_audio() -> int:
-    """Remove wav files older than MAX_AUDIO_AGE_SECONDS."""
+    """Remove wav files older than MAX_AUDIO_AGE_SECONDS or if cache size exceeds limit."""
     removed = 0
     now = time.time()
     for wav in AUDIO_PATH.glob("*.wav"):
@@ -40,8 +49,33 @@ def cleanup_stale_audio() -> int:
                 removed += 1
         except OSError as e:
             logger.warning("Could not remove %s: %s", wav, e)
+
+    try:
+        max_bytes = MAX_CACHE_SIZE_MB * 1024 * 1024
+        wav_files = []
+        total_size = 0
+        for wav in AUDIO_PATH.glob("*.wav"):
+            stat = wav.stat()
+            total_size += stat.st_size
+            wav_files.append((stat.st_mtime, stat.st_size, wav))
+        
+        if total_size > max_bytes:
+            # Sort oldest first
+            wav_files.sort(key=lambda x: x[0])
+            for _, size, filepath in wav_files:
+                if total_size <= max_bytes:
+                    break
+                try:
+                    filepath.unlink()
+                    total_size -= size
+                    removed += 1
+                except OSError as e:
+                    logger.warning("Could not remove %s during size limit cleanup: %s", filepath, e)
+    except Exception as e:
+        logger.error("Error during cache folder size cleanup: %s", e)
+
     if removed:
-        logger.info("Cleaned up %d stale audio file(s)", removed)
+        logger.info("Cleaned up %d stale/overflow audio file(s)", removed)
     return removed
 
 

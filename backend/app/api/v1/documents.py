@@ -1,4 +1,5 @@
 from pathlib import Path
+from pydantic import BaseModel, HttpUrl
 
 from app.core.config import settings
 from app.core.rate_limit import limiter
@@ -15,17 +16,22 @@ router = APIRouter()
 
 MAX_BYTES = settings.MAX_UPLOAD_BYTES
 ALLOWED_MIMES = settings.allowed_upload_mimes
+SUPPORTED_EXTENSIONS = (".pdf", ".docx", ".txt", ".md", ".json", ".csv")
+
+
+class AddUrlRequest(BaseModel):
+    url: HttpUrl
 
 
 @router.post("/upload", response_model=DocumentUploadResponse)
 @limiter.limit("20/minute")
 async def upload_document(request: Request, file: UploadFile = File(...)):
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
+    if not file.filename or not file.filename.lower().endswith(SUPPORTED_EXTENSIONS):
         raise HTTPException(
             status_code=400,
             detail={
                 "error_code": "invalid_file_type",
-                "message": "Only PDF files are supported.",
+                "message": f"Only PDF, DOCX, TXT, MD, JSON, and CSV files are supported.",
                 "details": {},
             },
         )
@@ -51,8 +57,8 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
             },
         )
 
-    safe_name = Path(file.filename).name
-    if not safe_name or safe_name.startswith('.'):
+    original_name = Path(file.filename).name
+    if not original_name or original_name.startswith('.'):
         raise HTTPException(
             status_code=400,
             detail={
@@ -62,6 +68,8 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
             },
         )
 
+    import uuid
+    safe_name = f"{uuid.uuid4().hex}_{original_name}"
     dest: Path = settings.UPLOADS_DIR / safe_name
     dest.write_bytes(content)
 
@@ -102,3 +110,20 @@ async def delete_document(request: Request, filename: str):
 async def search_documents(request: Request, q: str):
     context = await rag_service.search_context(q)
     return DocumentSearchResponse(context=context)
+
+
+@router.post("/url")
+@limiter.limit("10/minute")
+async def add_url(request: Request, body: AddUrlRequest):
+    url_str = str(body.url)
+    result = await rag_service.process_url(url_str)
+    if result.get("error"):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "url_processing_failed",
+                "message": result["error"],
+                "details": {},
+            },
+        )
+    return {"message": result.get("message"), "chunks": result.get("chunks")}

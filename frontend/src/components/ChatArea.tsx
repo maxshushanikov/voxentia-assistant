@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, MessageSquare, Zap, Shield, Copy, Pencil, RefreshCw } from 'lucide-react';
+import { Sparkles, MessageSquare, Zap, Shield, Copy, Pencil, RefreshCw, Cpu } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { useTranslation } from '../i18n/context';
@@ -104,36 +104,128 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                   </button>
                 </div>
               )}
-              <ReactMarkdown
-                components={{
-                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                  code: (props) => {
-                    const { children, className, node, ...rest } = props;
-                    const match = /language-(\w+)/.exec(className || '');
-                    return match ? (
-                      <div className="relative group/code mt-2 mb-4">
-                        <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
-                            className="bg-black/30 hover:bg-black/50 dark:bg-white/10 dark:hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/10"
-                          >
-                            Copy
-                          </button>
+              {msg.comparison ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-[60vw]">
+                  <div className="flex flex-col border-r border-black/10 dark:border-white/10 pr-6 last:border-r-0 last:pr-0">
+                    <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-black/5 dark:border-b-white/5">
+                      <Cpu className="w-3.5 h-3.5 text-[#2979ff]" />
+                      <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                        {msg.comparison.modelA}
+                      </span>
+                      {msg.comparison.streamingA && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2979ff] animate-ping" />
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-x-auto min-w-0">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          code: (props) => {
+                            const { children, className, node, ...rest } = props;
+                            const match = /language-(\w+)/.exec(className || '');
+                            return match ? (
+                              <div className="relative group/code mt-2 mb-4">
+                                <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
+                                    className="bg-black/30 hover:bg-black/50 dark:bg-white/10 dark:hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/10"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                                <code className={cn("block bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/5 p-4 rounded text-xs overflow-x-auto", className)} {...rest}>
+                                  {children}
+                                </code>
+                              </div>
+                            ) : (
+                              <code className="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/5 px-1.5 py-0.5 rounded text-[13px]" {...rest}>
+                                {children}
+                              </code>
+                            )
+                          },
+                        }}
+                      >
+                        {msg.comparison.contentA}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-black/5 dark:border-b-white/5">
+                      <Cpu className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                        {msg.comparison.modelB}
+                      </span>
+                      {msg.comparison.streamingB && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-x-auto min-w-0">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          code: (props) => {
+                            const { children, className, node, ...rest } = props;
+                            const match = /language-(\w+)/.exec(className || '');
+                            return match ? (
+                              <div className="relative group/code mt-2 mb-4">
+                                <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
+                                    className="bg-black/30 hover:bg-black/50 dark:bg-white/10 dark:hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/10"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                                <code className={cn("block bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/5 p-4 rounded text-xs overflow-x-auto", className)} {...rest}>
+                                  {children}
+                                </code>
+                              </div>
+                            ) : (
+                              <code className="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/5 px-1.5 py-0.5 rounded text-[13px]" {...rest}>
+                                {children}
+                              </code>
+                            )
+                          },
+                        }}
+                      >
+                        {msg.comparison.contentB}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    code: (props) => {
+                      const { children, className, node, ...rest } = props;
+                      const match = /language-(\w+)/.exec(className || '');
+                      return match ? (
+                        <div className="relative group/code mt-2 mb-4">
+                          <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
+                              className="bg-black/30 hover:bg-black/50 dark:bg-white/10 dark:hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/10"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <code className={cn("block bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/5 p-4 rounded text-xs overflow-x-auto", className)} {...rest}>
+                            {children}
+                          </code>
                         </div>
-                        <code className={cn("block bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/5 p-4 rounded text-xs overflow-x-auto", className)} {...rest}>
+                      ) : (
+                        <code className="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/5 px-1.5 py-0.5 rounded text-[13px]" {...rest}>
                           {children}
                         </code>
-                      </div>
-                    ) : (
-                      <code className="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/5 px-1.5 py-0.5 rounded text-[13px]" {...rest}>
-                        {children}
-                      </code>
-                    )
-                  },
-                }}
-              >
-                {msg.content}
-              </ReactMarkdown>
+                      )
+                    },
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              )}
               {msg.timestamp && (
                 <div className={cn("text-[10px] mt-2 opacity-40 select-none", msg.role === 'user' ? "text-right" : "text-left")}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
