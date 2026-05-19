@@ -108,7 +108,7 @@ export default function Sidebar({
   const loadSessions = useCallback(async () => {
     try {
       const data = await getSessions();
-      setAllGroups(groupSessions(data.sessions || [], (t as Record<string, string>)));
+      setAllGroups(groupSessions(data.sessions || [], (t as unknown as Record<string, string>)));
     } catch (err) {
       console.error('Failed to load sessions:', err);
     }

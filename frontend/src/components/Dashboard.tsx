@@ -66,7 +66,7 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
             {greet} — <span className="text-[var(--accent)]">Voxentia</span>
           </h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            {(t as Record<string, string>).dashboard_subtitle ?? 'Your control center'}
+            {(t as unknown as Record<string, string>).dashboard_subtitle ?? 'Your control center'}
           </p>
         </header>
 
@@ -98,7 +98,7 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
             className="w-full glass-card rounded-lg p-4 border border-[var(--accent)]/30 text-left hover:bg-[var(--accent)]/10 transition-colors"
           >
             <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              {(t as Record<string, string>).dashboard_continue ?? 'Continue last session'}
+              {(t as unknown as Record<string, string>).dashboard_continue ?? 'Continue last session'}
             </p>
             <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
               {messages.length} messages
@@ -109,7 +109,7 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
         <section>
           <h2 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2 text-[var(--text-secondary)]">
             <Sparkles className="w-4 h-4 text-[var(--accent)]" />
-            {(t as Record<string, string>).dashboard_plugins ?? 'Quick actions'}
+            {(t as unknown as Record<string, string>).dashboard_plugins ?? 'Quick actions'}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {plugins.map((p) => (
@@ -120,7 +120,7 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
                 className="glass-card p-4 rounded-lg border border-white/5 hover:border-[var(--accent)]/40 transition-all text-left group"
               >
                 <p className="text-sm group-hover:text-[var(--accent)] transition-colors text-[var(--text-primary)]">
-                  {(t as Record<string, string>)[`plugin_${p.nameKey}`] ?? p.nameKey}
+                  {(t as unknown as Record<string, string>)[`plugin_${p.nameKey}`] ?? p.nameKey}
                 </p>
               </button>
             ))}
@@ -131,7 +131,7 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
           <section>
             <h2 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2 text-[var(--text-secondary)]">
               <Compass className="w-4 h-4 text-[var(--accent)]" />
-              {(t as Record<string, string>).dashboard_discover ?? 'Discover plugins'}
+              {(t as unknown as Record<string, string>).dashboard_discover ?? 'Discover plugins'}
             </h2>
             <div className="space-y-2">
               {discover.map((p) => (
