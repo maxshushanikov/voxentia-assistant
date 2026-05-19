@@ -34,6 +34,7 @@ export interface HistoryMessage {
   role: string;
   content: string;
   timestamp: string;
+  model?: string;
 }
 
 export interface ChatHistoryResponse {

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from voxentia.orchestrator.intent_detector import IntentDetector
 from voxentia.orchestrator.response_formatter import VoxentiaResponse
@@ -24,13 +24,14 @@ class PipelineContext:
     intent: str = "fallback"
     entities: Dict[str, Any] = field(default_factory=dict)
     plugin_data: Optional[Dict[str, Any]] = None
+    history: Optional[List[Dict[str, str]]] = None
 
 
 class OrchestratorPipeline:
     def __init__(self, registry: PluginRegistry, llm: BaseLLMClient) -> None:
         self.registry = registry
         self.llm = llm
-        self.intent_detector = IntentDetector(llm)
+        self.intent_detector = IntentDetector(llm, registry)
 
     def normalize_input(self, ctx: PipelineContext) -> PipelineContext:
         ctx.message = " ".join(ctx.raw_message.split()).strip()
@@ -61,6 +62,35 @@ class OrchestratorPipeline:
             extra = await plugin.pre_llm(ctx.message, ctx.entities)
             if extra:
                 ctx.message = f"{extra}\n\n{ctx.message}"
+
+        # Trigger external HTTP pre_llm webhooks
+        from voxentia.config.settings import settings
+        webhooks = settings.plugin_webhooks
+        if webhooks:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                for url in webhooks:
+                    try:
+                        resp = await client.post(
+                            url,
+                            json={
+                                "message": ctx.message,
+                                "entities": ctx.entities,
+                                "intent": ctx.intent,
+                                "language": ctx.language
+                            },
+                            timeout=5.0
+                        )
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            extra = data.get("extra_context")
+                            if extra:
+                                ctx.message = f"{extra}\n\n{ctx.message}"
+                            new_msg = data.get("message")
+                            if new_msg:
+                                ctx.message = new_msg
+                    except Exception as e:
+                        logger.error("Error executing pre_llm webhook to %s: %s", url, e)
         return ctx
 
     async def route_plugin(self, ctx: PipelineContext) -> Optional[VoxentiaResponse]:
@@ -86,10 +116,7 @@ class OrchestratorPipeline:
                 )
             except Exception as e:
                 logger.exception("Plugin error for intent %s: %s", ctx.intent, e)
-                return VoxentiaResponse(
-                    text="This module encountered an error. Please try again.",
-                    intent=ctx.intent,
-                )
+                return await self.llm_fallback(ctx)
         return None
 
     async def llm_fallback(self, ctx: PipelineContext) -> VoxentiaResponse:
@@ -99,6 +126,7 @@ class OrchestratorPipeline:
                 model=ctx.model,
                 system=ctx.system_prompt or None,
                 temperature=ctx.temperature,
+                history=ctx.history,
             )
         except Exception as e:
             logger.error("LLM fallback failed: %s", e)

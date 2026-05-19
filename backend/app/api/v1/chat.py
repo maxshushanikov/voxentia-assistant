@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -15,7 +16,7 @@ from app.schemas.chat import (
 from app.services.chat_service import ChatService
 from app.services.voice_service import transcribe_audio_file
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -71,7 +72,7 @@ async def get_chat_history(
 ):
     history, total = chat_service.get_history(db, session_id, limit=limit, offset=offset)
     formatted_history = [
-        MessageHistory(role=m.role, content=m.content, timestamp=m.timestamp.isoformat())
+        MessageHistory(role=m.role, content=m.content, timestamp=m.timestamp.isoformat(), model=m.model)
         for m in history
     ]
     return {"history": formatted_history, "total": total, "offset": offset, "limit": limit}
@@ -91,10 +92,51 @@ async def get_sessions(
                 session_id=s.session_id,
                 title=s.title,
                 timestamp=s.last_timestamp.isoformat(),
+                model=s.model,
             )
             for s in sessions
         ]
     }
+
+
+@router.post("/sessions/new")
+@limiter.limit("20/minute")
+async def new_session(request: Request):
+    return {"session_id": f"sess_{uuid.uuid4().hex[:12]}"}
+
+
+@router.post("/avatar/custom")
+@limiter.limit("5/minute")
+async def upload_custom_avatar(
+    request: Request,
+    file: UploadFile = File(...)
+):
+    if not file.filename or not file.filename.lower().endswith(".glb"):
+        raise HTTPException(status_code=400, detail="Only GLB files are supported.")
+
+    content = await file.read()
+    if len(content) > 30 * 1024 * 1024:  # max 30MB
+        raise HTTPException(status_code=413, detail="File too large (max 30MB).")
+
+    # Check for valid GLB magic bytes: 0x676C5446 ("glTF")
+    if not content.startswith(b"glTF"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GLB file content (failed magic bytes check)."
+        )
+
+    avatar_path = settings.DATA_DIR / "custom_avatar.glb"
+    avatar_path.parent.mkdir(parents=True, exist_ok=True)
+    avatar_path.write_bytes(content)
+    return {"message": "Custom avatar uploaded successfully"}
+
+
+@router.get("/avatar/custom")
+async def get_custom_avatar():
+    avatar_path = settings.DATA_DIR / "custom_avatar.glb"
+    if not avatar_path.exists():
+        raise HTTPException(status_code=404, detail="Custom avatar not found.")
+    return FileResponse(avatar_path)
 
 
 @router.delete("/sessions/{session_id}")
@@ -130,6 +172,11 @@ async def transcribe_endpoint(
     language: str = Form("en"),
 ):
     audio_bytes = await audio.read()
+    if audio.content_type not in ("audio/webm", "audio/wav", "audio/ogg", "audio/mp4", "audio/mp3", "audio/mpeg"):
+        raise HTTPException(415, "Unsupported audio format")
+    if len(audio_bytes) > settings.MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "Audio file too large")
+
     text = await transcribe_audio_file(
         audio_bytes, audio.filename, audio.content_type, language
     )

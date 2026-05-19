@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
@@ -23,11 +23,20 @@ class OllamaClient(BaseLLMClient):
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
         self.timeout = timeout
+        self._client = httpx.AsyncClient(timeout=self.timeout)
 
-    def _build_prompt(self, prompt: str, system: Optional[str] = None) -> str:
+    async def close(self):
+        await self._client.aclose()
+
+    def _build_messages(self, prompt: str, system: Optional[str] = None, history: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, str]]:
+        msgs = []
         if system:
-            return f"{system.strip()}\n\n{prompt}"
-        return prompt
+            msgs.append({"role": "system", "content": system.strip()})
+        if history:
+            msgs.extend(history)
+        if prompt:
+            msgs.append({"role": "user", "content": prompt})
+        return msgs
 
     async def generate_json(
         self,
@@ -35,20 +44,21 @@ class OllamaClient(BaseLLMClient):
         model: Optional[str] = None,
         system: Optional[str] = None,
         temperature: float = 0.1,
+        history: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         payload = {
             "model": model or self.default_model,
-            "prompt": self._build_prompt(prompt, system),
+            "messages": self._build_messages(prompt, system, history),
             "format": "json",
             "stream": False,
             "options": {"temperature": temperature, "num_ctx": 2048},
         }
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/generate", json=payload)
-                response.raise_for_status()
-                result = response.json()
-                return json.loads(result.get("response", "{}"))
+            response = await self._client.post(f"{self.base_url}/api/chat", json=payload)
+            response.raise_for_status()
+            result = response.json()
+            content = result.get("message", {}).get("content", "{}")
+            return json.loads(content)
         except Exception as e:
             logger.error("LLM JSON generation failed: %s", e)
             return {}
@@ -59,18 +69,18 @@ class OllamaClient(BaseLLMClient):
         model: Optional[str] = None,
         system: Optional[str] = None,
         temperature: float = 0.7,
+        history: Optional[List[Dict[str, str]]] = None,
     ) -> str:
         payload = {
             "model": model or self.default_model,
-            "prompt": self._build_prompt(prompt, system),
+            "messages": self._build_messages(prompt, system, history),
             "stream": False,
             "options": {"temperature": temperature, "num_ctx": 2048},
         }
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/generate", json=payload)
-                response.raise_for_status()
-                return response.json().get("response", "")
+            response = await self._client.post(f"{self.base_url}/api/chat", json=payload)
+            response.raise_for_status()
+            return response.json().get("message", {}).get("content", "")
         except Exception as e:
             logger.error("LLM generation failed: %s", e)
             raise
@@ -81,28 +91,55 @@ class OllamaClient(BaseLLMClient):
         model: Optional[str] = None,
         system: Optional[str] = None,
         temperature: float = 0.7,
+        history: Optional[List[Dict[str, str]]] = None,
     ) -> AsyncIterator[str]:
         payload = {
             "model": model or self.default_model,
-            "prompt": self._build_prompt(prompt, system),
+            "messages": self._build_messages(prompt, system, history),
             "stream": True,
             "options": {"temperature": temperature, "num_ctx": 2048},
         }
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            async with client.stream(
-                "POST", f"{self.base_url}/api/generate", json=payload
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if not line:
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                        token = chunk.get("response", "")
-                        if token:
-                            yield token
-                    except json.JSONDecodeError:
-                        continue
+        async with self._client.stream(
+            "POST", f"{self.base_url}/api/chat", json=payload
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line:
+                    continue
+                try:
+                    chunk = json.loads(line)
+                    token = chunk.get("message", {}).get("content", "")
+                    if token:
+                        yield token
+                except json.JSONDecodeError:
+                    continue
+
+    async def chat_with_tools(
+        self,
+        prompt: str,
+        tools: List[Dict[str, Any]],
+        model: Optional[str] = None,
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        history: Optional[List[Dict[str, str]]] = None,
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Send tools definition to Ollama and return detected tool calls."""
+        payload = {
+            "model": model or self.default_model,
+            "messages": self._build_messages(prompt, system, history),
+            "stream": False,
+            "tools": tools,
+            "options": {"temperature": temperature, "num_ctx": 2048},
+        }
+        try:
+            response = await self._client.post(f"{self.base_url}/api/chat", json=payload)
+            response.raise_for_status()
+            result = response.json()
+            message = result.get("message", {})
+            return message.get("tool_calls")
+        except Exception as e:
+            logger.error("LLM tool chat failed: %s", e)
+            return None
 
 
 # Backward-compatible alias

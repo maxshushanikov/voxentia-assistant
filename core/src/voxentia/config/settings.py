@@ -39,14 +39,15 @@ class VoxentiaSettings(BaseSettings):
     WHISPER_URL: str = "http://localhost:5003"
     WHISPER_TIMEOUT: float = 60.0
     EMBEDDING_MODEL: str = "nomic-embed-text"
+    ENABLE_RAG: bool = True
 
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
-    RAG_MIN_CONFIDENCE: float = 0.35
+    RAG_MIN_CONFIDENCE: float = 0.65
     RAG_MAX_CHUNKS: int = 3
 
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
-    ALLOWED_UPLOAD_MIME: str = "application/pdf"
+    ALLOWED_UPLOAD_MIME: str = "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,application/json,text/csv"
 
     DEFAULT_LANGUAGE: str = "en"
     HISTORY_LIMIT: int = 20
@@ -59,6 +60,8 @@ class VoxentiaSettings(BaseSettings):
     API_KEY: Optional[str] = None
     JWT_SECRET: Optional[str] = None
     JWT_ALGORITHM: str = "HS256"
+
+    PLUGIN_WEBHOOKS: List[str] = Field(default_factory=list)
 
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "text"
@@ -137,6 +140,12 @@ class VoxentiaSettings(BaseSettings):
     @property
     def allowed_upload_mimes(self) -> List[str]:
         return [m.strip() for m in self.ALLOWED_UPLOAD_MIME.split(",") if m.strip()]
+
+    @property
+    def plugin_webhooks(self) -> List[str]:
+        if isinstance(self.PLUGIN_WEBHOOKS, str):
+            return [w.strip() for w in self.PLUGIN_WEBHOOKS.split(",") if w.strip()]
+        return self.PLUGIN_WEBHOOKS
 
 
 @lru_cache

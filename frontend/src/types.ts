@@ -4,6 +4,16 @@ export interface Message {
   id: string;
   /** True while SSE tokens are still arriving */
   streaming?: boolean;
+  timestamp?: string;
+  model?: string;
+  comparison?: {
+    modelA: string;
+    contentA: string;
+    modelB: string;
+    contentB: string;
+    streamingA?: boolean;
+    streamingB?: boolean;
+  };
 }
 
 export type Language = 'en' | 'de' | 'ru';

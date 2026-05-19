@@ -7,7 +7,7 @@ import {
   useUploadDocumentMutation,
 } from './useChatApi';
 import { useAudioManager } from './useAudioManager';
-import type { Message } from '../types';
+import type { Message, AvatarEmotion } from '../types';
 import { useAppStore } from '../store/appStore';
 import { formatMessage, getTranslations } from '../i18n';
 
@@ -28,6 +28,9 @@ export function useAppController() {
   const avatarEmotion = useAppStore((s) => s.avatarEmotion);
   const viewKey = useAppStore((s) => s.viewKey);
   const streamEnabled = useAppStore((s) => s.streamEnabled);
+  const avatarSource = useAppStore((s) => s.avatarSource);
+  const compareMode = useAppStore((s) => s.compareMode);
+  const selectedModelB = useAppStore((s) => s.selectedModelB);
 
   const setInputText = useAppStore((s) => s.setInputText);
   const setMessages = useAppStore((s) => s.setMessages);
@@ -35,6 +38,7 @@ export function useAppController() {
   const setLanguage = useAppStore((s) => s.setLanguage);
   const setSpeaker = useAppStore((s) => s.setSpeaker);
   const setPersonality = useAppStore((s) => s.setPersonality);
+  const setSelectedModel = useAppStore((s) => s.setSelectedModel);
   const setActivePlugin = useAppStore((s) => s.setActivePlugin);
   const setIsThinking = useAppStore((s) => s.setIsThinking);
   const setIsSidebarOpen = useAppStore((s) => s.setIsSidebarOpen);
@@ -42,6 +46,9 @@ export function useAppController() {
   const bumpHistoryRefresh = useAppStore((s) => s.bumpHistoryRefresh);
   const resetChat = useAppStore((s) => s.resetChat);
   const setVoiceState = useAppStore((s) => s.setVoiceState);
+  const setAvatarSource = useAppStore((s) => s.setAvatarSource);
+  const setCompareMode = useAppStore((s) => s.setCompareMode);
+  const setSelectedModelB = useAppStore((s) => s.setSelectedModelB);
 
   const streamAbortRef = useRef<AbortController | null>(null);
 
@@ -94,55 +101,251 @@ export function useAppController() {
         }
       };
 
+      if (compareMode && selectedModelB) {
+        const assistantId = `asst-comp-${Date.now()}`;
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '',
+            id: assistantId,
+            timestamp: new Date().toISOString(),
+            comparison: {
+              modelA: selectedModel || 'Default Model',
+              contentA: '',
+              modelB: selectedModelB,
+              contentB: '',
+              streamingA: true,
+              streamingB: true,
+            },
+          },
+        ]);
+
+        if (streamEnabled) {
+          const streamA = new Promise<void>((resolve) => {
+            void postChatStream(
+              { ...requestBody, model: selectedModel },
+              {
+                onToken: (token) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentA: m.comparison.contentA + token,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                },
+                onAudio: (audioUrl) => {
+                  queueAudio(audioUrl);
+                },
+                onDone: (data) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentA: data.text,
+                              streamingA: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  const emotion = (data as unknown as Record<string, unknown>).emotion;
+                  if (emotion) {
+                    useAppStore.getState().setAvatarEmotion(emotion as AvatarEmotion);
+                  }
+                  resolve();
+                },
+                onError: (error) => {
+                  console.error('Stream A error:', error);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentA: m.comparison.contentA || 'Failed to stream from Model A',
+                              streamingA: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
+              },
+              abort.signal,
+            );
+          });
+
+          const streamB = new Promise<void>((resolve) => {
+            void postChatStream(
+              { ...requestBody, model: selectedModelB },
+              {
+                onToken: (token) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentB: m.comparison.contentB + token,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                },
+                onAudio: () => {},
+                onDone: (data) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentB: data.text,
+                              streamingB: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
+                onError: (error) => {
+                  console.error('Stream B error:', error);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId && m.comparison
+                        ? {
+                            ...m,
+                            comparison: {
+                              ...m.comparison,
+                              contentB: m.comparison.contentB || 'Failed to stream from Model B',
+                              streamingB: false,
+                            },
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
+              },
+              abort.signal,
+            );
+          });
+
+          await Promise.all([streamA, streamB]);
+          return;
+        } else {
+          setIsThinking(true);
+          try {
+            const [dataA, dataB] = await Promise.all([
+              chatMutation.mutateAsync({ ...requestBody, model: selectedModel }),
+              chatMutation.mutateAsync({ ...requestBody, model: selectedModelB }),
+            ]);
+
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId && m.comparison
+                  ? {
+                      ...m,
+                      comparison: {
+                        ...m.comparison,
+                        contentA: dataA.text,
+                        contentB: dataB.text,
+                        streamingA: false,
+                        streamingB: false,
+                      },
+                    }
+                  : m,
+              ),
+            );
+            await playResponseAudio(dataA.audio_url);
+          } catch (error) {
+            console.error('Non-stream comparison error:', error);
+          } finally {
+            setIsThinking(false);
+          }
+          return;
+        }
+      }
+
       if (streamEnabled) {
         const assistantId = `asst-${Date.now()}`;
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: '', id: assistantId, streaming: true },
+          { role: 'assistant', content: '', id: assistantId, streaming: true, timestamp: new Date().toISOString() },
         ]);
 
+        let retryCount = 0;
         await new Promise<void>((resolve) => {
-          void postChatStream(
-            requestBody,
-            {
-              onToken: (token) => {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: m.content + token } : m,
-                  ),
-                );
+          const doStream = () => {
+            void postChatStream(
+              requestBody,
+              {
+                onToken: (token) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: m.content + token } : m,
+                    ),
+                  );
+                },
+                onAudio: (audioUrl) => {
+                  queueAudio(audioUrl);
+                },
+                onDone: (data) => {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? { ...m, content: data.text, streaming: false }
+                        : m,
+                    ),
+                  );
+                  const emotion = (data as unknown as Record<string, unknown>).emotion;
+                  if (emotion) {
+                    useAppStore.getState().setAvatarEmotion(emotion as AvatarEmotion);
+                  }
+                  resolve();
+                },
+                onError: (error) => {
+                  console.error('Stream error:', error);
+                  if (retryCount < 3 && !abort.signal.aborted) {
+                    retryCount++;
+                    setTimeout(doStream, 1500);
+                    return;
+                  }
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            content: m.content || 'Sorry, streaming failed.',
+                            streaming: false,
+                          }
+                        : m,
+                    ),
+                  );
+                  resolve();
+                },
               },
-              onAudio: (audioUrl) => {
-                queueAudio(audioUrl);
-              },
-              onDone: (data) => {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? { ...m, content: data.text, streaming: false }
-                      : m,
-                  ),
-                );
-                resolve();
-              },
-              onError: (error) => {
-                console.error('Stream error:', error);
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          content: m.content || 'Sorry, streaming failed.',
-                          streaming: false,
-                        }
-                      : m,
-                  ),
-                );
-                resolve();
-              },
-            },
-            abort.signal,
-          );
+              abort.signal,
+            );
+          };
+          doStream();
         });
         return;
       }
@@ -155,6 +358,7 @@ export function useAppController() {
           role: 'assistant',
           content: data.text,
           id: (Date.now() + 1).toString(),
+          timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
         await playResponseAudio(data.audio_url);
@@ -176,6 +380,8 @@ export function useAppController() {
       clearAudioQueue,
       setMessages,
       setIsThinking,
+      compareMode,
+      selectedModelB,
     ],
   );
 
@@ -188,6 +394,7 @@ export function useAppController() {
       role: 'user',
       content: inputText,
       id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
@@ -208,6 +415,7 @@ export function useAppController() {
               role: 'user',
               content: data.text,
               id: Date.now().toString(),
+              timestamp: new Date().toISOString(),
             };
             setMessages((prev) => [...prev, userMsg]);
             await processResponse(data.text, sessionId);
@@ -234,6 +442,7 @@ export function useAppController() {
       role: 'user',
       content: formatMessage(t.chat_docUploadUser, { name: file.name }),
       id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
@@ -249,6 +458,7 @@ export function useAppController() {
             chunks: data.chunks ?? 0,
           }),
           id: (Date.now() + 1).toString(),
+          timestamp: new Date().toISOString(),
         },
       ]);
     } catch {
@@ -258,6 +468,7 @@ export function useAppController() {
           role: 'assistant',
           content: formatMessage(t.chat_docUploadError, { name: file.name }),
           id: (Date.now() + 1).toString(),
+          timestamp: new Date().toISOString(),
         },
       ]);
     } finally {
@@ -282,13 +493,46 @@ export function useAppController() {
         role: m.role as Message['role'],
         content: m.content,
         id: `hist-${sid}-${index}`,
+        timestamp: (m as unknown as Record<string, unknown>).timestamp as string,
+        model: m.model,
       }));
       setSessionId(sid);
       setMessages(() => historyMessages);
       setActivePlugin(null);
+
+      // Extract last used model from history to support Hot-Swap model persistence!
+      let lastModel: string | null = null;
+      for (let i = data.history.length - 1; i >= 0; i--) {
+        if (data.history[i].model) {
+          lastModel = data.history[i].model ?? null;
+          break;
+        }
+      }
+      if (lastModel) {
+        setSelectedModel(lastModel);
+      }
     } catch (error) {
       console.error('Error loading session:', error);
     }
+  };
+
+  const handleEditMessage = (_id: string, newText: string) => {
+    setInputText(newText);
+  };
+  
+  const handleRegenerate = async (id: string) => {
+    if (isThinking) return;
+    const msgIndex = messages.findIndex(m => m.id === id);
+    if (msgIndex === -1) return;
+    let lastUserMsgContent = '';
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        lastUserMsgContent = messages[i].content;
+        break;
+      }
+    }
+    if (!lastUserMsgContent) return;
+    await processResponse(lastUserMsgContent, sessionId);
   };
 
   const openPlugin = (id: string) => {
@@ -315,6 +559,9 @@ export function useAppController() {
     isRecording,
     mouthAlpha,
     computedViewKey,
+    avatarSource,
+    compareMode,
+    selectedModelB,
     setInputText,
     setLanguage,
     setSpeaker,
@@ -322,12 +569,17 @@ export function useAppController() {
     setIsSidebarOpen,
     setIsSettingsOpen,
     setActivePlugin,
+    setAvatarSource,
+    setCompareMode,
+    setSelectedModelB,
     handleSend,
     handleMicClick,
     handleFileChange,
     handleNewChat,
     handleSessionDeleted,
     handleLoadSession,
+    handleEditMessage,
+    handleRegenerate,
     openPlugin,
   };
 }

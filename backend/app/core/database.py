@@ -32,7 +32,11 @@ def init_db():
     from app.models.chat import ChatMessage  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
-    if settings.DB_PATH.startswith("sqlite"):
-        with engine.connect() as conn:
+    with engine.connect() as conn:
+        if settings.DB_PATH.startswith("sqlite"):
             conn.execute(text("PRAGMA journal_mode=WAL"))
-            conn.commit()
+        try:
+            conn.execute(text("ALTER TABLE chat_messages ADD COLUMN model VARCHAR"))
+        except Exception:
+            pass
+        conn.commit()

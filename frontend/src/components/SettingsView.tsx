@@ -1,4 +1,5 @@
-import { Radio, Shield, Bell, Volume2, Moon, User } from 'lucide-react';
+import { useState } from 'react';
+import { Radio, Shield, User, Sparkles, Upload } from 'lucide-react';
 import type { Language, Speaker, Personality } from '../types';
 import { useTranslation } from '../i18n/context';
 import { useAppStore } from '../store/appStore';
@@ -24,6 +25,43 @@ export default function SettingsView({
   const { t } = useTranslation();
   const streamEnabled = useAppStore((s) => s.streamEnabled);
   const setStreamEnabled = useAppStore((s) => s.setStreamEnabled);
+  const avatarSource = useAppStore((s) => s.avatarSource);
+  const setAvatarSource = useAppStore((s) => s.setAvatarSource);
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleGlbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadSuccess(false);
+    setUploadError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/v1/avatar/custom', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        setUploadSuccess(true);
+        setAvatarSource('custom');
+      } else {
+        const errData = await res.json();
+        setUploadError(errData.detail || 'Upload failed');
+      }
+    } catch {
+      setUploadError('Failed to upload custom avatar.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]">
@@ -95,29 +133,67 @@ export default function SettingsView({
 
         <section className="glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
           <div className="flex items-center mb-6">
+            <Sparkles className="w-5 h-5 text-amber-500 mr-3" />
+            <h3 className="text-lg font-medium text-[var(--text-primary)]">Avatar Settings</h3>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-black/5 dark:bg-white/2 rounded-[4px] border border-black/5 dark:border-white/5">
+              <div className="flex items-center space-x-4">
+                <div className="text-[var(--text-secondary)]">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-sm text-[var(--text-primary)] font-medium">Use Custom 3D Avatar (GLB)</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Enable uploading and using a custom GLB avatar model.</p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={avatarSource === 'custom'}
+                onChange={(e) => setAvatarSource(e.target.checked ? 'custom' : 'default')}
+                className="w-4 h-4 rounded border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 text-[var(--accent)] focus:ring-[var(--accent)]"
+              />
+            </div>
+
+            {avatarSource === 'custom' && (
+              <div className="p-4 bg-black/5 dark:bg-white/2 border border-black/5 dark:border-white/5 rounded-[4px] space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                    Upload Custom Avatar (.glb)
+                  </span>
+                  {uploading && <span className="text-xs text-[var(--accent)]">Uploading...</span>}
+                  {uploadSuccess && <span className="text-xs text-emerald-500">Upload successful!</span>}
+                  {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
+                </div>
+
+                <div className="flex items-center justify-center border border-dashed border-black/20 dark:border-white/20 rounded-[4px] p-6 hover:border-[var(--accent)] transition-all relative cursor-pointer">
+                  <input
+                    type="file"
+                    accept=".glb"
+                    onChange={handleGlbUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    disabled={uploading}
+                  />
+                  <div className="text-center space-y-2 pointer-events-none">
+                    <Upload className="w-8 h-8 text-[var(--text-secondary)] mx-auto animate-bounce" />
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Drag & drop or click to upload your custom 3D model (GLB format, max 30MB)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
+          <div className="flex items-center mb-6">
             <Shield className="w-5 h-5 text-emerald-500 mr-3" />
             <h3 className="text-lg font-medium text-[var(--text-primary)]">{t.settings_securityPrivacy}</h3>
           </div>
 
           <div className="space-y-4">
-            <ToggleSetting
-              icon={<Bell className="w-4 h-4" />}
-              label={t.settings_notifications}
-              description={t.settings_notificationsDesc}
-              defaultChecked
-            />
-            <ToggleSetting
-              icon={<Volume2 className="w-4 h-4" />}
-              label={t.settings_audioOutput}
-              description={t.settings_audioOutputDesc}
-              defaultChecked
-            />
-            <ToggleSetting
-              icon={<Moon className="w-4 h-4" />}
-              label={t.settings_darkMode}
-              description={t.settings_darkModeDesc}
-              defaultChecked
-            />
             <ToggleSetting
               icon={<Radio className="w-4 h-4" />}
               label={(t as unknown as Record<string, string>).settings_streamResponses ?? 'Stream responses'}

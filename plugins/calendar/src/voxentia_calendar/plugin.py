@@ -20,23 +20,8 @@ class CalendarPlugin(VoxentiaPlugin):
         )
 
     async def initialize(self):
-        # Mock Daten für den Start
-        self.events = [
-            {
-                "id": str(uuid.uuid4()),
-                "title": "Meeting mit Team",
-                "start_time": (datetime.now() + timedelta(hours=2)).isoformat(),
-                "end_time": (datetime.now() + timedelta(hours=3)).isoformat(),
-                "location": "Konferenzraum A"
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "title": "Abendessen mit Max",
-                "start_time": (datetime.now() + timedelta(hours=5)).isoformat(),
-                "end_time": (datetime.now() + timedelta(hours=7)).isoformat(),
-                "location": "Restaurant 'Zum Anker'"
-            }
-        ]
+        from voxentia_calendar.adapters.sqlite import SQLiteCalendarAdapter
+        self.adapter = SQLiteCalendarAdapter()
         print("Calendar Plugin initialisiert.")
 
     async def handle_intent(self, intent: str, entities: Dict[str, Any]) -> PluginResponse:
@@ -49,11 +34,12 @@ class CalendarPlugin(VoxentiaPlugin):
         return PluginResponse(text="Intent nicht unterstützt vom Kalender-Plugin.")
 
     async def _list_events(self) -> PluginResponse:
-        if not self.events:
+        events = self.adapter.get_events()
+        if not events:
             return PluginResponse(text="Du hast heute keine Termine.")
         
-        text = f"Du hast heute {len(self.events)} Termine. Der nächste ist: {self.events[0]['title']}."
-        return PluginResponse(text=text, data={"events": self.events})
+        text = f"Du hast heute {len(events)} Termine. Der nächste ist: {events[0]['title']}."
+        return PluginResponse(text=text, data={"events": events})
 
     async def _add_event(self, title: str, entities: Dict[str, Any]) -> PluginResponse:
         new_event = {
@@ -63,7 +49,7 @@ class CalendarPlugin(VoxentiaPlugin):
             "end_time": entities.get("end_time", (datetime.now() + timedelta(hours=1)).isoformat()),
             "location": entities.get("location", "Unbekannt")
         }
-        self.events.append(new_event)
+        self.adapter.add_event(new_event)
         return PluginResponse(text=f"Termin '{title}' wurde hinzugefügt.", data={"new_event": new_event})
 
     async def shutdown(self):

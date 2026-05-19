@@ -1,6 +1,15 @@
 import { LayoutGrid, Target, Zap, MoreVertical, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 import { useTranslation } from '../i18n/context';
+
+interface Project {
+  title: string;
+  status: string;
+  progress: number;
+  team: number;
+  tasks: number;
+}
 
 export default function ProjectPlanningView() {
   const { t } = useTranslation();
@@ -11,11 +20,28 @@ export default function ProjectPlanningView() {
       Review: t.project_review,
     } as Record<string, string>)[s] ?? s;
 
-  const projects = [
-    { title: 'Voxentia Core v3.5', status: 'In Progress', progress: 75, team: 4, tasks: 24 },
-    { title: 'Mobile App Integration', status: 'Planning', progress: 12, team: 2, tasks: 8 },
-    { title: 'Security Hardening', status: 'Review', progress: 90, team: 3, tasks: 15 },
-  ];
+  const [projects, setProjects] = useState<Project[]>(() => {
+    const saved = localStorage.getItem('voxentia-projects');
+    return saved ? JSON.parse(saved) : [
+      { title: 'Voxentia Core v3.5', status: 'In Progress', progress: 75, team: 4, tasks: 24 },
+      { title: 'Mobile App Integration', status: 'Planning', progress: 12, team: 2, tasks: 8 },
+      { title: 'Security Hardening', status: 'Review', progress: 90, team: 3, tasks: 15 },
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('voxentia-projects', JSON.stringify(projects));
+  }, [projects]);
+
+  const addProject = () => {
+    const title = prompt("New Project");
+    if (title) setProjects([{ title, status: 'Planning', progress: 0, team: 1, tasks: 0 }, ...projects]);
+  };
+
+  const activeCount = projects.filter((p) => p.status !== 'Done').length;
+  const totalTasks = projects.reduce((sum, p) => sum + p.tasks, 0);
+  const totalTeam = projects.reduce((sum, p) => sum + p.team, 0);
+  const avgProgress = projects.length ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length) : 0;
 
   return (
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]">
@@ -24,7 +50,7 @@ export default function ProjectPlanningView() {
           <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2">{t.project_title}</h1>
           <p className="text-[var(--text-secondary)] text-sm">{t.project_subtitle}</p>
         </div>
-        <button className="flex items-center px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg">
+        <button onClick={addProject} className="flex items-center px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg">
           <Plus className="w-4 h-4 mr-2" />
           {t.project_create}
         </button>
@@ -33,10 +59,10 @@ export default function ProjectPlanningView() {
       <div className="grid grid-cols-1 gap-6">
         {/* Statistics row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-           <StatsBox label={t.project_activeProjects} value="12" />
-           <StatsBox label={t.project_totalTasks} value="482" />
-           <StatsBox label={t.project_teamMembers} value="18" />
-           <StatsBox label={t.project_efficiency} value="94%" />
+           <StatsBox label={t.project_activeProjects} value={activeCount.toString()} />
+           <StatsBox label={t.project_totalTasks} value={totalTasks.toString()} />
+           <StatsBox label={t.project_teamMembers} value={totalTeam.toString()} />
+           <StatsBox label={t.project_efficiency} value={`${avgProgress}%`} />
         </div>
 
         {/* Project cards */}

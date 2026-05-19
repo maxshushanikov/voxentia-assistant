@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 import time
 from typing import Any, List, Optional, Tuple
 
@@ -20,6 +21,12 @@ from voxentia.plugins.registry import PluginRegistry
 from voxentia.services.llm_client import OllamaClient
 
 logger = logging.getLogger("voxentia.api")
+
+# Explaining Constants for TTS voice generation tuning
+MIN_SENTENCE_CHARS_FOR_TTS = 20
+MIN_CLEANED_CHARS_FOR_TTS = 10
+MIN_TRAILING_CHARS_FOR_TTS = 2
+TTS_PARALLEL_WORKERS = 3
 
 
 class ChatService:
@@ -65,12 +72,7 @@ class ChatService:
         profiles = load_personalities().get(personality or "professional", {})
         return profiles.get(language, profiles.get(settings.DEFAULT_LANGUAGE, ""))
 
-    async def process_message(
-        self, db: Session, request: ChatRequest
-    ) -> Tuple[str, Optional[str], Optional[str], Optional[Any]]:
-        await self.initialize()
-        started = time.perf_counter()
-
+    async def _prepare_context(self, db: Session, request: ChatRequest) -> dict:
         lang = request.language.value if hasattr(request.language, "value") else str(request.language)
         speaker = request.speaker.value if hasattr(request.speaker, "value") else str(request.speaker)
         personality = (
@@ -79,15 +81,50 @@ class ChatService:
             else str(request.personality)
         )
 
+        limit = getattr(settings, "HISTORY_LIMIT", 20)
+        previous_messages = (
+            db.query(ChatMessage)
+            .filter_by(session_id=request.session_id)
+            .order_by(ChatMessage.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+        history = [{"role": m.role, "content": m.content} for m in reversed(previous_messages)]
+
+        model = request.model or settings.DEFAULT_MODEL
+
         user_msg = ChatMessage(
-            session_id=request.session_id, role="user", content=request.message
+            session_id=request.session_id, role="user", content=request.message, model=model
         )
         db.add(user_msg)
         db.commit()
 
         rag_context = await search_context(request.message)
         system_prompt = self._personality_prompt(personality, lang)
-        model = request.model or settings.DEFAULT_MODEL
+
+        return {
+            "lang": lang,
+            "speaker": speaker,
+            "personality": personality,
+            "history": history,
+            "model": model,
+            "rag_context": rag_context,
+            "system_prompt": system_prompt,
+        }
+
+    async def process_message(
+        self, db: Session, request: ChatRequest
+    ) -> Tuple[str, Optional[str], Optional[str], Optional[Any]]:
+        await self.initialize()
+        started = time.perf_counter()
+
+        ctx = await self._prepare_context(db, request)
+        lang = ctx["lang"]
+        speaker = ctx["speaker"]
+        history = ctx["history"]
+        model = ctx["model"]
+        rag_context = ctx["rag_context"]
+        system_prompt = ctx["system_prompt"]
 
         try:
             response = await self.orchestrator.route_request(
@@ -97,6 +134,7 @@ class ChatService:
                 model=model,
                 temperature=request.temperature,
                 rag_context=rag_context,
+                history=history,
             )
         except VoxentiaError:
             raise
@@ -108,7 +146,7 @@ class ChatService:
             ) from e
 
         assistant_msg = ChatMessage(
-            session_id=request.session_id, role="assistant", content=response.text
+            session_id=request.session_id, role="assistant", content=response.text, model=model
         )
         db.add(assistant_msg)
         db.commit()
@@ -134,38 +172,59 @@ class ChatService:
     ):
         """Yield SSE token events, then a final done event with metadata."""
         await self.initialize()
-        lang = request.language.value if hasattr(request.language, "value") else str(request.language)
-        speaker = request.speaker.value if hasattr(request.speaker, "value") else str(request.speaker)
-        personality = (
-            request.personality.value
-            if hasattr(request.personality, "value")
-            else str(request.personality)
-        )
+        ctx = await self._prepare_context(db, request)
+        lang = ctx["lang"]
+        speaker = ctx["speaker"]
+        history = ctx["history"]
+        model = ctx["model"]
+        rag_context = ctx["rag_context"]
+        system_prompt = ctx["system_prompt"]
 
-        user_msg = ChatMessage(session_id=request.session_id, role="user", content=request.message)
-        db.add(user_msg)
-        db.commit()
-
-        rag_context = await search_context(request.message)
         message = request.message
         if rag_context:
             message = f"{rag_context}\n\n{request.message}"
 
-        system_prompt = self._personality_prompt(personality, lang)
-        model = request.model or settings.DEFAULT_MODEL
-
-        import re
         full_text = ""
         current_sentence = ""
+        current_emotion = "neutral"
+
+        # Setup background parallel TTS workers
+        tts_queue = asyncio.Queue()
+        audio_queue = asyncio.Queue()
+
+        async def tts_worker():
+            while True:
+                item = await tts_queue.get()
+                if item is None:
+                    break
+                text_to_speak, spk, lang = item
+                try:
+                    url = await generate_tts_audio(text_to_speak, spk, lang)
+                    if url:
+                        await audio_queue.put(url)
+                except Exception as e:
+                    logger.error("TTS worker failed: %s", e)
+                finally:
+                    tts_queue.task_done()
+
+        worker_tasks = [asyncio.create_task(tts_worker()) for _ in range(TTS_PARALLEL_WORKERS)]
+
         async for token in self.llm_client.generate_stream(
-            message, model=model, system=system_prompt or None, temperature=request.temperature
+            message, model=model, system=system_prompt or None, temperature=request.temperature, history=history
         ):
             full_text += token
             current_sentence += token
             yield {"event": "token", "data": token}
 
+            emotion_match = re.search(r"\[(happy|thinking|neutral|sad|angry|excited)\]", current_sentence)
+            if emotion_match:
+                emotion = emotion_match.group(1)
+                if emotion != current_emotion:
+                    current_emotion = emotion
+                    yield {"event": "emotion", "data": emotion}
+
             # If the token contains a sentence-ending punctuation and the sentence is long enough, generate TTS
-            if len(current_sentence) > 20 and any(char in token for char in [".", "!", "?", "\n"]):
+            if len(current_sentence) > MIN_SENTENCE_CHARS_FOR_TTS and any(char in token for char in [".", "!", "?", "\n"]):
                 sentence_to_speak = current_sentence.strip()
                 current_sentence = ""
 
@@ -174,10 +233,16 @@ class ChatService:
                 sentence_to_speak = re.sub(r"<think>.*?(</think>|$)", "", sentence_to_speak, flags=re.DOTALL).strip()
                 sentence_to_speak = re.sub(r"\[.*?\]|<.*?>", "", sentence_to_speak).strip()
 
-                if sentence_to_speak and len(sentence_to_speak) > 10:
-                    audio_url = await generate_tts_audio(sentence_to_speak, speaker, lang)
-                    if audio_url:
-                        yield {"event": "audio", "data": audio_url}
+                if sentence_to_speak and len(sentence_to_speak) > MIN_CLEANED_CHARS_FOR_TTS:
+                    await tts_queue.put((sentence_to_speak, speaker, lang))
+
+            # Flush any completed audio URLs
+            while not audio_queue.empty():
+                try:
+                    url = audio_queue.get_nowait()
+                    yield {"event": "audio", "data": url}
+                except asyncio.QueueEmpty:
+                    break
 
         # Handle the remaining trailing sentence if any
         if current_sentence.strip():
@@ -185,13 +250,24 @@ class ChatService:
             sentence_to_speak = re.sub(r"\[think\].*?(\[/think\]|$)", "", sentence_to_speak, flags=re.DOTALL).strip()
             sentence_to_speak = re.sub(r"<think>.*?(</think>|$)", "", sentence_to_speak, flags=re.DOTALL).strip()
             sentence_to_speak = re.sub(r"\[.*?\]|<.*?>", "", sentence_to_speak).strip()
-            if sentence_to_speak and len(sentence_to_speak) > 2:
-                audio_url = await generate_tts_audio(sentence_to_speak, speaker, lang)
-                if audio_url:
-                    yield {"event": "audio", "data": audio_url}
+            if sentence_to_speak and len(sentence_to_speak) > MIN_TRAILING_CHARS_FOR_TTS:
+                await tts_queue.put((sentence_to_speak, speaker, lang))
+
+        # Stop and join workers
+        for _ in worker_tasks:
+            await tts_queue.put(None)
+        await asyncio.gather(*worker_tasks, return_exceptions=True)
+
+        # Flush any remaining audio files
+        while not audio_queue.empty():
+            try:
+                url = audio_queue.get_nowait()
+                yield {"event": "audio", "data": url}
+            except asyncio.QueueEmpty:
+                break
 
         assistant_msg = ChatMessage(
-            session_id=request.session_id, role="assistant", content=full_text
+            session_id=request.session_id, role="assistant", content=full_text, model=model
         )
         db.add(assistant_msg)
         db.commit()
@@ -199,10 +275,11 @@ class ChatService:
         yield {
             "event": "done",
             "data": {
-                "text": full_text,
+                "text": re.sub(r"\[.*?\]|<.*?>", "", full_text).strip(),
                 "audio_url": None,
                 "session_id": request.session_id,
                 "intent": "stream",
+                "emotion": current_emotion,
             },
         }
 
@@ -220,53 +297,62 @@ class ChatService:
                 role=m.role,
                 content=m.content,
                 timestamp=m.timestamp,
+                model=m.model,
             )
             for m in rows
         ]
         return records, total
 
     def get_sessions(self, db: Session) -> List[ChatSession]:
-        session_rows = (
+        # A clean, high-performance single JOIN query to fetch everything in one query!
+        # SQLite supports window functions and subqueries beautifully.
+        subq_min = (
             db.query(
                 ChatMessage.session_id,
-                func.max(ChatMessage.timestamp).label("last_ts"),
-            )
-            .group_by(ChatMessage.session_id)
-            .order_by(func.max(ChatMessage.timestamp).desc())
-            .all()
-        )
-        if not session_rows:
-            return []
-
-        session_ids = [r.session_id for r in session_rows]
-        min_ts_subq = (
-            db.query(
-                ChatMessage.session_id,
-                func.min(ChatMessage.timestamp).label("min_ts"),
-            )
-            .filter(ChatMessage.session_id.in_(session_ids), ChatMessage.role == "user")
-            .group_by(ChatMessage.session_id)
-            .subquery()
-        )
-        first_messages = {
-            m.session_id: m
-            for m in db.query(ChatMessage)
-            .join(
-                min_ts_subq,
-                (ChatMessage.session_id == min_ts_subq.c.session_id)
-                & (ChatMessage.timestamp == min_ts_subq.c.min_ts),
+                ChatMessage.content.label("first_content"),
+                func.row_number().over(
+                    partition_by=ChatMessage.session_id,
+                    order_by=ChatMessage.timestamp.asc()
+                ).label("rn_min")
             )
             .filter(ChatMessage.role == "user")
+            .subquery()
+        )
+
+        subq_max = (
+            db.query(
+                ChatMessage.session_id,
+                ChatMessage.model.label("last_model"),
+                ChatMessage.timestamp.label("last_ts"),
+                func.row_number().over(
+                    partition_by=ChatMessage.session_id,
+                    order_by=ChatMessage.timestamp.desc()
+                ).label("rn_max")
+            )
+            .subquery()
+        )
+
+        rows = (
+            db.query(
+                subq_max.c.session_id,
+                subq_max.c.last_ts,
+                subq_max.c.last_model,
+                subq_min.c.first_content
+            )
+            .join(subq_min, (subq_max.c.session_id == subq_min.c.session_id) & (subq_min.c.rn_min == 1), isouter=True)
+            .filter(subq_max.c.rn_max == 1)
+            .order_by(subq_max.c.last_ts.desc())
             .all()
-        }
+        )
 
         return [
             ChatSession(
-                session_id=row.session_id,
-                title=(first_messages[row.session_id].content[:60] if row.session_id in first_messages else row.session_id),
-                last_timestamp=row.last_ts,
+                session_id=r.session_id,
+                title=(r.first_content[:60] if r.first_content else r.session_id),
+                last_timestamp=r.last_ts,
+                model=r.last_model,
             )
-            for row in session_rows
+            for r in rows
         ]
 
     def delete_session(self, db: Session, session_id: str) -> int:

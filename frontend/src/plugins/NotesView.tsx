@@ -1,13 +1,32 @@
 import { FileText, CheckCircle2, Circle, Search, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n/context';
+
+interface Note {
+  title: string;
+  date: string;
+  preview: string;
+}
 
 export default function NotesView() {
   const { t } = useTranslation();
-  const notes = [
-    { title: 'Project Overview', date: 'May 12, 2026', preview: 'The goal is to stabilize the frontend architecture...' },
-    { title: 'Meeting Notes', date: 'May 10, 2026', preview: 'Discussed the integration of the new avatar models...' },
-    { title: 'Shopping List', date: 'May 08, 2026', preview: 'Milk, Eggs, Coffee, Bread, Fruits...' },
-  ];
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const saved = localStorage.getItem('voxentia-notes');
+    return saved ? JSON.parse(saved) : [
+      { title: 'Project Overview', date: 'May 12, 2026', preview: 'The goal is to stabilize the frontend architecture...' },
+      { title: 'Meeting Notes', date: 'May 10, 2026', preview: 'Discussed the integration of the new avatar models...' },
+      { title: 'Shopping List', date: 'May 08, 2026', preview: 'Milk, Eggs, Coffee, Bread, Fruits...' },
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('voxentia-notes', JSON.stringify(notes));
+  }, [notes]);
+
+  const addNote = () => {
+    const title = prompt(t.common_newNote || "New Note");
+    if (title) setNotes([{ title, date: new Date().toLocaleDateString(), preview: '...' }, ...notes]);
+  };
 
   return (
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]">
@@ -27,6 +46,7 @@ export default function NotesView() {
           </div>
           <button
             type="button"
+            onClick={addNote}
             className="flex items-center px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg uppercase tracking-widest"
           >
             <Plus className="w-4 h-4 mr-2" />

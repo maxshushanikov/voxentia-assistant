@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createSession } from '../api/chat';
 
 import type { AvatarEmotion, Language, Message, Personality, Speaker } from '../types';
 
@@ -31,6 +32,26 @@ function loadStreamEnabled(): boolean {
   return localStorage.getItem(STREAM_KEY) !== 'false';
 }
 
+function loadLanguage(): Language {
+  const v = localStorage.getItem('voxentia-lang');
+  return (v as Language) || 'en';
+}
+
+function loadAvatarSource(): 'default' | 'custom' {
+  const v = localStorage.getItem('voxentia-avatar-source');
+  return v === 'custom' ? 'custom' : 'default';
+}
+
+function loadSpeaker(): Speaker {
+  const v = localStorage.getItem('voxentia-speaker');
+  return (v as Speaker) || 'baya';
+}
+
+function loadPersonality(): Personality {
+  const v = localStorage.getItem('voxentia-personality');
+  return (v as Personality) || 'professional';
+}
+
 interface AppState {
   sessionId: string;
   messages: Message[];
@@ -50,6 +71,12 @@ interface AppState {
   avatarEmotion: AvatarEmotion;
   viewKey: string;
   streamEnabled: boolean;
+  avatarSource: 'default' | 'custom';
+  compareMode: boolean;
+  selectedModelB: string | null;
+  setCompareMode: (v: boolean) => void;
+  setSelectedModelB: (model: string | null) => void;
+  setAvatarSource: (source: 'default' | 'custom') => void;
 
   setSessionId: (id: string) => void;
   setMessages: (fn: (prev: Message[]) => Message[]) => void;
@@ -69,16 +96,16 @@ interface AppState {
   setShowAvatar: (show: boolean) => void;
   setAvatarEmotion: (e: AvatarEmotion) => void;
   setStreamEnabled: (enabled: boolean) => void;
-  resetChat: () => void;
+  resetChat: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   sessionId: newSessionId(),
   messages: [],
   inputText: '',
-  language: 'en',
-  speaker: 'baya',
-  personality: 'professional',
+  language: loadLanguage(),
+  speaker: loadSpeaker(),
+  personality: loadPersonality(),
   selectedModel: loadModel(),
   activePlugin: null,
   isThinking: false,
@@ -91,14 +118,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   avatarEmotion: 'neutral',
   viewKey: 'dashboard',
   streamEnabled: loadStreamEnabled(),
+  avatarSource: loadAvatarSource(),
+  compareMode: false,
+  selectedModelB: null,
 
   setSessionId: (id) => set({ sessionId: id }),
   setMessages: (fn) => set((s) => ({ messages: fn(s.messages) })),
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
   setInputText: (inputText) => set({ inputText }),
-  setLanguage: (language) => set({ language }),
-  setSpeaker: (speaker) => set({ speaker }),
-  setPersonality: (personality) => set({ personality }),
+  setLanguage: (language) => {
+    localStorage.setItem('voxentia-lang', language);
+    set({ language });
+  },
+  setSpeaker: (speaker) => {
+    localStorage.setItem('voxentia-speaker', speaker);
+    set({ speaker });
+  },
+  setPersonality: (personality) => {
+    localStorage.setItem('voxentia-personality', personality);
+    set({ personality });
+  },
   setSelectedModel: (selectedModel) => {
     if (selectedModel) localStorage.setItem(MODEL_KEY, selectedModel);
     else localStorage.removeItem(MODEL_KEY);
@@ -136,14 +175,32 @@ export const useAppStore = create<AppState>((set, get) => ({
     localStorage.setItem(STREAM_KEY, String(streamEnabled));
     set({ streamEnabled });
   },
-  resetChat: () =>
-    set({
-      sessionId: newSessionId(),
-      messages: [],
-      activePlugin: null,
-      inputText: '',
-      viewKey: 'dashboard',
-    }),
+  setAvatarSource: (avatarSource) => {
+    localStorage.setItem('voxentia-avatar-source', avatarSource);
+    set({ avatarSource });
+  },
+  setCompareMode: (compareMode) => set({ compareMode }),
+  setSelectedModelB: (selectedModelB) => set({ selectedModelB }),
+  resetChat: async () => {
+    try {
+      const data = await createSession();
+      set({
+        sessionId: data.session_id || newSessionId(),
+        messages: [],
+        activePlugin: null,
+        inputText: '',
+        viewKey: 'dashboard',
+      });
+    } catch {
+      set({
+        sessionId: newSessionId(),
+        messages: [],
+        activePlugin: null,
+        inputText: '',
+        viewKey: 'dashboard',
+      });
+    }
+  },
 }));
 
 // Apply theme on module load

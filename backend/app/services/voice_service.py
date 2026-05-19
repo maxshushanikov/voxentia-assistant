@@ -4,6 +4,7 @@ import re
 
 import httpx
 from app.core.config import settings
+from app.core.http_client import shared_client
 
 logger = logging.getLogger(__name__)
 
@@ -37,26 +38,29 @@ async def generate_tts_audio(text: str, speaker: str, language: str) -> str | No
         return f"/api/tts-audio/{filename}"
 
     try:
-        async with httpx.AsyncClient(timeout=TTS_TIMEOUT) as client:
-            response = await client.post(
-                f"{settings.TTS_URL}/tts",
-                json={"text": clean_text, "speaker": speaker, "language": language},
-            )
-            response.raise_for_status()
-            result = response.json()
+        response = await shared_client.post(
+            f"{settings.TTS_URL}/tts",
+            json={"text": clean_text, "speaker": speaker, "language": language},
+            timeout=TTS_TIMEOUT,
+        )
+        response.raise_for_status()
+        result = response.json()
 
-            audio_remote_url = result.get("audio_url")
-            if not audio_remote_url:
-                logger.warning("TTS server returned no audio_url: %s", result)
-                return None
+        audio_remote_url = result.get("audio_url")
+        if not audio_remote_url:
+            logger.warning("TTS server returned no audio_url: %s", result)
+            return None
 
-            audio_response = await client.get(f"{settings.TTS_URL}{audio_remote_url}")
-            audio_response.raise_for_status()
+        audio_response = await shared_client.get(
+            f"{settings.TTS_URL}{audio_remote_url}",
+            timeout=TTS_TIMEOUT,
+        )
+        audio_response.raise_for_status()
 
-            filepath.parent.mkdir(parents=True, exist_ok=True)
-            filepath.write_bytes(audio_response.content)
-            logger.info("TTS cached: %s (%d bytes)", filename, len(audio_response.content))
-            return f"/api/tts-audio/{filename}"
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        filepath.write_bytes(audio_response.content)
+        logger.info("TTS cached: %s (%d bytes)", filename, len(audio_response.content))
+        return f"/api/tts-audio/{filename}"
     except httpx.HTTPStatusError as e:
         logger.warning(
             "TTS HTTP error %s: %s",
@@ -72,14 +76,14 @@ async def transcribe_audio_file(
     audio_bytes: bytes, filename: str, content_type: str, language: str = "en"
 ) -> str:
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                f"{settings.WHISPER_URL}/transcribe",
-                files={"audio": (filename, audio_bytes, content_type)},
-                data={"language": language},
-            )
-            response.raise_for_status()
-            return response.json().get("text", "")
+        response = await shared_client.post(
+            f"{settings.WHISPER_URL}/transcribe",
+            files={"audio": (filename, audio_bytes, content_type)},
+            data={"language": language},
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        return response.json().get("text", "")
     except Exception as e:
         logger.warning("Transcription error: %s", e)
         return ""

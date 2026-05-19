@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 export function useAudioManager() {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -25,6 +25,15 @@ export function useAudioManager() {
     if (audioContextRef.current.state === 'suspended') {
       audioContextRef.current.resume();
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+    };
   }, []);
 
   const updateMouth = useCallback(function updateMouth() {
