@@ -3,11 +3,14 @@ import Avatar from './components/Avatar';
 import ChatArea from './components/ChatArea';
 import ChatInput from './components/ChatInput';
 import Dashboard from './components/Dashboard';
+import CommandBar from './components/CommandBar/CommandBar';
 import Header from './components/Header';
+import ShortcutsHelp from './components/ShortcutsHelp';
 import SettingsView from './components/SettingsView';
 import Sidebar from './components/Sidebar';
 import ViewTransition from './components/ViewTransition';
 import { useAppController } from './hooks/useAppController';
+import { useShortcuts } from './hooks/useShortcuts';
 import { plugins } from './plugins/registry';
 import { I18nProvider } from './i18n/context';
 import { speakerGenderMap } from './types';
@@ -53,6 +56,8 @@ function App() {
     openPlugin,
   } = useAppController();
 
+  useShortcuts();
+
   const renderMainView = () => {
     if (activePlugin === 'settings') {
       return (
@@ -92,6 +97,8 @@ function App() {
   return (
     <I18nProvider language={language}>
       <div className="app-shell h-screen flex font-sans overflow-hidden relative">
+        <CommandBar />
+        <ShortcutsHelp />
         <input
           type="file"
           ref={fileInputRef}

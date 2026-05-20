@@ -137,6 +137,22 @@ services:
     networks:
       - avatar-network
 
+  xtts-server:
+    profiles: ["voice-clone"]
+    build: ./xtts-server
+    ports:
+      - "5004:5004"
+    volumes:
+      - xtts-voices:/app/voices
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:5004/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - avatar-network
+
   proxy:
     image: caddy:2-alpine
     ports:
@@ -155,6 +171,7 @@ volumes:
   tts-cache:
   whisper-cache:
   postgres_data:
+  xtts-voices:
 
 networks:
   avatar-network:

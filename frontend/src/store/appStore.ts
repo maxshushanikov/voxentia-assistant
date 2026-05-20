@@ -74,7 +74,11 @@ interface AppState {
   avatarSource: 'default' | 'custom';
   compareMode: boolean;
   selectedModelB: string | null;
+  commandBarOpen: boolean;
+  shortcutsHelpOpen: boolean;
   setCompareMode: (v: boolean) => void;
+  setCommandBarOpen: (v: boolean) => void;
+  setShortcutsHelpOpen: (v: boolean) => void;
   setSelectedModelB: (model: string | null) => void;
   setAvatarSource: (source: 'default' | 'custom') => void;
 
@@ -121,6 +125,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   avatarSource: loadAvatarSource(),
   compareMode: false,
   selectedModelB: null,
+  commandBarOpen: false,
+  shortcutsHelpOpen: false,
 
   setSessionId: (id) => set({ sessionId: id }),
   setMessages: (fn) => set((s) => ({ messages: fn(s.messages) })),
@@ -181,6 +187,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setCompareMode: (compareMode) => set({ compareMode }),
   setSelectedModelB: (selectedModelB) => set({ selectedModelB }),
+  setCommandBarOpen: (commandBarOpen) => set({ commandBarOpen }),
+  setShortcutsHelpOpen: (shortcutsHelpOpen) => set({ shortcutsHelpOpen }),
   resetChat: async () => {
     try {
       const data = await createSession();

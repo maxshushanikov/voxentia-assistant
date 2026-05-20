@@ -163,7 +163,8 @@ function AvatarModel({
 
     if (group.current) {
       const time = performance.now() * 0.001;
-      const sway = emotion === 'thinking' ? 0.06 : emotion === 'happy' ? 0.05 : 0.04;
+      const sway =
+        emotion === 'thinking' ? 0.06 : emotion === 'happy' ? 0.05 : emotion === 'sad' ? 0.03 : 0.04;
       const breath = 1 + Math.sin(time * 1.2) * 0.012;
       group.current.rotation.y = Math.sin(time * 0.3) * sway;
       group.current.scale.setScalar(breath);
@@ -271,7 +272,13 @@ function Avatar({
             {isSpeaking ? 'Spricht...' : 'Bereit'}
           </p>
           <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {emotion === 'thinking' ? 'Überlegt...' : emotion === 'happy' ? 'Fröhlich' : 'Professioneller Assistent'}
+            {emotion === 'thinking'
+              ? 'Überlegt...'
+              : emotion === 'happy'
+                ? 'Fröhlich'
+                : emotion === 'sad'
+                  ? 'Nachdenklich'
+                  : 'Professioneller Assistent'}
           </p>
         </div>
       </div>

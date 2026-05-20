@@ -81,3 +81,26 @@ class PluginRegistry:
         for plugin in self.plugins.values():
             intents.extend(plugin.get_intents())
         return sorted(set(intents))
+
+    def get_all_intents(self) -> list[str]:
+        """Alias for backward compatibility."""
+        return self.all_intents()
+
+    async def get_plugin_healthy(self, name: str) -> dict:
+        plugin = self.plugins.get(name)
+        if not plugin:
+            return {"name": name, "status": "not_loaded"}
+        try:
+            if hasattr(plugin, "health"):
+                ok = await asyncio.wait_for(plugin.health(), timeout=2.0)
+                return {
+                    "name": name,
+                    "status": "ok" if ok else "degraded",
+                }
+            return {"name": name, "status": "ok"}
+        except Exception as e:
+            return {"name": name, "status": "error", "detail": str(e)}
+
+    async def health_report(self) -> list[dict]:
+        names = sorted(set(self.plugins.keys()) | set(self.plugin_classes.keys()))
+        return [await self.get_plugin_healthy(n) for n in names]

@@ -87,3 +87,25 @@ async def transcribe_audio_file(
     except Exception as e:
         logger.warning("Transcription error: %s", e)
         return ""
+
+
+async def clone_voice_sample(
+    audio_bytes: bytes, filename: str, speaker_id: str = "custom"
+) -> dict:
+    """Register a voice sample with the XTTS sidecar."""
+    xtts_url = getattr(settings, "XTTS_URL", None)
+    if not xtts_url:
+        return {"error": "XTTS_URL not configured"}
+
+    try:
+        response = await shared_client.post(
+            f"{xtts_url.rstrip('/')}/register",
+            files={"audio": (filename, audio_bytes, "audio/wav")},
+            data={"speaker_id": speaker_id},
+            timeout=float(getattr(settings, "XTTS_TIMEOUT", 180)),
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logger.warning("Voice clone registration failed: %s", e)
+        return {"error": str(e)}

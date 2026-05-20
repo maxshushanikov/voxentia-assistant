@@ -147,8 +147,8 @@ class IntentDetector:
         system: str = "",
         model: str | None = None,
         temperature: float = 0.1,
-    ) -> Tuple[str, Dict[str, Any]]:
-        """Ermittelt den Intent (Hybrid-Ansatz)."""
+    ) -> Tuple[str, Dict[str, Any], float, str]:
+        """Ermittelt den Intent (Hybrid-Ansatz) inkl. Konfidenz und Quelle."""
 
         # 1. Schneller Keyword-Check
         keyword_intent = self._detect_via_keywords(text)
@@ -162,11 +162,11 @@ class IntentDetector:
                 title_match = re.search(r"als\s+([a-zA-Z\s\u00c0-\u017f]+)", text, re.IGNORECASE)
                 if title_match:
                     entities["title"] = title_match.group(1).strip()
-            return keyword_intent, entities
+            return keyword_intent, entities, 0.85, "keyword"
 
         available = list(self.KEYWORD_PATTERNS.keys()) + ["search_web", "add_event"]
         if self.registry:
-            available.extend(self.registry.get_all_intents())
+            available.extend(self.registry.all_intents())
         available = list(set(available))
 
         # 2. Native Ollama Tool calling
@@ -187,7 +187,7 @@ class IntentDetector:
                     entities = func.get("arguments", {})
                     if intent in available:
                         logger.info("Native Ollama tool call detected: %s with args %s", intent, entities)
-                        return intent, entities
+                        return intent, entities, 0.95, "tool_call"
             except Exception as e:
                 logger.error("Native tool call failed: %s", e)
 
@@ -216,10 +216,14 @@ class IntentDetector:
 
             # Wenn LLM unsicher ist, aber Keyword passt -> Nutze Keyword
             if confidence < 0.5 and keyword_intent:
-                logger.info(f"Fallback auf Keyword-Intent: {keyword_intent}")
-                return keyword_intent, entities
+                logger.info("Fallback auf Keyword-Intent: %s", keyword_intent)
+                return keyword_intent, entities, 0.85, "keyword"
 
-            return llm_intent or "fallback", entities
+            resolved = llm_intent or "fallback"
+            if resolved != "fallback" and self.registry and not self.registry.get_plugin_for_intent(resolved):
+                logger.info("LLM intent %s has no plugin — fallback", resolved)
+                return "fallback", entities, float(confidence), "llm"
+            return resolved, entities, float(confidence), "llm"
         except Exception as e:
-            logger.error(f"Fehler bei LLM-Intent-Erkennung: {e}")
-            return keyword_intent or "fallback", {}
+            logger.error("Fehler bei LLM-Intent-Erkennung: %s", e)
+            return keyword_intent or "fallback", {}, 0.0, "fallback"

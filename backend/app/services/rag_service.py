@@ -4,13 +4,33 @@ import re
 import socket
 import xml.etree.ElementTree as ET
 import zipfile
+from dataclasses import dataclass
+from pathlib import Path
 from urllib.parse import urlparse
 
 import chromadb
 from app.core.config import settings
+from app.services.embedding_cache import get_embedding_cache
 from pypdf import PdfReader
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class RagChunk:
+    text: str
+    page: int = 0
+    char_start: int = 0
+    char_end: int = 0
+
+
+@dataclass
+class RagSourceHit:
+    filename: str
+    chunk_index: int
+    score: float
+    page: int | None = None
+    text: str = ""
 
 _chroma_client = None
 _collection = None
@@ -62,13 +82,22 @@ def validate_url_for_ssrf(url: str) -> str:
     return url
 
 
-# Simple in-memory embedding cache to avoid redundant network hits for identical text
+# In-memory L1 cache (hot path within a single process)
 _embedding_cache: dict[str, list[float]] = {}
+
+
+def _disk_cache():
+    return get_embedding_cache(settings.EMBEDDING_CACHE_PATH)
 
 
 async def get_embedding(text: str) -> list[float]:
     if text in _embedding_cache:
         return _embedding_cache[text]
+
+    disk = _disk_cache().get(text)
+    if disk:
+        _embedding_cache[text] = disk
+        return disk
 
     from app.core.http_client import shared_client
     try:
@@ -81,6 +110,7 @@ async def get_embedding(text: str) -> list[float]:
         emb = response.json().get("embedding", [])
         if emb:
             _embedding_cache[text] = emb
+            _disk_cache().set(text, emb)
         return emb
     except Exception as e:
         logger.warning("Embedding request failed: %s", e)
@@ -100,36 +130,52 @@ def extract_text_from_pdf(filepath: str) -> str:
     return text
 
 
+def hybrid_chunk(
+    text: str,
+    target_chars: int | None = None,
+    overlap_chars: int | None = None,
+    page_hint: int = 0,
+) -> list[RagChunk]:
+    """Sentence-aware chunks with sliding overlap — no external NLP deps."""
+    target_chars = target_chars or settings.RAG_CHUNK_SIZE
+    overlap_chars = overlap_chars or settings.RAG_CHUNK_OVERLAP
+    sentences = [
+        s.strip()
+        for s in re.split(r'(?<=[.!?])\s+(?=[A-ZÜÄÖ"\'])', text)
+        if s.strip()
+    ]
+    if not sentences:
+        return [
+            RagChunk(c, page_hint, 0, len(c))
+            for c in split_text_chars(text, target_chars, overlap_chars)
+        ]
+
+    chunks: list[RagChunk] = []
+    current = ""
+    start = 0
+    for sent in sentences:
+        candidate = f"{current} {sent}".strip() if current else sent
+        if len(candidate) > target_chars and current:
+            chunk_text = current.strip()
+            chunks.append(
+                RagChunk(chunk_text, page_hint, start, start + len(chunk_text))
+            )
+            overlap_tail = current[-overlap_chars:] if len(current) > overlap_chars else current
+            current = f"{overlap_tail} {sent}".strip()
+            start = start + len(chunk_text) - len(overlap_tail)
+        else:
+            current = candidate
+    if current.strip():
+        chunk_text = current.strip()
+        chunks.append(RagChunk(chunk_text, page_hint, start, start + len(chunk_text)))
+    return chunks
+
+
 def split_text_sentences(
     text: str, max_chars: int | None = None, overlap: int | None = None
 ) -> list[str]:
     """Sentence-aware chunking with character cap per chunk."""
-    max_chars = max_chars or settings.RAG_CHUNK_SIZE
-    overlap = overlap or settings.RAG_CHUNK_OVERLAP
-    sentences = [s.strip() for s in _SENTENCE_SPLIT.split(text) if s.strip()]
-    if not sentences:
-        return split_text_chars(text, max_chars, overlap)
-
-    chunks: list[str] = []
-    current = ""
-    for sentence in sentences:
-        candidate = f"{current} {sentence}".strip() if current else sentence
-        if len(candidate) <= max_chars:
-            current = candidate
-        else:
-            if current:
-                chunks.append(current)
-            current = sentence if len(sentence) <= max_chars else sentence[:max_chars]
-    if current:
-        chunks.append(current)
-
-    if overlap > 0 and len(chunks) > 1:
-        overlapped = [chunks[0]]
-        for i in range(1, len(chunks)):
-            tail = chunks[i - 1][-overlap:] if len(chunks[i - 1]) > overlap else chunks[i - 1]
-            overlapped.append(f"{tail} {chunks[i]}".strip())
-        return overlapped
-    return chunks
+    return [c.text for c in hybrid_chunk(text, max_chars, overlap)]
 
 
 def split_text_chars(text: str, chunk_size: int, overlap: int) -> list[str]:
@@ -199,7 +245,7 @@ async def process_document(filepath: str, filename: str) -> dict:
         coll.upsert(
             embeddings=[embedding],
             documents=[chunk],
-            metadatas=[{"source": filename, "chunk": i}],
+            metadatas=[{"source": filename, "chunk": i, "page": 0}],
             ids=[doc_id],
         )
         stored += 1
@@ -279,7 +325,7 @@ async def process_url(url: str) -> dict:
             coll.upsert(
                 embeddings=[embedding],
                 documents=[chunk],
-                metadatas=[{"source": url, "chunk": i}],
+                metadatas=[{"source": url, "chunk": i, "page": 0}],
                 ids=[doc_id],
             )
             stored += 1
@@ -300,34 +346,59 @@ def _distance_to_confidence(distance: float) -> float:
     return max(0.0, min(1.0, 1.0 - distance))
 
 
-async def search_context(query: str, n_results: int | None = None) -> str:
+async def search_sources(query: str, n_results: int | None = None) -> list[RagSourceHit]:
     coll = get_collection()
     if coll is None or coll.count() == 0:
-        return ""
+        return []
 
     n_results = n_results or settings.RAG_MAX_CHUNKS
     query_embedding = await get_embedding(query)
     if not query_embedding:
-        return ""
+        return []
 
     results = coll.query(
         query_embeddings=[query_embedding],
-        n_results=min(n_results, coll.count()),
-        include=["documents", "distances"],
+        n_results=min(n_results * 3, coll.count()),
+        include=["documents", "distances", "metadatas"],
     )
 
     documents = (results.get("documents") or [[]])[0]
     distances = (results.get("distances") or [[]])[0]
+    metadatas = (results.get("metadatas") or [[]])[0]
     if not documents:
-        return ""
+        return []
 
-    relevant: list[str] = []
-    for doc, dist in zip(documents, distances):
+    hits: list[RagSourceHit] = []
+    for doc, dist, meta in zip(documents, distances, metadatas):
         confidence = _distance_to_confidence(dist)
-        if confidence >= settings.RAG_MIN_CONFIDENCE:
-            relevant.append(doc)
+        if confidence < settings.RAG_MIN_CONFIDENCE:
+            continue
+        meta = meta or {}
+        page = meta.get("page")
+        hits.append(
+            RagSourceHit(
+                filename=str(meta.get("source", "unknown")),
+                chunk_index=int(meta.get("chunk", 0)),
+                score=round(confidence, 3),
+                page=int(page) if page is not None else None,
+                text=doc,
+            )
+        )
 
-    return "\n\n".join(relevant)
+    hits.sort(key=lambda h: h.score, reverse=True)
+
+    if getattr(settings, "ENABLE_RERANKING", False) and len(hits) > 1:
+        from app.services.reranker import rerank_hits
+
+        candidates = hits[: max(n_results * 3, 10)]
+        return rerank_hits(query, candidates, n_results)
+
+    return hits[:n_results]
+
+
+async def search_context(query: str, n_results: int | None = None) -> str:
+    hits = await search_sources(query, n_results)
+    return "\n\n".join(h.text for h in hits if h.text)
 
 
 def list_documents() -> list[dict]:
@@ -346,7 +417,7 @@ def list_documents() -> list[dict]:
     return [{"filename": name, "chunks": count} for name, count in sorted(sources.items())]
 
 
-async def delete_document(filename: str) -> int:
+async def _delete_vectors(filename: str) -> int:
     coll = get_collection()
     if coll is None:
         return 0
@@ -354,9 +425,47 @@ async def delete_document(filename: str) -> int:
     ids = existing.get("ids") or []
     if ids:
         coll.delete(ids=ids)
-    upload_path = settings.UPLOADS_DIR / filename
-    if upload_path.exists():
-        upload_path.unlink()
-    else:
-        logger.warning(f"File {filename} not found in UPLOADS_DIR during deletion")
     return len(ids)
+
+
+async def delete_document(filename: str, *, remove_file: bool = True) -> int:
+    removed = await _delete_vectors(filename)
+    if remove_file:
+        upload_path = settings.UPLOADS_DIR / filename
+        if upload_path.exists():
+            upload_path.unlink()
+        else:
+            alt = find_upload_path(filename)
+            if alt:
+                Path(alt).unlink()
+            else:
+                logger.warning("File %s not found in UPLOADS_DIR during deletion", filename)
+    return removed
+
+
+def find_upload_path(filename: str) -> str | None:
+    """Resolve stored upload path for a document source name."""
+    direct = settings.UPLOADS_DIR / filename
+    if direct.exists():
+        return str(direct)
+    for path in settings.UPLOADS_DIR.glob(f"*_{filename}"):
+        if path.is_file():
+            return str(path)
+    # filename may already include uuid prefix from upload
+    for path in settings.UPLOADS_DIR.iterdir():
+        if path.is_file() and path.name.endswith(filename):
+            return str(path)
+    return None
+
+
+async def reindex_document(filename: str) -> dict:
+    """Remove existing chunks and re-embed from the original upload file."""
+    filepath = find_upload_path(filename)
+    if not filepath:
+        return {"error": f"No upload file found for {filename}"}
+    removed = await _delete_vectors(filename)
+    result = await process_document(filepath, filename)
+    if result.get("error"):
+        return result
+    result["removed_chunks"] = removed
+    return result

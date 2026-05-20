@@ -33,9 +33,21 @@ async def check_whisper() -> dict:
     return await _probe(settings.WHISPER_URL, timeout=min(settings.WHISPER_TIMEOUT, 5.0))
 
 
+async def check_xtts() -> dict:
+    url = getattr(settings, "XTTS_URL", None)
+    if not url or not getattr(settings, "VOICE_CLONE_ENABLED", False):
+        return {"status": "disabled", "url": url}
+    return await _probe(url, "/health", min(settings.XTTS_TIMEOUT, 5.0))
+
+
 async def full_health() -> dict:
-    ollama, tts, whisper = await check_ollama(), await check_tts(), await check_whisper()
-    services = {"ollama": ollama, "tts": tts, "whisper": whisper}
+    ollama, tts, whisper, xtts = (
+        await check_ollama(),
+        await check_tts(),
+        await check_whisper(),
+        await check_xtts(),
+    )
+    services = {"ollama": ollama, "tts": tts, "whisper": whisper, "xtts": xtts}
     any_down = any(s.get("status") == "down" for s in services.values())
     return {
         "status": "degraded" if any_down else "healthy",

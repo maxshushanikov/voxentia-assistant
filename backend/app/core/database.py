@@ -30,13 +30,23 @@ def get_db():
 
 def init_db():
     from app.models.chat import ChatMessage  # noqa: F401
+    from app.models.memory import UserMemory  # noqa: F401
+    from app.models.sentiment import SentimentRecord  # noqa: F401
+    from app.models.session import ChatSessionMeta  # noqa: F401
+    from app.models.knowledge import KnowledgeEdge  # noqa: F401
+    from app.models.experiment import ExperimentEvent  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     with engine.connect() as conn:
         if settings.DB_PATH.startswith("sqlite"):
             conn.execute(text("PRAGMA journal_mode=WAL"))
-        try:
-            conn.execute(text("ALTER TABLE chat_messages ADD COLUMN model VARCHAR"))
-        except Exception:
-            pass
+        for ddl in (
+            "ALTER TABLE chat_messages ADD COLUMN model VARCHAR",
+            "ALTER TABLE chat_messages ADD COLUMN parent_id INTEGER",
+            "ALTER TABLE chat_messages ADD COLUMN branch_id VARCHAR(64) DEFAULT 'main'",
+        ):
+            try:
+                conn.execute(text(ddl))
+            except Exception:
+                pass
         conn.commit()

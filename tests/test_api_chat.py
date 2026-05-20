@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 def test_chat_endpoint_returns_assistant_reply():
     mock_service = MagicMock()
     mock_service.process_message = AsyncMock(
-        return_value=("Hello from test", None, "greeting", None)
+        return_value=("Hello from test", None, "greeting", None, [], "test-session")
     )
     app.dependency_overrides[get_chat_service] = lambda: mock_service
     try:

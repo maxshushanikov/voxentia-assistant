@@ -11,3 +11,6 @@ slowapi==0.1.9
 PyJWT>=2.8.0
 PyYAML>=6.0.1
 structlog==24.1.0
+cryptography>=41.0.0
+# Optional: ENABLE_RERANKING=true
+sentence-transformers>=2.2.0

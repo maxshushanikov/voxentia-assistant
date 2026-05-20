@@ -12,6 +12,29 @@ class ChatRequest(BaseModel):
     personality: Personality = Personality.PROFESSIONAL
     model: Optional[str] = Field(None, max_length=64)
     temperature: float = Field(0.7, ge=0.0, le=2.0)
+    fork_from_message_id: Optional[int] = Field(
+        None, description="Fork conversation from this message into a new session"
+    )
+    branch_id: Optional[str] = Field(None, max_length=64)
+
+
+class ForkSessionRequest(BaseModel):
+    session_id: str = Field(..., max_length=128)
+    message_id: int = Field(..., ge=1)
+
+
+class ForkSessionResponse(BaseModel):
+    session_id: str
+    branch_id: str
+    copied_messages: int
+    parent_message_id: int
+
+
+class RagSource(BaseModel):
+    filename: str
+    page: Optional[int] = None
+    chunk_index: int
+    score: float
 
 
 class ChatResponse(BaseModel):
@@ -19,14 +42,20 @@ class ChatResponse(BaseModel):
     audio_url: Optional[str] = None
     session_id: str
     intent: Optional[str] = None
+    intent_confidence: Optional[float] = None
+    intent_source: Optional[str] = None
     plugin_data: Optional[Any] = None
+    rag_sources: list[RagSource] = []
 
 
 class MessageHistory(BaseModel):
+    id: Optional[int] = None
     role: str
     content: str
     timestamp: str
     model: Optional[str] = None
+    parent_id: Optional[int] = None
+    branch_id: Optional[str] = "main"
 
 
 class HistoryResponse(BaseModel):

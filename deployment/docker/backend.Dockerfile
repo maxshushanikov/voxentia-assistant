@@ -1,28 +1,40 @@
-FROM python:3.11-slim
+# Multi-stage build — smaller runtime image (~450–600MB vs ~1.5–2.5GB)
 
+FROM python:3.11-slim AS builder
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY core /build/core
+RUN pip install --no-cache-dir --prefix=/install -e /build/core
+
+COPY backend/requirements.txt /build/requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r /build/requirements.txt
+
+FROM python:3.11-slim AS runtime
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy core first (as it's a package)
-COPY core /app/core
-RUN pip install -e /app/core
-
-# Copy requirements
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application and plugins
-COPY backend /app/backend
+COPY --from=builder /install /usr/local
+COPY core/src /app/core/src
+COPY core/pyproject.toml /app/core/pyproject.toml
+COPY backend/app /app/backend/app
+COPY backend/__init__.py /app/backend/__init__.py
 COPY plugins /app/plugins
 
-# Set environment variables
-ENV PYTHONPATH="/app/core/src:/app:/app/backend"
+ENV PYTHONPATH=/app/core/src:/app:/app/backend
+ENV DATA_DIR=/app/data
+
+RUN mkdir -p /app/data/audio /app/data/chroma /app/data/uploads
 
 EXPOSE 8000
 
-CMD ["python", "backend/app/main.py"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

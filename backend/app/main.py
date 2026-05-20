@@ -1,3 +1,4 @@
+import asyncio
 import collections
 import json
 import logging
@@ -8,10 +9,14 @@ import uvicorn
 from app.api.v1.chat import router as chat_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.models import router as models_router
+from app.api.v1.knowledge import router as knowledge_router
+from app.api.v1.marketplace import router as marketplace_router
 from app.api.v1.plugins import router as plugin_router
+from app.api.v1.voice import router as voice_router
 from app.core.auth import _validate_token, require_auth
 from app.core.config import settings
-from app.core.database import get_db, init_db
+from app.core.database import SessionLocal, get_db, init_db
+from app.core.janitor import DatabaseJanitor
 from app.core.errors import VoxentiaError
 from app.core.exceptions import (
     http_exception_handler,
@@ -45,7 +50,22 @@ async def lifespan(app: FastAPI):
     service = ChatService()
     await service.initialize()
     app.state.chat_service = service
+
+    janitor_task = None
+    if getattr(settings, "JANITOR_ENABLED", True):
+        janitor = DatabaseJanitor(retention_days=settings.JANITOR_RETENTION_DAYS)
+        janitor_task = asyncio.create_task(
+            janitor.run_forever(SessionLocal, settings.JANITOR_INTERVAL_HOURS)
+        )
+
     yield
+
+    if janitor_task:
+        janitor_task.cancel()
+        try:
+            await janitor_task
+        except asyncio.CancelledError:
+            pass
     await service.shutdown()
     await close_shared_client()
 
@@ -92,6 +112,15 @@ app.include_router(
     plugin_router, prefix="/api/v1/plugins", tags=["Plugins"], dependencies=_auth
 )
 app.include_router(models_router, prefix="/api/v1", tags=["Models"], dependencies=_auth)
+app.include_router(
+    knowledge_router, prefix="/api/v1/knowledge", tags=["Knowledge"], dependencies=_auth
+)
+app.include_router(
+    marketplace_router, prefix="/api/v1/marketplace", tags=["Marketplace"], dependencies=_auth
+)
+app.include_router(
+    voice_router, prefix="/api/v1/voice", tags=["Voice"], dependencies=_auth
+)
 app.include_router(chat_router, prefix="/api", tags=["Legacy Chat"], dependencies=_auth)
 app.include_router(
     documents_router, prefix="/api/documents", tags=["Legacy Documents"], dependencies=_auth

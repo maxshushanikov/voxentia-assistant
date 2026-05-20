@@ -112,6 +112,25 @@ async def search_documents(request: Request, q: str):
     return DocumentSearchResponse(context=context)
 
 
+@router.post("/{filename}/reindex", response_model=DocumentUploadResponse)
+@limiter.limit("10/minute")
+async def reindex_document(request: Request, filename: str):
+    result = await rag_service.reindex_document(filename)
+    if result.get("error"):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "document_reindex_failed",
+                "message": result["error"],
+                "details": {},
+            },
+        )
+    return DocumentUploadResponse(
+        message=result.get("message"),
+        chunks=result.get("chunks"),
+    )
+
+
 @router.post("/url")
 @limiter.limit("10/minute")
 async def add_url(request: Request, body: AddUrlRequest):
