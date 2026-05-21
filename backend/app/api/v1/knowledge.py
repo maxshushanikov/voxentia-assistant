@@ -1,11 +1,11 @@
+from app.core.config import settings
+from app.core.database import get_db
 from app.core.deps import get_chat_service
 from app.core.rate_limit import limiter
-from app.core.config import settings
 from app.services.chat_service import ChatService
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from app.core.database import get_db
 
 router = APIRouter()
 

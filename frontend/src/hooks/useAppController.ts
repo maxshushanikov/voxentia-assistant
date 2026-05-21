@@ -420,6 +420,7 @@ export function useAppController() {
       setIsThinking,
       compareMode,
       selectedModelB,
+      setSessionId,
     ],
   );
 

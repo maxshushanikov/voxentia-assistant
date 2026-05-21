@@ -142,7 +142,7 @@ class OrchestratorPipeline:
                 intent="greeting",
             )
 
-        plugin = self.registry.get_plugin_for_intent(ctx.intent)
+        plugin = await self.registry.get_plugin_for_intent(ctx.intent)
         if plugin:
             try:
                 res = await plugin.on_message(ctx.intent, ctx.entities)

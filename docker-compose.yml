@@ -50,6 +50,7 @@ services:
       - AUDIO_PATH=/app/tts-cache
     volumes:
       - tts-cache:/app/tts-cache
+      - tts-model-cache:/root/.cache/torch
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5002/health', timeout=3)\""]
       interval: 30s
@@ -99,14 +100,15 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - UVICORN_WORKERS=2
+      - PYTHONPATH=/app/core/src:/app/backend:/app
+      - ANONYMIZED_TELEMETRY=False
       - OLLAMA_URL=http://ollama:11434
       - TTS_URL=http://tts-server:5002
       - WHISPER_URL=http://whisper-server:5003
       - DB_PATH=postgresql+psycopg2://user:pass@db:5432/voxentia
     volumes:
-      - ./core:/app/core
-      - ./backend:/app/backend
-      - ./plugins:/app/plugins
+      # Runtime data only — plugins/code come from the image (see docker-compose.dev.yml)
       - ./data:/app/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
@@ -172,6 +174,7 @@ volumes:
   whisper-cache:
   postgres_data:
   xtts-voices:
+  tts-model-cache:
 
 networks:
   avatar-network:

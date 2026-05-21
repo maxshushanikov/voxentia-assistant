@@ -1,12 +1,11 @@
-import time
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from app.core.database import Base
 from app.core.janitor import DatabaseJanitor
 from app.models.chat import ChatMessage
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.core.database import Base
 
 
 @pytest.fixture

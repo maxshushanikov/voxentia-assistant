@@ -64,7 +64,7 @@ export async function exportAsPDF(
       y = 20;
     }
   }
-  doc.save(`${sessionTitle.replace(/[^\w\-]+/g, '_').slice(0, 40)}.pdf`);
+  doc.save(`${sessionTitle.replace(/[^\w-]+/g, '_').slice(0, 40)}.pdf`);
 }
 
 export function comparisonToMarkdown(

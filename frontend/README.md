@@ -53,7 +53,7 @@ Vite alias: `@i18n` → `../i18n/locales`.
 
 ## Docker build
 
-Uses `deployment/docker/frontend.Dockerfile`:
+Uses `deployment/docker/frontend.Dockerfile` (Node **22** — required by Vite 8):
 
 - Copies `frontend/.npmrc` (legacy-peer-deps) before `npm ci`
 - Copies `i18n/` for locale JSON imports

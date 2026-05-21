@@ -7,13 +7,13 @@ import uuid
 from typing import Any, List, Optional, Tuple
 
 from app.core.config import settings
+from app.core.database import SessionLocal
 from app.core.errors import PluginError, VoxentiaError
 from app.core.personalities import load_personalities
 from app.domain.chat import ChatMessageRecord, ChatSession
 from app.models.chat import ChatMessage
-from app.schemas.chat import ChatRequest
 from app.models.session import ChatSessionMeta
-from app.core.database import SessionLocal
+from app.schemas.chat import ChatRequest
 from app.services.emotion_service import EmotionService
 from app.services.knowledge_service import KnowledgeService
 from app.services.memory_service import MemoryService
@@ -110,7 +110,7 @@ class ChatService:
     ) -> tuple[str, float, Any]:
         if not getattr(settings, "ENABLE_AB_TESTING", False):
             return system_prompt, temperature, None
-        from voxentia.orchestrator.ab_testing import assign_variant, apply_ab_to_context
+        from voxentia.orchestrator.ab_testing import apply_ab_to_context, assign_variant
         from voxentia.orchestrator.pipeline import PipelineContext
 
         assignment = assign_variant(session_id, settings.AB_EXPERIMENT_ID)

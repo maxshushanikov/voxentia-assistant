@@ -55,7 +55,7 @@ class VoxentiaSettings(BaseSettings):
     JANITOR_RETENTION_DAYS: int = 90
     JANITOR_INTERVAL_HOURS: int = 24
 
-    RAG_CHUNK_SIZE: int = 500
+    RAG_CHUNK_SIZE: int = 1024
     RAG_CHUNK_OVERLAP: int = 50
     RAG_MIN_CONFIDENCE: float = 0.65
     RAG_MAX_CHUNKS: int = 3

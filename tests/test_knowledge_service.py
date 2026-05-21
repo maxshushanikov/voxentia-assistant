@@ -1,7 +1,8 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from app.models.knowledge import KnowledgeEdge
 from app.services.knowledge_service import KnowledgeService
-from unittest.mock import AsyncMock, MagicMock
 
 
 @pytest.mark.asyncio
@@ -14,9 +15,9 @@ async def test_knowledge_extract_and_store():
     )
     svc = KnowledgeService(llm)
 
+    from app.core.database import Base
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from app.core.database import Base
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -33,9 +34,9 @@ async def test_knowledge_extract_and_store():
 def test_build_graph_prompt():
     llm = MagicMock()
     svc = KnowledgeService(llm)
+    from app.core.database import Base
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from app.core.database import Base
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

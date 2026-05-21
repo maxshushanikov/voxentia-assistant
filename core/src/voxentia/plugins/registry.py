@@ -12,6 +12,8 @@ class PluginRegistry:
     def __init__(self):
         self.plugins: Dict[str, VoxentiaPlugin] = {}
         self.plugin_classes: Dict[str, Type[VoxentiaPlugin]] = {}
+        self._context = None
+        self._plugin_config = {}
 
     def discover_plugins(self, package_path: str):
         """Durchsucht ein Verzeichnis nach Plugins und registriert sie."""
@@ -38,23 +40,10 @@ class PluginRegistry:
             yield PluginResponse(text="In diesem Plugin ist ein Fehler aufgetreten.")
 
     async def initialize_plugins(self, context, config: Dict[str, Any]):
-        """Initialisiert nur die in der Konfiguration aktivierten Plugins."""
-        plugin_config = config.get("plugins", {})
-
-        for name, cls in self.plugin_classes.items():
-            settings = plugin_config.get(name, {})
-            if not settings.get("enabled", False):
-                logger.debug(f"Plugin deaktiviert (via Config): {name}")
-                continue
-
-            try:
-                instance = cls(context)
-                # Hier könnten wir auch einen Timeout für die Initialisierung setzen
-                await instance.initialize()
-                self.plugins[name] = instance
-                logger.info(f"Plugin geladen & aktiviert: {name}")
-            except Exception as e:
-                logger.error(f"Fehler bei Initialisierung von {name}: {e}")
+        """Speichert Konfiguration für Lazy-Loading."""
+        self._context = context
+        self._plugin_config = config.get("plugins", {})
+        logger.info(f"{len(self.plugin_classes)} Plugin-Klassen für Lazy-Loading registriert.")
 
     async def shutdown_plugins(self):
         """Beendet alle Plugins sauber."""
@@ -66,20 +55,36 @@ class PluginRegistry:
                 logger.error(f"Fehler beim Beenden von {name}: {e}")
         self.plugins.clear()
 
-    def get_plugin(self, name: str) -> Optional[VoxentiaPlugin]:
-        return self.plugins.get(name)
+    async def get_plugin(self, name: str) -> Optional[VoxentiaPlugin]:
+        if name in self.plugins:
+            return self.plugins[name]
+        cls = self.plugin_classes.get(name)
+        if not cls:
+            return None
+        if not self._plugin_config.get(name, {}).get("enabled", False):
+            return None
+        try:
+            instance = cls(self._context)
+            await instance.initialize()
+            self.plugins[name] = instance
+            logger.info(f"Lazy loaded plugin: {name}")
+            return instance
+        except Exception as e:
+            logger.error(f"Fehler beim Lazy Loading von {name}: {e}")
+            return None
 
-    def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
+    async def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
         """Resolve plugin by declared supported_intents (no hardcoded routing)."""
-        for plugin in self.plugins.values():
-            if intent in plugin.get_intents():
-                return plugin
+        for name, cls in self.plugin_classes.items():
+            if intent in cls.get_intents():
+                return await self.get_plugin(name)
         return None
 
     def all_intents(self) -> list[str]:
         intents: list[str] = []
-        for plugin in self.plugins.values():
-            intents.extend(plugin.get_intents())
+        for name, cls in self.plugin_classes.items():
+            if self._plugin_config.get(name, {}).get("enabled", False):
+                intents.extend(cls.get_intents())
         return sorted(set(intents))
 
     def get_all_intents(self) -> list[str]:
@@ -87,7 +92,7 @@ class PluginRegistry:
         return self.all_intents()
 
     async def get_plugin_healthy(self, name: str) -> dict:
-        plugin = self.plugins.get(name)
+        plugin = await self.get_plugin(name)
         if not plugin:
             return {"name": name, "status": "not_loaded"}
         try:

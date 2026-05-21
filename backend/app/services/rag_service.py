@@ -1,5 +1,7 @@
+import hashlib
 import ipaddress
 import logging
+import os
 import re
 import socket
 import xml.etree.ElementTree as ET
@@ -8,7 +10,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
+# Disable Chroma telemetry (avoids posthog "capture()" errors in Docker logs)
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+
 import chromadb
+from chromadb.config import Settings as ChromaSettings
 from app.core.config import settings
 from app.services.embedding_cache import get_embedding_cache
 from pypdf import PdfReader
@@ -41,7 +47,10 @@ def get_collection():
     if _collection is None:
         if getattr(settings, "ENABLE_RAG", True):
             try:
-                _chroma_client = chromadb.PersistentClient(path=str(settings.CHROMA_DIR))
+                _chroma_client = chromadb.PersistentClient(
+                    path=str(settings.CHROMA_DIR),
+                    settings=ChromaSettings(anonymized_telemetry=False),
+                )
                 _collection = _chroma_client.get_or_create_collection(name="documents")
             except Exception as e:
                 logger.error("ChromaDB client failed to initialize: %s. RAG features are disabled.", e)
@@ -215,6 +224,7 @@ def split_text(text: str, chunk_size: int | None = None, overlap: int | None = N
 
 
 async def process_document(filepath: str, filename: str) -> dict:
+    _rag_cache.clear()
     coll = get_collection()
     if coll is None:
         return {"error": "RAG features are disabled because ChromaDB failed to initialize."}
@@ -257,6 +267,7 @@ async def process_document(filepath: str, filename: str) -> dict:
 
 
 async def process_url(url: str) -> dict:
+    _rag_cache.clear()
     coll = get_collection()
     if coll is None:
         return {"error": "RAG features are disabled because ChromaDB failed to initialize."}
@@ -396,9 +407,18 @@ async def search_sources(query: str, n_results: int | None = None) -> list[RagSo
     return hits[:n_results]
 
 
+
+
+_rag_cache: dict[str, str] = {}
+
 async def search_context(query: str, n_results: int | None = None) -> str:
+    query_hash = hashlib.md5(query.encode('utf-8')).hexdigest()
+    if query_hash in _rag_cache:
+        return _rag_cache[query_hash]
     hits = await search_sources(query, n_results)
-    return "\n\n".join(h.text for h in hits if h.text)
+    result = "\n\n".join(h.text for h in hits if h.text)
+    _rag_cache[query_hash] = result
+    return result
 
 
 def list_documents() -> list[dict]:
@@ -429,6 +449,7 @@ async def _delete_vectors(filename: str) -> int:
 
 
 async def delete_document(filename: str, *, remove_file: bool = True) -> int:
+    _rag_cache.clear()
     removed = await _delete_vectors(filename)
     if remove_file:
         upload_path = settings.UPLOADS_DIR / filename

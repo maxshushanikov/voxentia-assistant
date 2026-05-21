@@ -23,18 +23,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /install /usr/local
 COPY core/src /app/core/src
 COPY core/pyproject.toml /app/core/pyproject.toml
-COPY backend/app /app/backend/app
-COPY backend/__init__.py /app/backend/__init__.py
+COPY backend /app/backend
 COPY plugins /app/plugins
+COPY deployment/docker/serve.py /app/serve.py
+COPY deployment/docker/backend-entrypoint.sh /entrypoint.sh
 
-ENV PYTHONPATH=/app/core/src:/app:/app/backend
+ENV PYTHONPATH=/app/core/src:/app/backend:/app
 ENV DATA_DIR=/app/data
 
-RUN mkdir -p /app/data/audio /app/data/chroma /app/data/uploads
+# .pth keeps `app` importable in all Uvicorn worker subprocesses (no pip install / PyPI at runtime)
+RUN mkdir -p /app/data/audio /app/data/chroma /app/data/uploads \
+    && chmod +x /entrypoint.sh \
+    && printf '/app/core/src\n/app/backend\n' > /usr/local/lib/python3.11/site-packages/voxentia_paths.pth
+
+WORKDIR /app
 
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/entrypoint.sh"]

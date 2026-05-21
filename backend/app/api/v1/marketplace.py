@@ -1,14 +1,14 @@
 from app.core.config import settings
+from app.core.database import get_db
 from app.core.deps import get_chat_service
 from app.core.rate_limit import limiter
+from app.models.experiment import ExperimentEvent
 from app.services.chat_service import ChatService
 from app.services.marketplace_service import MarketplaceService
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
-from app.core.database import get_db
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.models.experiment import ExperimentEvent
 
 router = APIRouter()
 _marketplace = MarketplaceService()

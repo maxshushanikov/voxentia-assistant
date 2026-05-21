@@ -1,4 +1,4 @@
-from voxentia.orchestrator.ab_testing import assign_variant, apply_ab_to_context, EXPERIMENTS
+from voxentia.orchestrator.ab_testing import EXPERIMENTS, apply_ab_to_context, assign_variant
 from voxentia.orchestrator.pipeline import PipelineContext
 
 

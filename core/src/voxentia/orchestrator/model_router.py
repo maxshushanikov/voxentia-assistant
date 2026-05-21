@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import httpx
+
 from voxentia.utils.logging import logger
 
 

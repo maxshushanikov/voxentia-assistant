@@ -1,0 +1,11 @@
+# Optional dev overrides: live-reload backend/core from the host.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# Requires a full checkout (backend/app/main.py must exist on the host).
+
+services:
+  backend:
+    volumes:
+      - ./core/src:/app/core/src
+      - ./backend/app:/app/backend/app
+      - ./plugins:/app/plugins

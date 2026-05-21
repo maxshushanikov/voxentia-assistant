@@ -1,10 +1,10 @@
 import pytest
+from app.core.database import Base
 from app.models.chat import ChatMessage
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.core.database import Base
 
 
 @pytest.fixture

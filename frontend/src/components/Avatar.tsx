@@ -294,6 +294,7 @@ function Avatar({
       <div className="absolute inset-0 bg-gradient-to-t from-[#2979ff]/8 via-transparent to-transparent pointer-events-none" />
 
       <Canvas
+        frameloop={isSpeaking ? "always" : "demand"}
         camera={{ position: [0, 0.15, 4.2], fov: 42, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
         className="w-full h-full"

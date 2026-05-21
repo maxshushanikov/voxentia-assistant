@@ -30,17 +30,20 @@ export default function CommandBar() {
       .map((x) => x.cmd);
   }, [commands, query]);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setQuery('');
       setActiveIndex(0);
+    }
+  }
+
+  useEffect(() => {
+    if (open) {
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
 
   if (!open) return null;
 
@@ -66,7 +69,10 @@ export default function CommandBar() {
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(0);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'ArrowDown') {
                 e.preventDefault();
