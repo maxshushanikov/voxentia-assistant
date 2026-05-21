@@ -1,16 +1,21 @@
-import { Download, FileJson, FileText } from 'lucide-react';
+import { Download, FileJson, FileText, FileType } from 'lucide-react';
 import { useState } from 'react';
 
 import { getChatHistory } from '../api/chat';
 import { useAppStore } from '../store/appStore';
-import { downloadText, messagesToJson, messagesToMarkdown } from '../utils/exportChat';
+import {
+  downloadText,
+  exportAsPDF,
+  messagesToJson,
+  messagesToMarkdown,
+} from '../utils/exportChat';
 
 export default function ExportMenu() {
   const [open, setOpen] = useState(false);
   const sessionId = useAppStore((s) => s.sessionId);
   const messages = useAppStore((s) => s.messages);
 
-  const exportChat = async (format: 'json' | 'md') => {
+  const exportChat = async (format: 'json' | 'md' | 'pdf') => {
     let exportMessages = messages;
     if (exportMessages.length === 0) {
       try {
@@ -27,8 +32,10 @@ export default function ExportMenu() {
     const stamp = new Date().toISOString().slice(0, 10);
     if (format === 'json') {
       downloadText(`voxentia-${stamp}.json`, messagesToJson(sessionId, exportMessages), 'application/json');
-    } else {
+    } else if (format === 'md') {
       downloadText(`voxentia-${stamp}.md`, messagesToMarkdown(exportMessages), 'text/markdown');
+    } else {
+      await exportAsPDF(exportMessages, `voxentia-${sessionId.slice(0, 12)}`);
     }
     setOpen(false);
   };
@@ -60,6 +67,14 @@ export default function ExportMenu() {
           >
             <FileJson className="w-3.5 h-3.5" />
             JSON
+          </button>
+          <button
+            type="button"
+            onClick={() => void exportChat('pdf')}
+            className="w-full flex items-center gap-2 px-2 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded"
+          >
+            <FileType className="w-3.5 h-3.5" />
+            PDF
           </button>
         </div>
       )}

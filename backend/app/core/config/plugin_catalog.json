@@ -1,0 +1,31 @@
+{
+  "plugins": [
+    {
+      "id": "calendar",
+      "name": "Calendar Assistant",
+      "version": "1.0.0",
+      "description": "Manage events and appointments",
+      "author": "Voxentia",
+      "builtin": true,
+      "package_path": "plugins/calendar"
+    },
+    {
+      "id": "job_assistant",
+      "name": "Job Search Assistant",
+      "version": "1.0.0",
+      "description": "Search and track job listings",
+      "author": "Voxentia",
+      "builtin": true,
+      "package_path": "plugins/job_assistant"
+    },
+    {
+      "id": "teacher_assistant",
+      "name": "Learning Assistant",
+      "version": "1.0.0",
+      "description": "Quizzes and study help",
+      "author": "Voxentia",
+      "builtin": true,
+      "package_path": "plugins/teacher_assistant"
+    }
+  ]
+}

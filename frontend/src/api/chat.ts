@@ -51,6 +51,13 @@ export function createSession() {
   return apiFetch<{ session_id: string }>('/api/v1/sessions/new', { method: 'POST' });
 }
 
+export function forkSession(sessionId: string, messageId: number) {
+  return apiFetch<import('./types').ForkSessionResponse>('/api/v1/sessions/fork', {
+    method: 'POST',
+    body: JSON.stringify({ session_id: sessionId, message_id: messageId }),
+  });
+}
+
 export function listModels() {
   return apiFetch<{ models: { name: string }[]; default: string }>('/api/v1/models');
 }

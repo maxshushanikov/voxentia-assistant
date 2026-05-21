@@ -1,9 +1,11 @@
 import {
+  Brain,
   Calendar,
   BookOpen,
   Briefcase,
   FolderRoot,
   FileText,
+  Package,
   Target,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
@@ -14,6 +16,8 @@ import JobView from './JobView';
 import DocumentView from './DocumentView';
 import NotesView from './NotesView';
 import ProjectPlanningView from './ProjectPlanningView';
+import KnowledgeView from './KnowledgeView';
+import MarketplaceView from './MarketplaceView';
 
 export interface PluginDefinition {
   id: string;
@@ -58,5 +62,17 @@ export const plugins: PluginDefinition[] = [
     nameKey: 'project',
     icon: <Target className="w-4 h-4" />,
     component: ProjectPlanningView,
+  },
+  {
+    id: 'knowledge',
+    nameKey: 'knowledge',
+    icon: <Brain className="w-4 h-4" />,
+    component: KnowledgeView,
+  },
+  {
+    id: 'marketplace',
+    nameKey: 'marketplace',
+    icon: <Package className="w-4 h-4" />,
+    component: MarketplaceView,
   },
 ];

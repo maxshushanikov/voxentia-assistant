@@ -39,3 +39,11 @@ async def list_plugins(chat_service: ChatService = Depends(get_chat_service)):
         )
 
     return {"plugins": plugins}
+
+
+@router.get("/health")
+async def plugins_health(chat_service: ChatService = Depends(get_chat_service)):
+    await chat_service.initialize()
+    report = await chat_service.registry.health_report()
+    status = "ok" if all(p.get("status") == "ok" for p in report if p.get("status") != "not_loaded") else "degraded"
+    return {"status": status, "plugins": report}

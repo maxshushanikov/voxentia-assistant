@@ -3,11 +3,14 @@ import Avatar from './components/Avatar';
 import ChatArea from './components/ChatArea';
 import ChatInput from './components/ChatInput';
 import Dashboard from './components/Dashboard';
+import CommandBar from './components/CommandBar/CommandBar';
 import Header from './components/Header';
+import ShortcutsHelp from './components/ShortcutsHelp';
 import SettingsView from './components/SettingsView';
 import Sidebar from './components/Sidebar';
 import ViewTransition from './components/ViewTransition';
 import { useAppController } from './hooks/useAppController';
+import { useShortcuts } from './hooks/useShortcuts';
 import { plugins } from './plugins/registry';
 import { I18nProvider } from './i18n/context';
 import { speakerGenderMap } from './types';
@@ -53,6 +56,8 @@ function App() {
     openPlugin,
   } = useAppController();
 
+  useShortcuts();
+
   const renderMainView = () => {
     if (activePlugin === 'settings') {
       return (
@@ -92,6 +97,8 @@ function App() {
   return (
     <I18nProvider language={language}>
       <div className="app-shell h-screen flex font-sans overflow-hidden relative">
+        <CommandBar />
+        <ShortcutsHelp />
         <input
           type="file"
           ref={fileInputRef}
@@ -112,39 +119,40 @@ function App() {
           historyRefreshKey={historyRefreshKey}
         />
 
-        <main className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">
-          <section
-            className={`flex-1 flex flex-col h-full min-w-0 relative z-10 overflow-hidden transition-all duration-300 ${
-              showAvatar ? 'border-r border-white/10 lg:max-w-[52%]' : 'max-w-full'
-            }`}
-          >
-            <Header
-              onOpenSidebar={() => setIsSidebarOpen(true)}
-              language={language}
-              setLanguage={setLanguage}
-              speaker={speaker}
-              setSpeaker={setSpeaker}
-              personality={personality}
-              setPersonality={setPersonality}
-              isSettingsOpen={isSettingsOpen}
-              setIsSettingsOpen={setIsSettingsOpen}
-            />
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <Header
+            onOpenSidebar={() => setIsSidebarOpen(true)}
+            language={language}
+            setLanguage={setLanguage}
+            speaker={speaker}
+            setSpeaker={setSpeaker}
+            personality={personality}
+            setPersonality={setPersonality}
+            isSettingsOpen={isSettingsOpen}
+            setIsSettingsOpen={setIsSettingsOpen}
+          />
 
-            <ViewTransition viewKey={computedViewKey || viewKey}>
-              {renderMainView()}
-            </ViewTransition>
+          <main className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+            <section
+              className={`flex-1 flex flex-col h-full min-w-0 relative z-10 overflow-hidden transition-all duration-300 ${
+                showAvatar ? 'border-r border-white/10 lg:max-w-[52%]' : 'max-w-full'
+              }`}
+            >
+              <ViewTransition viewKey={computedViewKey || viewKey}>
+                {renderMainView()}
+              </ViewTransition>
 
-            <ChatInput
-              inputText={inputText}
-              setInputText={setInputText}
-              onSend={handleSend}
-              onMicClick={handleMicClick}
-              onFileClick={() => fileInputRef.current?.click()}
-              onNewChat={handleNewChat}
-              isRecording={isRecording}
-              isThinking={isThinking}
-            />
-          </section>
+              <ChatInput
+                inputText={inputText}
+                setInputText={setInputText}
+                onSend={handleSend}
+                onMicClick={handleMicClick}
+                onFileClick={() => fileInputRef.current?.click()}
+                onNewChat={handleNewChat}
+                isRecording={isRecording}
+                isThinking={isThinking}
+              />
+            </section>
 
           {showAvatar && (
             <section className="hidden lg:flex w-[48%] shrink-0 relative bg-[var(--bg-tertiary)]/20 border-l border-black/5 dark:border-white/5 min-h-0 h-full animate-fade-in">
@@ -159,7 +167,8 @@ function App() {
               </div>
             </section>
           )}
-        </main>
+          </main>
+        </div>
       </div>
     </I18nProvider>
   );

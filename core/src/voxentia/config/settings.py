@@ -28,6 +28,9 @@ class VoxentiaSettings(BaseSettings):
     AUDIO_CACHE_DIR: Path = Path(os.getenv("AUDIO_CACHE_DIR", str(_REPO_ROOT / "data" / "audio")))
     CHROMA_DIR: Path = Path(os.getenv("CHROMA_DIR", str(_REPO_ROOT / "data" / "chroma")))
     UPLOADS_DIR: Path = Path(os.getenv("UPLOADS_DIR", str(_REPO_ROOT / "data" / "uploads")))
+    EMBEDDING_CACHE_PATH: Path = Path(
+        os.getenv("EMBEDDING_CACHE_PATH", str(_REPO_ROOT / "data" / "embedding_cache.db"))
+    )
 
     DB_PATH: str = os.getenv("DB_PATH", "sqlite:///./data/chat.db")
 
@@ -40,11 +43,37 @@ class VoxentiaSettings(BaseSettings):
     WHISPER_TIMEOUT: float = 60.0
     EMBEDDING_MODEL: str = "nomic-embed-text"
     ENABLE_RAG: bool = True
+    ENABLE_MODEL_ROUTING: bool = True
+    ENABLE_MEMORY: bool = True
+    ENABLE_SENTIMENT: bool = True
+    PROCESSING_MODE: str = "local_only"  # local_only | hybrid | cloud
 
-    RAG_CHUNK_SIZE: int = 500
+    ENCRYPTION_ENABLED: bool = False
+    ENCRYPTION_KEY: Optional[str] = None  # Fernet key from cryptography.fernet.Fernet.generate_key()
+
+    JANITOR_ENABLED: bool = True
+    JANITOR_RETENTION_DAYS: int = 90
+    JANITOR_INTERVAL_HOURS: int = 24
+
+    RAG_CHUNK_SIZE: int = 1024
     RAG_CHUNK_OVERLAP: int = 50
     RAG_MIN_CONFIDENCE: float = 0.65
     RAG_MAX_CHUNKS: int = 3
+    ENABLE_RERANKING: bool = False
+    RERANK_CANDIDATES: int = 10
+
+    ENABLE_KNOWLEDGE_GRAPH: bool = True
+    ENABLE_AB_TESTING: bool = False
+    AB_EXPERIMENT_ID: str = "response_style_v1"
+
+    MARKETPLACE_CATALOG_PATH: Path = (
+        _REPO_ROOT / "backend" / "app" / "core" / "config" / "plugin_catalog.json"
+    )
+    MARKETPLACE_PLUGINS_DIR: Path = _REPO_ROOT / "data" / "marketplace_plugins"
+
+    XTTS_URL: Optional[str] = None
+    XTTS_TIMEOUT: float = 180.0
+    VOICE_CLONE_ENABLED: bool = False
 
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
     ALLOWED_UPLOAD_MIME: str = "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,application/json,text/csv"
@@ -103,6 +132,10 @@ class VoxentiaSettings(BaseSettings):
             self.CHROMA_DIR = data / "chroma"
         if "UPLOADS_DIR" not in os.environ:
             self.UPLOADS_DIR = data / "uploads"
+        if "EMBEDDING_CACHE_PATH" not in os.environ:
+            self.EMBEDDING_CACHE_PATH = data / "embedding_cache.db"
+        if "MARKETPLACE_PLUGINS_DIR" not in os.environ:
+            self.MARKETPLACE_PLUGINS_DIR = data / "marketplace_plugins"
         return self
 
     @property

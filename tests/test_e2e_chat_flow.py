@@ -18,7 +18,7 @@ async def test_chat_service_full_flow_with_mocked_orchestrator():
         return_value=VoxentiaResponse(text="Mocked reply", intent="greeting")
     )
 
-    with patch("app.services.chat_service.search_context", new=AsyncMock(return_value="")):
+    with patch("app.services.chat_service.search_sources", new=AsyncMock(return_value=[])):
         with patch(
             "app.services.chat_service.generate_tts_audio",
             new=AsyncMock(return_value=None),
@@ -34,7 +34,7 @@ async def test_chat_service_full_flow_with_mocked_orchestrator():
                     language="en",
                     personality="friendly",
                 )
-                text, audio, intent, _ = await service.process_message(db, request)
+                text, audio, intent, _, _rag, _sid = await service.process_message(db, request)
             finally:
                 db.close()
 
@@ -46,7 +46,7 @@ async def test_chat_service_full_flow_with_mocked_orchestrator():
 def test_chat_http_with_dependency_override():
     mock_service = MagicMock(spec=ChatService)
     mock_service.process_message = AsyncMock(
-        return_value=("HTTP mock", "/api/tts-audio/x.wav", "fallback", None)
+        return_value=("HTTP mock", "/api/tts-audio/x.wav", "fallback", None, [], "s1")
     )
     app.dependency_overrides[get_chat_service] = lambda: mock_service
     try:

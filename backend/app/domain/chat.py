@@ -14,6 +14,9 @@ class ChatMessageRecord:
     content: str
     timestamp: datetime
     model: Optional[str] = None
+    id: Optional[int] = None
+    parent_id: Optional[int] = None
+    branch_id: str = "main"
 
 
 @dataclass(frozen=True)

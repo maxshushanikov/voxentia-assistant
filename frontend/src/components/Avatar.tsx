@@ -163,7 +163,8 @@ function AvatarModel({
 
     if (group.current) {
       const time = performance.now() * 0.001;
-      const sway = emotion === 'thinking' ? 0.06 : emotion === 'happy' ? 0.05 : 0.04;
+      const sway =
+        emotion === 'thinking' ? 0.06 : emotion === 'happy' ? 0.05 : emotion === 'sad' ? 0.03 : 0.04;
       const breath = 1 + Math.sin(time * 1.2) * 0.012;
       group.current.rotation.y = Math.sin(time * 0.3) * sway;
       group.current.scale.setScalar(breath);
@@ -271,7 +272,13 @@ function Avatar({
             {isSpeaking ? 'Spricht...' : 'Bereit'}
           </p>
           <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {emotion === 'thinking' ? 'Überlegt...' : emotion === 'happy' ? 'Fröhlich' : 'Professioneller Assistent'}
+            {emotion === 'thinking'
+              ? 'Überlegt...'
+              : emotion === 'happy'
+                ? 'Fröhlich'
+                : emotion === 'sad'
+                  ? 'Nachdenklich'
+                  : 'Professioneller Assistent'}
           </p>
         </div>
       </div>
@@ -287,6 +294,7 @@ function Avatar({
       <div className="absolute inset-0 bg-gradient-to-t from-[#2979ff]/8 via-transparent to-transparent pointer-events-none" />
 
       <Canvas
+        frameloop={isSpeaking ? "always" : "demand"}
         camera={{ position: [0, 0.15, 4.2], fov: 42, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
         className="w-full h-full"

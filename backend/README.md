@@ -67,6 +67,8 @@ pytest tests/test_api_chat.py tests/test_api_sessions.py -v
 
 ## Docker
 
-Built via `deployment/docker/backend.Dockerfile`. Entrypoint: `python backend/app/main.py`.
+Built via `deployment/docker/backend.Dockerfile` (ASGI via `/app/serve.py`, import paths in `voxentia_paths.pth`).
 
-Environment in `docker-compose.yml`: `OLLAMA_URL`, `TTS_URL`, `WHISPER_URL`.
+Default Compose uses the image-built code (no `./backend/app` bind mount). For live reload on a full checkout, use `docker-compose.dev.yml`.
+
+Environment in `docker-compose.yml`: `PYTHONPATH`, `UVICORN_WORKERS`, `OLLAMA_URL`, `TTS_URL`, `WHISPER_URL`.

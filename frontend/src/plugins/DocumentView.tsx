@@ -1,4 +1,4 @@
-import { FileText, Trash2, Upload } from 'lucide-react';
+import { FileText, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ApiError, apiFetch } from '../api/client';
@@ -48,6 +48,18 @@ export default function DocumentView() {
       await loadDocuments();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Upload failed');
+    }
+  };
+
+  const handleReindex = async (filename: string) => {
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/documents/${encodeURIComponent(filename)}/reindex`, {
+        method: 'POST',
+      });
+      await loadDocuments();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Reindex failed');
     }
   };
 
@@ -139,14 +151,25 @@ export default function DocumentView() {
                   </td>
                   <td className="px-6 py-4 text-xs text-[var(--text-secondary)]">{doc.chunks}</td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete(doc.filename)}
-                      className="p-2 text-[var(--text-secondary)] hover:text-red-500 transition-colors rounded-full hover:bg-red-500/10"
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => void handleReindex(doc.filename)}
+                        className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-full hover:bg-[var(--accent)]/10"
+                        aria-label="Reindex"
+                        title="Reindex"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(doc.filename)}
+                        className="p-2 text-[var(--text-secondary)] hover:text-red-500 transition-colors rounded-full hover:bg-red-500/10"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -18,12 +18,22 @@ export interface ChatRequestBody {
   temperature?: number;
 }
 
+export interface RagSourceBody {
+  filename: string;
+  page?: number | null;
+  chunk_index: number;
+  score: number;
+}
+
 export interface ChatResponseBody {
   text: string;
   audio_url?: string | null;
   session_id: string;
   intent?: string | null;
+  intent_confidence?: number | null;
+  intent_source?: string | null;
   plugin_data?: unknown;
+  rag_sources?: RagSourceBody[];
 }
 
 export interface TranscribeResponseBody {
@@ -31,10 +41,20 @@ export interface TranscribeResponseBody {
 }
 
 export interface HistoryMessage {
+  id?: number;
   role: string;
   content: string;
   timestamp: string;
   model?: string;
+  parent_id?: number | null;
+  branch_id?: string;
+}
+
+export interface ForkSessionResponse {
+  session_id: string;
+  branch_id: string;
+  copied_messages: number;
+  parent_message_id: number;
 }
 
 export interface ChatHistoryResponse {

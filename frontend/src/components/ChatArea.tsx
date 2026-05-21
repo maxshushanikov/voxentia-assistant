@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, MessageSquare, Zap, Shield, Copy, Pencil, RefreshCw, Cpu } from 'lucide-react';
+import { Sparkles, MessageSquare, Zap, Shield, Copy, Pencil, RefreshCw, Cpu, GitBranch } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { useTranslation } from '../i18n/context';
@@ -87,7 +87,14 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                   <button
                     onClick={() => onRegenerate?.(msg.id)}
                     className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
-                    title="Regenerate message"
+                    title="Andere Antwort generieren (Branch)"
+                  >
+                    <GitBranch className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => onRegenerate?.(msg.id)}
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
+                    title="Antwort neu generieren"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
@@ -114,6 +121,11 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                       </span>
                       {msg.comparison.streamingA && (
                         <span className="w-1.5 h-1.5 rounded-full bg-[#2979ff] animate-ping" />
+                      )}
+                      {msg.comparison.latencyA != null && !msg.comparison.streamingA && (
+                        <span className="text-[10px] text-[var(--text-secondary)] ml-auto">
+                          {msg.comparison.latencyA} ms
+                        </span>
                       )}
                     </div>
                     <div className="flex-1 overflow-x-auto min-w-0">
@@ -158,6 +170,11 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                       </span>
                       {msg.comparison.streamingB && (
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                      )}
+                      {msg.comparison.latencyB != null && !msg.comparison.streamingB && (
+                        <span className="text-[10px] text-[var(--text-secondary)] ml-auto">
+                          {msg.comparison.latencyB} ms
+                        </span>
                       )}
                     </div>
                     <div className="flex-1 overflow-x-auto min-w-0">
@@ -225,6 +242,23 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                 >
                   {msg.content}
                 </ReactMarkdown>
+              )}
+              {msg.role === 'assistant' && msg.intentConfidence != null && msg.intentConfidence < 0.6 && (
+                <p className="mt-2 text-[11px] text-amber-600/90 dark:text-amber-400/90 italic">
+                  Ich bin mir bei der Interpretation unsicher — meintest du das so?
+                </p>
+              )}
+              {msg.role === 'assistant' && msg.ragSources && msg.ragSources.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 space-y-1">
+                  {msg.ragSources.map((src, i) => (
+                    <p key={`${src.filename}-${src.chunk_index}-${i}`} className="text-[11px] text-[var(--text-secondary)]">
+                      📄 {src.filename}
+                      {src.page != null ? `, Seite ${src.page}` : ''}
+                      {' '}
+                      <span className="opacity-60">({Math.round(src.score * 100)}%)</span>
+                    </p>
+                  ))}
+                </div>
               )}
               {msg.timestamp && (
                 <div className={cn("text-[10px] mt-2 opacity-40 select-none", msg.role === 'user' ? "text-right" : "text-left")}>

@@ -22,6 +22,8 @@ class PipelineContext:
     rag_context: str = ""
     message: str = ""
     intent: str = "fallback"
+    intent_confidence: float = 0.0
+    intent_source: str = "unknown"  # keyword | tool_call | llm | fallback
     entities: Dict[str, Any] = field(default_factory=dict)
     plugin_data: Optional[Dict[str, Any]] = None
     history: Optional[List[Dict[str, str]]] = None
@@ -32,6 +34,14 @@ class OrchestratorPipeline:
         self.registry = registry
         self.llm = llm
         self.intent_detector = IntentDetector(llm, registry)
+        self._pre_hooks: list = []
+        self._post_hooks: list = []
+
+    def add_pre_hook(self, hook) -> None:
+        self._pre_hooks.append(hook)
+
+    def add_post_hook(self, hook) -> None:
+        self._post_hooks.append(hook)
 
     def normalize_input(self, ctx: PipelineContext) -> PipelineContext:
         ctx.message = " ".join(ctx.raw_message.split()).strip()
@@ -47,14 +57,38 @@ class OrchestratorPipeline:
         return ctx
 
     async def detect_intent(self, ctx: PipelineContext) -> PipelineContext:
-        ctx.intent, ctx.entities = await self.intent_detector.detect(
-            ctx.message,
-            system=ctx.system_prompt,
-            model=ctx.model,
-            temperature=0.1,
+        ctx.intent, ctx.entities, ctx.intent_confidence, ctx.intent_source = (
+            await self.intent_detector.detect(
+                ctx.message,
+                system=ctx.system_prompt,
+                model=ctx.model,
+                temperature=0.1,
+            )
         )
         ctx.entities["language"] = ctx.language
-        logger.info("Intent: %s entities=%s", ctx.intent, ctx.entities)
+        logger.info(
+            "Intent: %s (%.2f via %s) entities=%s",
+            ctx.intent,
+            ctx.intent_confidence,
+            ctx.intent_source,
+            ctx.entities,
+        )
+        return ctx
+
+    async def resolve_model(self, ctx: PipelineContext) -> PipelineContext:
+        from voxentia.config.settings import settings
+
+        if not getattr(settings, "ENABLE_MODEL_ROUTING", True):
+            return ctx
+        from voxentia.orchestrator.model_router import ModelRouter
+
+        router = ModelRouter(
+            default=settings.DEFAULT_MODEL,
+            ollama_url=settings.OLLAMA_URL,
+        )
+        await router.refresh_available(settings.OLLAMA_TIMEOUT)
+        tokens = max(1, len(ctx.message.split()))
+        ctx.model = router.resolve(ctx.intent, tokens, ctx.model)
         return ctx
 
     async def plugin_pre_llm(self, ctx: PipelineContext) -> PipelineContext:
@@ -66,6 +100,9 @@ class OrchestratorPipeline:
         # Trigger external HTTP pre_llm webhooks
         from voxentia.config.settings import settings
         webhooks = settings.plugin_webhooks
+        if settings.PROCESSING_MODE == "local_only" and webhooks:
+            logger.warning("Webhooks skipped in local_only processing mode")
+            webhooks = []
         if webhooks:
             import httpx
             async with httpx.AsyncClient() as client:
@@ -105,13 +142,16 @@ class OrchestratorPipeline:
                 intent="greeting",
             )
 
-        plugin = self.registry.get_plugin_for_intent(ctx.intent)
+        plugin = await self.registry.get_plugin_for_intent(ctx.intent)
         if plugin:
             try:
                 res = await plugin.on_message(ctx.intent, ctx.entities)
+                plugin_data = dict(res.data or {})
+                plugin_data["intent_confidence"] = ctx.intent_confidence
+                plugin_data["intent_source"] = ctx.intent_source
                 return VoxentiaResponse(
                     text=res.text,
-                    plugin_data=res.data,
+                    plugin_data=plugin_data,
                     intent=ctx.intent,
                 )
             except Exception as e:
@@ -131,15 +171,30 @@ class OrchestratorPipeline:
         except Exception as e:
             logger.error("LLM fallback failed: %s", e)
             text = "I'm sorry, I could not reach the language model right now."
-        return VoxentiaResponse(text=text, intent="fallback")
+        return VoxentiaResponse(
+            text=text,
+            intent="fallback",
+            plugin_data={
+                "intent_confidence": ctx.intent_confidence,
+                "intent_source": ctx.intent_source,
+            },
+        )
 
     async def run(self, ctx: PipelineContext) -> VoxentiaResponse:
+        for hook in self._pre_hooks:
+            ctx = await hook(ctx)
         ctx = self.normalize_input(ctx)
         ctx = self.enrich_rag(ctx)
         ctx = await self.detect_intent(ctx)
+        ctx = await self.resolve_model(ctx)
         ctx = await self.plugin_pre_llm(ctx)
 
         plugin_response = await self.route_plugin(ctx)
         if plugin_response:
-            return plugin_response
-        return await self.llm_fallback(ctx)
+            response = plugin_response
+        else:
+            response = await self.llm_fallback(ctx)
+
+        for hook in self._post_hooks:
+            ctx = await hook(ctx)
+        return response

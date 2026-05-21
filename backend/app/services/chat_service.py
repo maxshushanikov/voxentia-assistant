@@ -3,18 +3,25 @@ import json
 import logging
 import re
 import time
+import uuid
 from typing import Any, List, Optional, Tuple
 
 from app.core.config import settings
+from app.core.database import SessionLocal
 from app.core.errors import PluginError, VoxentiaError
 from app.core.personalities import load_personalities
 from app.domain.chat import ChatMessageRecord, ChatSession
 from app.models.chat import ChatMessage
+from app.models.session import ChatSessionMeta
 from app.schemas.chat import ChatRequest
-from app.services.rag_service import search_context
+from app.services.emotion_service import EmotionService
+from app.services.knowledge_service import KnowledgeService
+from app.services.memory_service import MemoryService
+from app.services.rag_service import RagSourceHit, search_sources
 from app.services.voice_service import generate_tts_audio
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from voxentia.orchestrator.model_router import ModelRouter
 from voxentia.orchestrator.router import Orchestrator
 from voxentia.plugins.base import PluginContext
 from voxentia.plugins.registry import PluginRegistry
@@ -38,8 +45,16 @@ class ChatService:
         )
         self.registry = PluginRegistry()
         self.orchestrator = Orchestrator(self.registry, self.llm_client)
+        self.memory_service = MemoryService(self.llm_client)
+        self.emotion_service = EmotionService(self.llm_client)
+        self.knowledge_service = KnowledgeService(self.llm_client)
+        self.model_router = ModelRouter(
+            default=settings.DEFAULT_MODEL,
+            ollama_url=settings.OLLAMA_URL,
+        )
         self._init_lock = asyncio.Lock()
         self._is_initialized = False
+        self._router_refreshed = False
 
     async def initialize(self) -> None:
         if self._is_initialized:
@@ -72,7 +87,147 @@ class ChatService:
         profiles = load_personalities().get(personality or "professional", {})
         return profiles.get(language, profiles.get(settings.DEFAULT_LANGUAGE, ""))
 
+    def _build_system_prompt(
+        self, db: Session, personality: str, language: str, session_id: str
+    ) -> str:
+        base = self._personality_prompt(personality, language)
+        if getattr(settings, "ENABLE_SENTIMENT", True):
+            tone = self.emotion_service.get_tone_hint(db, session_id)
+            if tone:
+                base += f"\n\n{tone}"
+        if getattr(settings, "ENABLE_MEMORY", True):
+            memory_hint = self.memory_service.build_memory_prompt(db, session_id)
+            if memory_hint:
+                base += f"\n\n{memory_hint}"
+        if getattr(settings, "ENABLE_KNOWLEDGE_GRAPH", True):
+            graph_hint = self.knowledge_service.build_graph_prompt(db, session_id)
+            if graph_hint:
+                base += f"\n\n{graph_hint}"
+        return base
+
+    def _apply_ab_testing(
+        self, session_id: str, system_prompt: str, temperature: float
+    ) -> tuple[str, float, Any]:
+        if not getattr(settings, "ENABLE_AB_TESTING", False):
+            return system_prompt, temperature, None
+        from voxentia.orchestrator.ab_testing import apply_ab_to_context, assign_variant
+        from voxentia.orchestrator.pipeline import PipelineContext
+
+        assignment = assign_variant(session_id, settings.AB_EXPERIMENT_ID)
+        ctx = PipelineContext(raw_message="", system_prompt=system_prompt, temperature=temperature)
+        apply_ab_to_context(ctx, assignment)
+        return ctx.system_prompt, ctx.temperature, assignment
+
+    async def _resolve_model(
+        self, request: ChatRequest, message: str, explicit_intent: str | None = None
+    ) -> str:
+        requested = request.model or settings.DEFAULT_MODEL
+        if not getattr(settings, "ENABLE_MODEL_ROUTING", True):
+            return requested
+        if not self._router_refreshed:
+            await self.model_router.refresh_available(settings.OLLAMA_TIMEOUT)
+            self._router_refreshed = True
+        intent = explicit_intent or "fallback"
+        tokens = max(1, len(message.split()))
+        return self.model_router.resolve(intent, tokens, requested)
+
+    def _schedule_post_processing(self, session_id: str, message: str) -> None:
+        async def _run() -> None:
+            db = SessionLocal()
+            try:
+                if getattr(settings, "ENABLE_SENTIMENT", True):
+                    await self.emotion_service.analyze_and_store(db, session_id, message)
+                if getattr(settings, "ENABLE_MEMORY", True):
+                    await self.memory_service.extract_and_store(db, session_id, message)
+                if getattr(settings, "ENABLE_KNOWLEDGE_GRAPH", True):
+                    await self.knowledge_service.extract_and_store(db, session_id, message)
+            finally:
+                db.close()
+
+        asyncio.create_task(_run())
+
+    def _rag_sources_from_hits(self, hits: list[RagSourceHit]) -> list[dict]:
+        return [
+            {
+                "filename": h.filename,
+                "page": h.page,
+                "chunk_index": h.chunk_index,
+                "score": h.score,
+            }
+            for h in hits
+        ]
+
+    async def _maybe_generate_session_title(
+        self, db: Session, session_id: str, first_message: str
+    ) -> None:
+        existing = db.query(ChatSessionMeta).filter_by(session_id=session_id).first()
+        if existing and existing.title:
+            return
+        try:
+            title = await self.llm_client.generate(
+                f"Generiere einen kurzen Titel (max 5 Wörter) für dieses Gespräch: '{first_message[:200]}'",
+                temperature=0.3,
+            )
+            title = (title or "").strip()[:60] or first_message[:60]
+        except Exception as e:
+            logger.warning("Session title generation failed: %s", e)
+            title = first_message[:60]
+
+        if existing:
+            existing.title = title
+        else:
+            db.add(ChatSessionMeta(session_id=session_id, title=title))
+        db.commit()
+
+    def fork_session(
+        self, db: Session, session_id: str, message_id: int
+    ) -> tuple[str, str, int]:
+        """Copy conversation up to message_id into a new session (branch)."""
+        target = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.id == message_id, ChatMessage.session_id == session_id)
+            .first()
+        )
+        if not target:
+            raise ValueError(f"Message {message_id} not found in session {session_id}")
+
+        id_filter = ChatMessage.id < message_id
+        if target.role != "assistant":
+            id_filter = ChatMessage.id <= message_id
+        prior = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session_id, id_filter)
+            .order_by(ChatMessage.id.asc())
+            .all()
+        )
+
+        new_sid = f"sess_{uuid.uuid4().hex[:12]}"
+        branch_id = f"branch_{uuid.uuid4().hex[:8]}"
+        for m in prior:
+            db.add(
+                ChatMessage(
+                    session_id=new_sid,
+                    role=m.role,
+                    content=m.content,
+                    model=m.model,
+                    parent_id=m.id,
+                    branch_id=branch_id,
+                )
+            )
+
+        meta = db.query(ChatSessionMeta).filter_by(session_id=session_id).first()
+        title = f"{meta.title} (Branch)" if meta and meta.title else "Branch"
+        db.merge(ChatSessionMeta(session_id=new_sid, title=title[:128]))
+        db.commit()
+        return new_sid, branch_id, len(prior)
+
     async def _prepare_context(self, db: Session, request: ChatRequest) -> dict:
+        effective_session_id = request.session_id
+        if request.fork_from_message_id:
+            effective_session_id, _, _ = self.fork_session(
+                db, request.session_id, request.fork_from_message_id
+            )
+
         lang = request.language.value if hasattr(request.language, "value") else str(request.language)
         speaker = request.speaker.value if hasattr(request.speaker, "value") else str(request.speaker)
         personality = (
@@ -81,10 +236,11 @@ class ChatService:
             else str(request.personality)
         )
 
+        branch_id = request.branch_id or "main"
         limit = getattr(settings, "HISTORY_LIMIT", 20)
         previous_messages = (
             db.query(ChatMessage)
-            .filter_by(session_id=request.session_id)
+            .filter_by(session_id=effective_session_id)
             .order_by(ChatMessage.timestamp.desc())
             .limit(limit)
             .all()
@@ -94,13 +250,25 @@ class ChatService:
         model = request.model or settings.DEFAULT_MODEL
 
         user_msg = ChatMessage(
-            session_id=request.session_id, role="user", content=request.message, model=model
+            session_id=effective_session_id,
+            role="user",
+            content=request.message,
+            model=model,
+            branch_id=branch_id,
         )
         db.add(user_msg)
         db.commit()
 
-        rag_context = await search_context(request.message)
-        system_prompt = self._personality_prompt(personality, lang)
+        rag_hits = await search_sources(request.message)
+        rag_context = "\n\n".join(h.text for h in rag_hits if h.text)
+        system_prompt = self._build_system_prompt(db, personality, lang, effective_session_id)
+        temperature = request.temperature
+        ab_assignment = None
+        system_prompt, temperature, ab_assignment = self._apply_ab_testing(
+            effective_session_id, system_prompt, temperature
+        )
+        is_first_exchange = len(previous_messages) == 0
+        self._schedule_post_processing(effective_session_id, request.message)
 
         return {
             "lang": lang,
@@ -109,12 +277,18 @@ class ChatService:
             "history": history,
             "model": model,
             "rag_context": rag_context,
+            "rag_sources": self._rag_sources_from_hits(rag_hits),
             "system_prompt": system_prompt,
+            "is_first_exchange": is_first_exchange,
+            "effective_session_id": effective_session_id,
+            "branch_id": branch_id,
+            "temperature": temperature,
+            "ab_assignment": ab_assignment,
         }
 
     async def process_message(
-        self, db: Session, request: ChatRequest
-    ) -> Tuple[str, Optional[str], Optional[str], Optional[Any]]:
+        self, db: Session, request: ChatRequest, http_request=None
+    ) -> Tuple[str, Optional[str], Optional[str], Optional[Any], list[dict]]:
         await self.initialize()
         started = time.perf_counter()
 
@@ -124,7 +298,13 @@ class ChatService:
         history = ctx["history"]
         model = ctx["model"]
         rag_context = ctx["rag_context"]
+        rag_sources = ctx["rag_sources"]
         system_prompt = ctx["system_prompt"]
+        is_first_exchange = ctx["is_first_exchange"]
+        effective_session_id = ctx["effective_session_id"]
+        branch_id = ctx["branch_id"]
+        temperature = ctx.get("temperature", request.temperature)
+        ab_assignment = ctx.get("ab_assignment")
 
         try:
             response = await self.orchestrator.route_request(
@@ -132,10 +312,11 @@ class ChatService:
                 language=lang,
                 system_prompt=system_prompt,
                 model=model,
-                temperature=request.temperature,
+                temperature=temperature,
                 rag_context=rag_context,
                 history=history,
             )
+            model = await self._resolve_model(request, request.message, response.intent)
         except VoxentiaError:
             raise
         except Exception as e:
@@ -146,7 +327,11 @@ class ChatService:
             ) from e
 
         assistant_msg = ChatMessage(
-            session_id=request.session_id, role="assistant", content=response.text, model=model
+            session_id=effective_session_id,
+            role="assistant",
+            content=response.text,
+            model=model,
+            branch_id=branch_id,
         )
         db.add(assistant_msg)
         db.commit()
@@ -155,17 +340,46 @@ class ChatService:
         if settings.TTS_URL and response.text:
             audio_url = await generate_tts_audio(response.text, speaker, lang)
 
-        latency_ms = int((time.perf_counter() - started) * 1000)
+        latency_ms = (time.perf_counter() - started) * 1000
         logger.info(
             "chat completed",
             extra={
                 "session_id": request.session_id,
                 "plugin": response.intent,
-                "latency_ms": latency_ms,
+                "latency_ms": int(latency_ms),
             },
         )
 
-        return response.text, audio_url, response.intent, response.plugin_data
+        if is_first_exchange:
+            await self._maybe_generate_session_title(
+                db, effective_session_id, request.message
+            )
+
+        if http_request is not None:
+            from app.core.audit import log_chat_event
+
+            await log_chat_event(
+                http_request,
+                effective_session_id,
+                response.intent,
+                latency_ms,
+                model,
+                rag_chunks_used=len(rag_sources),
+            )
+
+        if ab_assignment is not None:
+            from voxentia.orchestrator.ab_testing import record_event_db
+
+            record_event_db(db, effective_session_id, ab_assignment, response.intent, latency_ms)
+
+        return (
+            response.text,
+            audio_url,
+            response.intent,
+            response.plugin_data,
+            rag_sources,
+            effective_session_id,
+        )
 
     async def process_message_stream(
         self, db: Session, request: ChatRequest
@@ -178,11 +392,27 @@ class ChatService:
         history = ctx["history"]
         model = ctx["model"]
         rag_context = ctx["rag_context"]
+        rag_sources = ctx["rag_sources"]
         system_prompt = ctx["system_prompt"]
+        is_first_exchange = ctx["is_first_exchange"]
+        effective_session_id = ctx["effective_session_id"]
+        branch_id = ctx["branch_id"]
+        temperature = ctx.get("temperature", request.temperature)
 
         message = request.message
         if rag_context:
             message = f"{rag_context}\n\n{request.message}"
+
+        try:
+            intent, _, _, _ = await self.orchestrator.pipeline.intent_detector.detect(
+                message,
+                system=system_prompt or None,
+                model=model,
+                temperature=0.1,
+            )
+            model = await self._resolve_model(request, request.message, intent)
+        except Exception as e:
+            logger.debug("Stream model routing skipped: %s", e)
 
         full_text = ""
         current_sentence = ""
@@ -210,7 +440,7 @@ class ChatService:
         worker_tasks = [asyncio.create_task(tts_worker()) for _ in range(TTS_PARALLEL_WORKERS)]
 
         async for token in self.llm_client.generate_stream(
-            message, model=model, system=system_prompt or None, temperature=request.temperature, history=history
+            message, model=model, system=system_prompt or None, temperature=temperature, history=history
         ):
             full_text += token
             current_sentence += token
@@ -267,19 +497,29 @@ class ChatService:
                 break
 
         assistant_msg = ChatMessage(
-            session_id=request.session_id, role="assistant", content=full_text, model=model
+            session_id=effective_session_id,
+            role="assistant",
+            content=full_text,
+            model=model,
+            branch_id=branch_id,
         )
         db.add(assistant_msg)
         db.commit()
+
+        if is_first_exchange:
+            await self._maybe_generate_session_title(
+                db, effective_session_id, request.message
+            )
 
         yield {
             "event": "done",
             "data": {
                 "text": re.sub(r"\[.*?\]|<.*?>", "", full_text).strip(),
                 "audio_url": None,
-                "session_id": request.session_id,
+                "session_id": effective_session_id,
                 "intent": "stream",
                 "emotion": current_emotion,
+                "rag_sources": rag_sources,
             },
         }
 
@@ -298,6 +538,9 @@ class ChatService:
                 content=m.content,
                 timestamp=m.timestamp,
                 model=m.model,
+                id=m.id,
+                parent_id=m.parent_id,
+                branch_id=m.branch_id or "main",
             )
             for m in rows
         ]
@@ -345,10 +588,23 @@ class ChatService:
             .all()
         )
 
+        session_ids = [r.session_id for r in rows]
+        titles_by_id: dict[str, str] = {}
+        if session_ids:
+            meta_rows = (
+                db.query(ChatSessionMeta)
+                .filter(ChatSessionMeta.session_id.in_(session_ids))
+                .all()
+            )
+            titles_by_id = {m.session_id: m.title for m in meta_rows if m.title}
+
         return [
             ChatSession(
                 session_id=r.session_id,
-                title=(r.first_content[:60] if r.first_content else r.session_id),
+                title=(
+                    titles_by_id.get(r.session_id)
+                    or (r.first_content[:60] if r.first_content else r.session_id)
+                ),
                 last_timestamp=r.last_ts,
                 model=r.last_model,
             )
@@ -361,6 +617,21 @@ class ChatService:
             .filter(ChatMessage.session_id == session_id)
             .delete(synchronize_session=False)
         )
+        db.query(ChatSessionMeta).filter(ChatSessionMeta.session_id == session_id).delete(
+            synchronize_session=False
+        )
+        if getattr(settings, "ENABLE_MEMORY", True):
+            from app.models.memory import UserMemory
+
+            db.query(UserMemory).filter(UserMemory.session_id == session_id).delete(
+                synchronize_session=False
+            )
+        if getattr(settings, "ENABLE_SENTIMENT", True):
+            from app.models.sentiment import SentimentRecord
+
+            db.query(SentimentRecord).filter(SentimentRecord.session_id == session_id).delete(
+                synchronize_session=False
+            )
         db.commit()
         return deleted
 

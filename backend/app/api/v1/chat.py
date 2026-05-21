@@ -8,6 +8,8 @@ from app.core.rate_limit import limiter
 from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
+    ForkSessionRequest,
+    ForkSessionResponse,
     HistoryResponse,
     MessageHistory,
     SessionListResponse,
@@ -30,13 +32,24 @@ async def chat_endpoint(
     db: Session = Depends(get_db),
     chat_service: ChatService = Depends(get_chat_service),
 ):
-    text, audio_url, intent, plugin_data = await chat_service.process_message(db, body)
+    text, audio_url, intent, plugin_data, rag_sources, effective_session_id = (
+        await chat_service.process_message(db, body, http_request=request)
+    )
+    intent_confidence = None
+    intent_source = None
+    if isinstance(plugin_data, dict):
+        intent_confidence = plugin_data.get("intent_confidence")
+        intent_source = plugin_data.get("intent_source")
+
     return {
         "text": text,
         "audio_url": audio_url,
-        "session_id": body.session_id,
+        "session_id": effective_session_id,
         "intent": intent,
+        "intent_confidence": intent_confidence,
+        "intent_source": intent_source,
         "plugin_data": plugin_data,
+        "rag_sources": rag_sources,
     }
 
 
@@ -72,7 +85,15 @@ async def get_chat_history(
 ):
     history, total = chat_service.get_history(db, session_id, limit=limit, offset=offset)
     formatted_history = [
-        MessageHistory(role=m.role, content=m.content, timestamp=m.timestamp.isoformat(), model=m.model)
+        MessageHistory(
+            id=m.id,
+            role=m.role,
+            content=m.content,
+            timestamp=m.timestamp.isoformat(),
+            model=m.model,
+            parent_id=m.parent_id,
+            branch_id=m.branch_id,
+        )
         for m in history
     ]
     return {"history": formatted_history, "total": total, "offset": offset, "limit": limit}
@@ -105,6 +126,28 @@ async def new_session(request: Request):
     return {"session_id": f"sess_{uuid.uuid4().hex[:12]}"}
 
 
+@router.post("/sessions/fork", response_model=ForkSessionResponse)
+@limiter.limit("20/minute")
+async def fork_session(
+    request: Request,
+    body: ForkSessionRequest,
+    db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
+):
+    try:
+        new_sid, branch_id, copied = chat_service.fork_session(
+            db, body.session_id, body.message_id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    return ForkSessionResponse(
+        session_id=new_sid,
+        branch_id=branch_id,
+        copied_messages=copied,
+        parent_message_id=body.message_id,
+    )
+
+
 @router.post("/avatar/custom")
 @limiter.limit("5/minute")
 async def upload_custom_avatar(
@@ -129,6 +172,14 @@ async def upload_custom_avatar(
     avatar_path.parent.mkdir(parents=True, exist_ok=True)
     avatar_path.write_bytes(content)
     return {"message": "Custom avatar uploaded successfully"}
+
+
+@router.head("/avatar/custom")
+async def check_custom_avatar():
+    avatar_path = settings.DATA_DIR / "custom_avatar.glb"
+    if not avatar_path.exists():
+        raise HTTPException(status_code=404, detail="Custom avatar not found.")
+    return {}
 
 
 @router.get("/avatar/custom")

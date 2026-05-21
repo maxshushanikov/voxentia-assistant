@@ -40,3 +40,53 @@ export function downloadText(filename: string, content: string, mime: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export async function exportAsPDF(
+  messages: Message[] | HistoryMessage[],
+  sessionTitle: string,
+): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF();
+  doc.setFont('helvetica');
+
+  doc.setFontSize(16);
+  doc.text(sessionTitle.slice(0, 80), 10, 20);
+  doc.setFontSize(11);
+
+  let y = 35;
+  for (const msg of messages) {
+    const prefix = msg.role === 'user' ? 'You: ' : 'Voxentia: ';
+    const lines = doc.splitTextToSize(prefix + msg.content, 185);
+    doc.text(lines, 10, y);
+    y += lines.length * 7 + 4;
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+  }
+  doc.save(`${sessionTitle.replace(/[^\w-]+/g, '_').slice(0, 40)}.pdf`);
+}
+
+export function comparisonToMarkdown(
+  userText: string,
+  modelA: string,
+  contentA: string,
+  latencyA?: number,
+  modelB?: string,
+  contentB?: string,
+  latencyB?: number,
+): string {
+  const lines = [
+    '# Voxentia Model Comparison',
+    '',
+    `**User:** ${userText}`,
+    '',
+    `## ${modelA}${latencyA != null ? ` (${latencyA} ms)` : ''}`,
+    '',
+    contentA,
+  ];
+  if (modelB && contentB != null) {
+    lines.push('', `## ${modelB}${latencyB != null ? ` (${latencyB} ms)` : ''}`, '', contentB);
+  }
+  return lines.join('\n');
+}

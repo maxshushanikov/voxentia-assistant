@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useEffect } from 'react';
+import { forkSession, getChatHistory } from '../api/chat';
 import { postChatStream } from '../api/chatStream';
 import {
   useChatMutation,
@@ -10,6 +11,7 @@ import { useAudioManager } from './useAudioManager';
 import type { Message, AvatarEmotion } from '../types';
 import { useAppStore } from '../store/appStore';
 import { formatMessage, getTranslations } from '../i18n';
+import { parseEmotionFromToken, stripEmotionTags } from '../utils/parseEmotion';
 
 export function useAppController() {
   const sessionId = useAppStore((s) => s.sessionId);
@@ -103,6 +105,8 @@ export function useAppController() {
 
       if (compareMode && selectedModelB) {
         const assistantId = `asst-comp-${Date.now()}`;
+        const tStartA = performance.now();
+        const tStartB = performance.now();
         setMessages((prev) => [
           ...prev,
           {
@@ -145,6 +149,7 @@ export function useAppController() {
                   queueAudio(audioUrl);
                 },
                 onDone: (data) => {
+                  const latencyA = Math.round(performance.now() - tStartA);
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === assistantId && m.comparison
@@ -154,6 +159,7 @@ export function useAppController() {
                               ...m.comparison,
                               contentA: data.text,
                               streamingA: false,
+                              latencyA,
                             },
                           }
                         : m,
@@ -209,6 +215,7 @@ export function useAppController() {
                 },
                 onAudio: () => {},
                 onDone: (data) => {
+                  const latencyB = Math.round(performance.now() - tStartB);
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === assistantId && m.comparison
@@ -218,6 +225,7 @@ export function useAppController() {
                               ...m.comparison,
                               contentB: data.text,
                               streamingB: false,
+                              latencyB,
                             },
                           }
                         : m,
@@ -253,9 +261,17 @@ export function useAppController() {
         } else {
           setIsThinking(true);
           try {
+            const t0 = performance.now();
+            const t1 = performance.now();
             const [dataA, dataB] = await Promise.all([
-              chatMutation.mutateAsync({ ...requestBody, model: selectedModel }),
-              chatMutation.mutateAsync({ ...requestBody, model: selectedModelB }),
+              chatMutation.mutateAsync({ ...requestBody, model: selectedModel }).then((d) => ({
+                data: d,
+                ms: Math.round(performance.now() - t0),
+              })),
+              chatMutation.mutateAsync({ ...requestBody, model: selectedModelB }).then((d) => ({
+                data: d,
+                ms: Math.round(performance.now() - t1),
+              })),
             ]);
 
             setMessages((prev) =>
@@ -265,16 +281,18 @@ export function useAppController() {
                       ...m,
                       comparison: {
                         ...m.comparison,
-                        contentA: dataA.text,
-                        contentB: dataB.text,
+                        contentA: dataA.data.text,
+                        contentB: dataB.data.text,
                         streamingA: false,
                         streamingB: false,
+                        latencyA: dataA.ms,
+                        latencyB: dataB.ms,
                       },
                     }
                   : m,
               ),
             );
-            await playResponseAudio(dataA.audio_url);
+            await playResponseAudio(dataA.data.audio_url);
           } catch (error) {
             console.error('Non-stream comparison error:', error);
           } finally {
@@ -298,9 +316,16 @@ export function useAppController() {
               requestBody,
               {
                 onToken: (token) => {
+                  const emotion = parseEmotionFromToken(token);
+                  if (emotion) {
+                    useAppStore.getState().setAvatarEmotion(emotion);
+                  }
+                  const displayToken = stripEmotionTags(token);
                   setMessages((prev) =>
                     prev.map((m) =>
-                      m.id === assistantId ? { ...m, content: m.content + token } : m,
+                      m.id === assistantId
+                        ? { ...m, content: m.content + displayToken }
+                        : m,
                     ),
                   );
                 },
@@ -308,10 +333,16 @@ export function useAppController() {
                   queueAudio(audioUrl);
                 },
                 onDone: (data) => {
+                  const ragSources = (data as { rag_sources?: Message['ragSources'] }).rag_sources;
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === assistantId
-                        ? { ...m, content: data.text, streaming: false }
+                        ? {
+                            ...m,
+                            content: data.text,
+                            streaming: false,
+                            ...(ragSources?.length ? { ragSources } : {}),
+                          }
                         : m,
                     ),
                   );
@@ -353,12 +384,19 @@ export function useAppController() {
       setIsThinking(true);
       try {
         const data = await chatMutation.mutateAsync(requestBody);
+        if (data.session_id && data.session_id !== currentSessionId) {
+          setSessionId(data.session_id);
+        }
 
         const assistantMsg: Message = {
           role: 'assistant',
           content: data.text,
           id: (Date.now() + 1).toString(),
           timestamp: new Date().toISOString(),
+          ...(data.rag_sources?.length ? { ragSources: data.rag_sources } : {}),
+          ...(data.intent_confidence != null
+            ? { intentConfidence: data.intent_confidence, intentSource: data.intent_source ?? undefined }
+            : {}),
         };
         setMessages((prev) => [...prev, assistantMsg]);
         await playResponseAudio(data.audio_url);
@@ -382,6 +420,7 @@ export function useAppController() {
       setIsThinking,
       compareMode,
       selectedModelB,
+      setSessionId,
     ],
   );
 
@@ -493,7 +532,8 @@ export function useAppController() {
         role: m.role as Message['role'],
         content: m.content,
         id: `hist-${sid}-${index}`,
-        timestamp: (m as unknown as Record<string, unknown>).timestamp as string,
+        dbId: m.id,
+        timestamp: m.timestamp,
         model: m.model,
       }));
       setSessionId(sid);
@@ -522,8 +562,9 @@ export function useAppController() {
   
   const handleRegenerate = async (id: string) => {
     if (isThinking) return;
-    const msgIndex = messages.findIndex(m => m.id === id);
+    const msgIndex = messages.findIndex((m) => m.id === id);
     if (msgIndex === -1) return;
+    const target = messages[msgIndex];
     let lastUserMsgContent = '';
     for (let i = msgIndex - 1; i >= 0; i--) {
       if (messages[i].role === 'user') {
@@ -532,7 +573,33 @@ export function useAppController() {
       }
     }
     if (!lastUserMsgContent) return;
-    await processResponse(lastUserMsgContent, sessionId);
+
+    let activeSessionId = sessionId;
+    if (target.dbId) {
+      try {
+        const fork = await forkSession(sessionId, target.dbId);
+        activeSessionId = fork.session_id;
+        setSessionId(fork.session_id);
+        const data = await getChatHistory(fork.session_id);
+        const historyMessages: Message[] = data.history.map((m, index) => ({
+          role: m.role as Message['role'],
+          content: m.content,
+          id: `hist-${fork.session_id}-${index}`,
+          dbId: m.id,
+          timestamp: m.timestamp,
+          model: m.model,
+        }));
+        setMessages(() => historyMessages);
+        bumpHistoryRefresh();
+      } catch (error) {
+        console.error('Fork failed:', error);
+        setMessages((prev) => prev.slice(0, msgIndex));
+      }
+    } else {
+      setMessages((prev) => prev.slice(0, msgIndex));
+    }
+
+    await processResponse(lastUserMsgContent, activeSessionId);
   };
 
   const openPlugin = (id: string) => {
