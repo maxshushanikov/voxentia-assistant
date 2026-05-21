@@ -75,6 +75,9 @@ class PluginRegistry:
 
     async def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
         """Resolve plugin by declared supported_intents (no hardcoded routing)."""
+        for plugin in self.plugins.values():
+            if intent in type(plugin).get_intents():
+                return plugin
         for name, cls in self.plugin_classes.items():
             if intent in cls.get_intents():
                 return await self.get_plugin(name)
