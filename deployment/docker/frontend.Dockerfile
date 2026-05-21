@@ -5,7 +5,8 @@ WORKDIR /app
 
 # Install deps first (layer cache); .npmrc enables legacy-peer-deps for openapi-typescript + TS 6
 COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps --no-audit --no-fund --prefer-offline || \
+    npm install --legacy-peer-deps --no-audit --no-fund
 
 # i18n lives outside frontend/ but is imported via Vite alias @i18n -> ../i18n/locales
 COPY i18n /i18n

@@ -27,9 +27,9 @@ export function useCommandRegistry(): Command[] {
   return useMemo(() => {
     const pluginCommands: Command[] = plugins.map((p) => ({
       id: `cmd-plugin-${p.id}`,
-      label: `📦 ${(t as Record<string, string>)[p.nameKey] ?? p.nameKey}`,
+      label: `📦 ${(t as any)[p.nameKey] ?? p.nameKey}`,
       category: 'plugin' as const,
-      keywords: [p.id, p.nameKey, (t as Record<string, string>)[p.nameKey] ?? ''],
+      keywords: [p.id, p.nameKey, (t as any)[p.nameKey] ?? ''],
       action: () => {
         setActivePlugin(p.id);
         setCommandBarOpen(false);

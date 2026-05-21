@@ -149,6 +149,13 @@ async def health_check():
     return await full_health()
 
 
+@app.get("/api/v1/health")
+@limiter.exempt
+async def health_check_v1():
+    """Liveness probe alias for v1 api."""
+    return await full_health()
+
+
 def check_ws_rate_limit(client_ip: str, max_requests: int = 20, period_seconds: int = 60) -> bool:
     """Sliding-window IP address rate-limiter for high-volume WebSocket clients."""
     now = time.time()

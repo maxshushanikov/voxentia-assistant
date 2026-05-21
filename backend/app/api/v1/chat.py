@@ -174,6 +174,14 @@ async def upload_custom_avatar(
     return {"message": "Custom avatar uploaded successfully"}
 
 
+@router.head("/avatar/custom")
+async def check_custom_avatar():
+    avatar_path = settings.DATA_DIR / "custom_avatar.glb"
+    if not avatar_path.exists():
+        raise HTTPException(status_code=404, detail="Custom avatar not found.")
+    return {}
+
+
 @router.get("/avatar/custom")
 async def get_custom_avatar():
     avatar_path = settings.DATA_DIR / "custom_avatar.glb"

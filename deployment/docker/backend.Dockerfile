@@ -8,10 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY core /build/core
-RUN pip install --no-cache-dir --prefix=/install -e /build/core
+RUN pip install --default-timeout=1000 --no-cache-dir --prefix=/install -e /build/core
 
 COPY backend/requirements.txt /build/requirements.txt
-RUN pip install --no-cache-dir --prefix=/install -r /build/requirements.txt
+RUN pip install --default-timeout=1000 --no-cache-dir --prefix=/install -r /build/requirements.txt
 
 FROM python:3.11-slim AS runtime
 WORKDIR /app

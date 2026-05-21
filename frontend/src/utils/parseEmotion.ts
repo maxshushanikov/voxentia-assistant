@@ -1,7 +1,5 @@
 import type { AvatarEmotion } from '../types';
 
-const EMOTION_TAGS = ['happy', 'think', 'thinking', 'sad', 'laugh', 'surprised', 'neutral'] as const;
-
 export function parseEmotionFromToken(token: string): AvatarEmotion | null {
   const match = token.match(/\[(happy|think|thinking|sad|laugh|surprised|neutral)\]/i);
   if (!match) return null;

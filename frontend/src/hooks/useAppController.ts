@@ -292,7 +292,7 @@ export function useAppController() {
                   : m,
               ),
             );
-            await playResponseAudio(dataA.audio_url);
+            await playResponseAudio(dataA.data.audio_url);
           } catch (error) {
             console.error('Non-stream comparison error:', error);
           } finally {

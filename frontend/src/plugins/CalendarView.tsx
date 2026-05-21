@@ -163,8 +163,8 @@ export default function CalendarView() {
         <div className="w-full glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
           <NavBar />
           <div className="space-y-0 divide-y divide-black/5 dark:divide-white/5">
-            {Array.from({ length: 14 }).map((_, i) => {
-              const hour = i + 7;
+            {Array.from({ length: 24 }).map((_, i) => {
+              const hour = i;
               const label = `${hour.toString().padStart(2,'0')}:00`;
               return (
                 <div
@@ -215,8 +215,8 @@ export default function CalendarView() {
           {/* Time slots */}
           <div className="grid grid-cols-8 divide-x divide-black/5 dark:divide-white/5 max-h-[520px] overflow-y-auto custom-scrollbar">
             <div className="divide-y divide-black/5 dark:divide-white/5">
-              {Array.from({ length: 14 }).map((_, i) => (
-                <div key={i} className="h-16 p-2 text-[9px] font-bold text-[var(--text-secondary)] text-right">{(i+7).toString().padStart(2,'0')}:00</div>
+              {Array.from({ length: 24 }).map((_, i) => (
+                <div key={i} className="h-16 p-2 text-[9px] font-bold text-[var(--text-secondary)] text-right">{i.toString().padStart(2,'0')}:00</div>
               ))}
             </div>
             {weekDays.map((day, i) => {
@@ -229,7 +229,7 @@ export default function CalendarView() {
                   className={`divide-y divide-black/5 dark:divide-white/5 relative ${isToday ? 'bg-[#2979ff06]' : ''}`}
                   onDoubleClick={openCreateModal}
                 >
-                  {Array.from({ length: 14 }).map((_, j) => (
+                  {Array.from({ length: 24 }).map((_, j) => (
                     <div key={j} className="h-16 hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2 transition-colors relative">
                       {j === 0 && dayEvents.length > 0 && dayEvents.map(ev => (
                         <div

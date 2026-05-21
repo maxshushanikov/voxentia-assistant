@@ -119,39 +119,40 @@ function App() {
           historyRefreshKey={historyRefreshKey}
         />
 
-        <main className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">
-          <section
-            className={`flex-1 flex flex-col h-full min-w-0 relative z-10 overflow-hidden transition-all duration-300 ${
-              showAvatar ? 'border-r border-white/10 lg:max-w-[52%]' : 'max-w-full'
-            }`}
-          >
-            <Header
-              onOpenSidebar={() => setIsSidebarOpen(true)}
-              language={language}
-              setLanguage={setLanguage}
-              speaker={speaker}
-              setSpeaker={setSpeaker}
-              personality={personality}
-              setPersonality={setPersonality}
-              isSettingsOpen={isSettingsOpen}
-              setIsSettingsOpen={setIsSettingsOpen}
-            />
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <Header
+            onOpenSidebar={() => setIsSidebarOpen(true)}
+            language={language}
+            setLanguage={setLanguage}
+            speaker={speaker}
+            setSpeaker={setSpeaker}
+            personality={personality}
+            setPersonality={setPersonality}
+            isSettingsOpen={isSettingsOpen}
+            setIsSettingsOpen={setIsSettingsOpen}
+          />
 
-            <ViewTransition viewKey={computedViewKey || viewKey}>
-              {renderMainView()}
-            </ViewTransition>
+          <main className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+            <section
+              className={`flex-1 flex flex-col h-full min-w-0 relative z-10 overflow-hidden transition-all duration-300 ${
+                showAvatar ? 'border-r border-white/10 lg:max-w-[52%]' : 'max-w-full'
+              }`}
+            >
+              <ViewTransition viewKey={computedViewKey || viewKey}>
+                {renderMainView()}
+              </ViewTransition>
 
-            <ChatInput
-              inputText={inputText}
-              setInputText={setInputText}
-              onSend={handleSend}
-              onMicClick={handleMicClick}
-              onFileClick={() => fileInputRef.current?.click()}
-              onNewChat={handleNewChat}
-              isRecording={isRecording}
-              isThinking={isThinking}
-            />
-          </section>
+              <ChatInput
+                inputText={inputText}
+                setInputText={setInputText}
+                onSend={handleSend}
+                onMicClick={handleMicClick}
+                onFileClick={() => fileInputRef.current?.click()}
+                onNewChat={handleNewChat}
+                isRecording={isRecording}
+                isThinking={isThinking}
+              />
+            </section>
 
           {showAvatar && (
             <section className="hidden lg:flex w-[48%] shrink-0 relative bg-[var(--bg-tertiary)]/20 border-l border-black/5 dark:border-white/5 min-h-0 h-full animate-fade-in">
@@ -166,7 +167,8 @@ function App() {
               </div>
             </section>
           )}
-        </main>
+          </main>
+        </div>
       </div>
     </I18nProvider>
   );
