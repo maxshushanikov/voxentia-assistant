@@ -10,11 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
-# Disable Chroma telemetry (avoids posthog "capture()" errors in Docker logs)
-os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
-
-import chromadb
-from chromadb.config import Settings as ChromaSettings
 from app.core.config import settings
 from app.services.embedding_cache import get_embedding_cache
 from pypdf import PdfReader
@@ -47,6 +42,11 @@ def get_collection():
     if _collection is None:
         if getattr(settings, "ENABLE_RAG", True):
             try:
+                # Lazy import: set telemetry env before chromadb loads (posthog compat)
+                os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+                import chromadb
+                from chromadb.config import Settings as ChromaSettings
+
                 _chroma_client = chromadb.PersistentClient(
                     path=str(settings.CHROMA_DIR),
                     settings=ChromaSettings(anonymized_telemetry=False),
