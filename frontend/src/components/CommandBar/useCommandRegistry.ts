@@ -39,26 +39,6 @@ export function useCommandRegistry(): Command[] {
     return [
       ...pluginCommands,
       {
-        id: 'cmd-calendar',
-        label: '📅 Kalender',
-        category: 'plugin',
-        keywords: ['kalender', 'calendar', 'termine', 'events'],
-        action: () => {
-          setActivePlugin('calendar');
-          setCommandBarOpen(false);
-        },
-      },
-      {
-        id: 'cmd-docs',
-        label: '📄 Dokumente',
-        category: 'plugin',
-        keywords: ['dokumente', 'documents', 'pdf', 'upload', 'rag'],
-        action: () => {
-          setActivePlugin('docs');
-          setCommandBarOpen(false);
-        },
-      },
-      {
         id: 'cmd-professional',
         label: '🎭 Persönlichkeit: Professionell',
         category: 'personality',

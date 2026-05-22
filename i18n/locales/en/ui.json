@@ -52,5 +52,15 @@
   "theme_glass": "Glass",
   "export_chat": "Export chat",
   "settings_streamResponses": "Stream responses",
-  "settings_streamResponsesDesc": "Show tokens live as the model generates (direct LLM; disable for full plugin routing)."
+  "settings_streamResponsesDesc": "Show tokens live as the model generates (direct LLM; disable for full plugin routing).",
+  "avatar_status_speaking": "Speaking",
+  "avatar_status_listening": "Listening",
+  "avatar_status_thinking": "Thinking",
+  "avatar_status_ready": "Ready",
+  "command_search_placeholder": "Search commands…",
+  "command_no_results": "No commands found",
+  "command_category_plugin": "Plugins",
+  "command_category_ui": "Interface",
+  "command_category_session": "Session",
+  "command_category_personality": "Personality"
 }

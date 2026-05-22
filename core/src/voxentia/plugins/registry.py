@@ -74,13 +74,15 @@ class PluginRegistry:
             return None
 
     async def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
-        """Resolve plugin by declared supported_intents (no hardcoded routing)."""
+        """Resolve plugin by declared supported_intents (lazy-load from registry)."""
+        for name, cls in self.plugin_classes.items():
+            if intent in cls.get_intents():
+                loaded = await self.get_plugin(name)
+                if loaded:
+                    return loaded
         for plugin in self.plugins.values():
             if intent in type(plugin).get_intents():
                 return plugin
-        for name, cls in self.plugin_classes.items():
-            if intent in cls.get_intents():
-                return await self.get_plugin(name)
         return None
 
     def all_intents(self) -> list[str]:

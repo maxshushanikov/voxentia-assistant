@@ -139,29 +139,34 @@ def extract_text_from_pdf(filepath: str) -> str:
     return text
 
 
-def hybrid_chunk(
-    text: str,
-    target_chars: int | None = None,
-    overlap_chars: int | None = None,
-    page_hint: int = 0,
+def _split_paragraphs(text: str) -> list[str]:
+    blocks = [b.strip() for b in re.split(r"\n\s*\n+", text) if b.strip()]
+    return blocks if blocks else [text.strip()] if text.strip() else []
+
+
+def _sentence_chunks_from_block(
+    block: str,
+    target_chars: int,
+    overlap_chars: int,
+    page_hint: int,
+    offset: int,
 ) -> list[RagChunk]:
-    """Sentence-aware chunks with sliding overlap — no external NLP deps."""
-    target_chars = target_chars or settings.RAG_CHUNK_SIZE
-    overlap_chars = overlap_chars or settings.RAG_CHUNK_OVERLAP
     sentences = [
         s.strip()
-        for s in re.split(r'(?<=[.!?])\s+(?=[A-ZÜÄÖ"\'])', text)
+        for s in re.split(r'(?<=[.!?])\s+(?=[A-ZÜÄÖ"\'])', block)
         if s.strip()
     ]
     if not sentences:
-        return [
-            RagChunk(c, page_hint, 0, len(c))
-            for c in split_text_chars(text, target_chars, overlap_chars)
-        ]
+        pos = offset
+        out: list[RagChunk] = []
+        for t in split_text_chars(block, target_chars, overlap_chars):
+            out.append(RagChunk(t, page_hint, pos, pos + len(t)))
+            pos += len(t)
+        return out
 
     chunks: list[RagChunk] = []
     current = ""
-    start = 0
+    start = offset
     for sent in sentences:
         candidate = f"{current} {sent}".strip() if current else sent
         if len(candidate) > target_chars and current:
@@ -178,6 +183,33 @@ def hybrid_chunk(
         chunk_text = current.strip()
         chunks.append(RagChunk(chunk_text, page_hint, start, start + len(chunk_text)))
     return chunks
+
+
+def hybrid_chunk(
+    text: str,
+    target_chars: int | None = None,
+    overlap_chars: int | None = None,
+    page_hint: int = 0,
+) -> list[RagChunk]:
+    """Paragraph- then sentence-aware chunks with sliding overlap."""
+    target_chars = target_chars or settings.RAG_CHUNK_SIZE
+    overlap_chars = overlap_chars or settings.RAG_CHUNK_OVERLAP
+    paragraphs = _split_paragraphs(text)
+    if not paragraphs:
+        return []
+
+    all_chunks: list[RagChunk] = []
+    cursor = 0
+    for para in paragraphs:
+        para_chunks = _sentence_chunks_from_block(
+            para, target_chars, overlap_chars, page_hint, cursor
+        )
+        all_chunks.extend(para_chunks)
+        if para_chunks:
+            cursor = para_chunks[-1].char_end + 1
+        else:
+            cursor += len(para) + 1
+    return all_chunks
 
 
 def split_text_sentences(

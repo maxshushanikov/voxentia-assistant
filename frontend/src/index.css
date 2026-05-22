@@ -15,6 +15,7 @@
     --accent-hover: #1c54b2;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
+    --danger: #ef4444;
     --glass-bg: rgba(22, 24, 33, 0.7);
     --body-grid: #1c54b222;
   }
@@ -28,6 +29,7 @@
     --accent-hover: #1557c0;
     --text-primary: #0f172a;
     --text-secondary: #64748b;
+    --danger: #dc2626;
     --glass-bg: rgba(255, 255, 255, 0.85);
     --body-grid: #2979ff18;
   }
@@ -41,6 +43,7 @@
     --accent-hover: #0ea5e9;
     --text-primary: #e2e8f0;
     --text-secondary: #94a3b8;
+    --danger: #f87171;
     --glass-bg: rgba(15, 30, 55, 0.45);
     --body-grid: #38bdf822;
   }

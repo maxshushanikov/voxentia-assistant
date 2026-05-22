@@ -8,6 +8,7 @@ class UserMemory(Base):
 
     id = Column(String(36), primary_key=True)
     session_id = Column(String(128), index=True, nullable=False)
+    user_id = Column(String(128), index=True, nullable=True)
     fact_key = Column(String(256), nullable=False)
     fact_value = Column(Text, nullable=False)
     source = Column(String(64), default="extracted")

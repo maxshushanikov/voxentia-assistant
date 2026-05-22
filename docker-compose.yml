@@ -80,9 +80,9 @@ services:
   db:
     image: postgres:15
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-      - POSTGRES_DB=voxentia
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pass}
+      - POSTGRES_DB=${POSTGRES_DB:-voxentia}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -100,13 +100,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - UVICORN_WORKERS=2
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-1}
       - PYTHONPATH=/app/core/src:/app/backend:/app
       - ANONYMIZED_TELEMETRY=False
       - OLLAMA_URL=http://ollama:11434
       - TTS_URL=http://tts-server:5002
       - WHISPER_URL=http://whisper-server:5003
-      - DB_PATH=postgresql+psycopg2://user:pass@db:5432/voxentia
+      - DB_PATH=postgresql+psycopg2://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-pass}@db:5432/${POSTGRES_DB:-voxentia}
+      - USER_FINGERPRINT=${USER_FINGERPRINT:-}
     volumes:
       # Runtime data only — plugins/code come from the image (see docker-compose.dev.yml)
       - ./data:/app/data
@@ -135,7 +136,8 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - avatar-network
 
@@ -164,7 +166,10 @@ services:
       - CADDY_GLOBAL_OPTIONS=auto_https disable_redirects
     command: caddy reverse-proxy --from https://localhost --to http://frontend:80 --internal-certs
     depends_on:
-      - frontend
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
     networks:
       - avatar-network
 

@@ -52,5 +52,15 @@
   "theme_glass": "Стекло",
   "export_chat": "Экспорт чата",
   "settings_streamResponses": "Потоковые ответы",
-  "settings_streamResponsesDesc": "Показывать токены по мере генерации (прямой LLM; выкл. для плагинов)."
+  "settings_streamResponsesDesc": "Показывать токены по мере генерации (прямой LLM; выкл. для плагинов).",
+  "avatar_status_speaking": "Говорит",
+  "avatar_status_listening": "Слушает",
+  "avatar_status_thinking": "Думает",
+  "avatar_status_ready": "Готов",
+  "command_search_placeholder": "Поиск команд…",
+  "command_no_results": "Команды не найдены",
+  "command_category_plugin": "Плагины",
+  "command_category_ui": "Интерфейс",
+  "command_category_session": "Сессия",
+  "command_category_personality": "Личность"
 }

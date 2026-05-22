@@ -38,20 +38,13 @@ TTS_PARALLEL_WORKERS = 3
 
 class ChatService:
     def __init__(self) -> None:
-        self.llm_client = OllamaClient(
-            base_url=settings.OLLAMA_URL,
-            default_model=settings.DEFAULT_MODEL,
-            timeout=settings.OLLAMA_TIMEOUT,
-        )
+        self.llm_client: OllamaClient | None = None
         self.registry = PluginRegistry()
-        self.orchestrator = Orchestrator(self.registry, self.llm_client)
-        self.memory_service = MemoryService(self.llm_client)
-        self.emotion_service = EmotionService(self.llm_client)
-        self.knowledge_service = KnowledgeService(self.llm_client)
-        self.model_router = ModelRouter(
-            default=settings.DEFAULT_MODEL,
-            ollama_url=settings.OLLAMA_URL,
-        )
+        self.orchestrator: Orchestrator | None = None
+        self.memory_service: MemoryService | None = None
+        self.emotion_service: EmotionService | None = None
+        self.knowledge_service: KnowledgeService | None = None
+        self.model_router: ModelRouter | None = None
         self._init_lock = asyncio.Lock()
         self._is_initialized = False
         self._router_refreshed = False
@@ -62,6 +55,20 @@ class ChatService:
         async with self._init_lock:
             if self._is_initialized:
                 return
+
+            self.llm_client = OllamaClient(
+                base_url=settings.OLLAMA_URL,
+                default_model=settings.DEFAULT_MODEL,
+                timeout=settings.OLLAMA_TIMEOUT,
+            )
+            self.memory_service = MemoryService(self.llm_client)
+            self.emotion_service = EmotionService(self.llm_client)
+            self.knowledge_service = KnowledgeService(self.llm_client)
+            self.model_router = ModelRouter(
+                default=settings.DEFAULT_MODEL,
+                ollama_url=settings.OLLAMA_URL,
+            )
+            self.orchestrator = Orchestrator(self.registry, self.llm_client)
 
             config_path = settings.PLUGIN_CONFIG_PATH
             config: dict = {"plugins": {}}
