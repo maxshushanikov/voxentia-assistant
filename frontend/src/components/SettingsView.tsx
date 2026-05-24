@@ -73,7 +73,7 @@ export default function SettingsView({
       <div className="max-w-4xl space-y-8">
         <section className="glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
           <div className="flex items-center mb-6">
-            <User className="w-5 h-5 text-[#2979ff] mr-3" />
+            <User className="w-5 h-5 text-[var(--accent)] mr-3" />
             <h3 className="text-lg font-medium text-[var(--text-primary)]">{t.settings_identityVoice}</h3>
           </div>
 
@@ -133,7 +133,7 @@ export default function SettingsView({
 
         <section className="glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
           <div className="flex items-center mb-6">
-            <Sparkles className="w-5 h-5 text-amber-500 mr-3" />
+            <Sparkles className="w-5 h-5 text-[var(--warning)] mr-3" />
             <h3 className="text-lg font-medium text-[var(--text-primary)]">Avatar Settings</h3>
           </div>
 
@@ -163,8 +163,8 @@ export default function SettingsView({
                     Upload Custom Avatar (.glb)
                   </span>
                   {uploading && <span className="text-xs text-[var(--accent)]">Uploading...</span>}
-                  {uploadSuccess && <span className="text-xs text-emerald-500">Upload successful!</span>}
-                  {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
+                  {uploadSuccess && <span className="text-xs text-[var(--success)]">Upload successful!</span>}
+                  {uploadError && <span className="text-xs text-[var(--danger)]">{uploadError}</span>}
                 </div>
 
                 <div className="flex items-center justify-center border border-dashed border-black/20 dark:border-white/20 rounded-[4px] p-6 hover:border-[var(--accent)] transition-all relative cursor-pointer">
@@ -189,7 +189,7 @@ export default function SettingsView({
 
         <section className="glass-card rounded-[8px] p-8 border border-black/5 dark:border-white/5">
           <div className="flex items-center mb-6">
-            <Shield className="w-5 h-5 text-emerald-500 mr-3" />
+            <Shield className="w-5 h-5 text-[var(--success)] mr-3" />
             <h3 className="text-lg font-medium text-[var(--text-primary)]">{t.settings_securityPrivacy}</h3>
           </div>
 
@@ -210,7 +210,7 @@ export default function SettingsView({
         <div className="flex justify-end pt-4">
           <button
             type="button"
-            className="px-8 py-3 bg-[#2979ff] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 uppercase tracking-widest"
+            className="px-8 py-3 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-colors shadow-lg shadow-[var(--accent)]/20 uppercase tracking-widest"
           >
             {t.common_saveChanges}
           </button>

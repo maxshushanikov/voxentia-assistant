@@ -40,7 +40,12 @@ async def check_xtts() -> dict:
     return await _probe(url, "/health", min(settings.XTTS_TIMEOUT, 5.0))
 
 
-async def full_health() -> dict:
+async def full_health(
+    capabilities: dict | None = None,
+    *,
+    event_bus: dict | None = None,
+    tracing: dict | None = None,
+) -> dict:
     ollama, tts, whisper, xtts = (
         await check_ollama(),
         await check_tts(),
@@ -49,8 +54,15 @@ async def full_health() -> dict:
     )
     services = {"ollama": ollama, "tts": tts, "whisper": whisper, "xtts": xtts}
     any_down = any(s.get("status") == "down" for s in services.values())
-    return {
+    payload: dict = {
         "status": "degraded" if any_down else "healthy",
         "version": settings.VERSION,
         "services": services,
     }
+    if capabilities is not None:
+        payload["capabilities"] = capabilities
+    if event_bus is not None:
+        payload["event_bus"] = event_bus
+    if tracing is not None:
+        payload["observability"] = tracing
+    return payload

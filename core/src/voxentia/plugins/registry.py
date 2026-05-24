@@ -73,13 +73,23 @@ class PluginRegistry:
             logger.error(f"Fehler beim Lazy Loading von {name}: {e}")
             return None
 
-    async def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
-        """Resolve plugin by declared supported_intents (lazy-load from registry)."""
+    def intent_declared(self, intent: str) -> bool:
+        """True if any registered plugin class declares this intent (enabled or not)."""
+        return any(intent in cls.get_intents() for cls in self.plugin_classes.values())
+
+    def plugin_name_for_intent(self, intent: str) -> Optional[str]:
         for name, cls in self.plugin_classes.items():
             if intent in cls.get_intents():
-                loaded = await self.get_plugin(name)
-                if loaded:
-                    return loaded
+                return name
+        return None
+
+    async def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
+        """Resolve plugin by declared intents; lazy-load from plugin_classes when enabled."""
+        name = self.plugin_name_for_intent(intent)
+        if name:
+            loaded = await self.get_plugin(name)
+            if loaded:
+                return loaded
         for plugin in self.plugins.values():
             if intent in type(plugin).get_intents():
                 return plugin

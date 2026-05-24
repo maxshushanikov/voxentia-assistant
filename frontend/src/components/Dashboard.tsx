@@ -145,7 +145,7 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
                       {p.description ?? p.id}
                     </p>
                   </div>
-                  <span className="text-[9px] uppercase font-bold text-amber-400 tracking-widest">
+                  <span className="text-[9px] uppercase font-bold text-[var(--warning)] tracking-widest">
                     disabled
                   </span>
                 </div>
@@ -175,24 +175,24 @@ function StatusCard({
 
   if (status === 'healthy' || status === 'up') {
     displayStatus = language === 'de' ? 'Online' : language === 'ru' ? 'В сети' : 'Online';
-    colorClass = 'text-emerald-400';
-    pulseClass = 'bg-emerald-400';
+    colorClass = 'text-[var(--success)]';
+    pulseClass = 'bg-[var(--success)]';
   } else if (status === 'starting' || status === 'initializing') {
     displayStatus = language === 'de' ? 'Initialisiert...' : language === 'ru' ? 'Запуск...' : 'Initializing...';
-    colorClass = 'text-amber-400';
-    pulseClass = 'bg-amber-400';
+    colorClass = 'text-[var(--warning)]';
+    pulseClass = 'bg-[var(--warning)]';
   } else if (status === 'disabled') {
     displayStatus = language === 'de' ? 'Deaktiviert' : language === 'ru' ? 'Отключен' : 'Disabled';
-    colorClass = 'text-gray-500';
-    pulseClass = 'bg-gray-500';
+    colorClass = 'text-[var(--text-muted)]';
+    pulseClass = 'bg-[var(--text-muted)]';
   } else if (status === 'checking') {
     displayStatus = language === 'de' ? 'Verbindet...' : language === 'ru' ? 'Проверка...' : 'Connecting...';
-    colorClass = 'text-blue-400';
-    pulseClass = 'bg-blue-400';
+    colorClass = 'text-[var(--accent)]';
+    pulseClass = 'bg-[var(--accent)]';
   } else {
     displayStatus = language === 'de' ? 'Offline' : language === 'ru' ? 'Не в сети' : 'Offline';
-    colorClass = 'text-red-500';
-    pulseClass = 'bg-red-500';
+    colorClass = 'text-[var(--danger)]';
+    pulseClass = 'bg-[var(--danger)]';
   }
 
   return (

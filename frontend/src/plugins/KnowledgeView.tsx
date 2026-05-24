@@ -62,7 +62,7 @@ export default function KnowledgeView() {
           type="button"
           onClick={() => void loadGraph()}
           disabled={loading}
-          className="px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold uppercase flex items-center gap-2"
+          className="px-4 py-2 btn-accent rounded-[4px] text-xs font-bold uppercase flex items-center gap-2"
         >
           <Search className="w-4 h-4" />
           Laden
@@ -70,7 +70,7 @@ export default function KnowledgeView() {
       </div>
 
       {error && (
-        <p className="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">
+        <p className="mb-4 text-sm alert-danger rounded px-3 py-2">
           {error}
         </p>
       )}

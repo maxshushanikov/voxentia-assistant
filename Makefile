@@ -1,6 +1,6 @@
 # Voxentia Makefile
 
-.PHONY: help install test test-all lint typecheck docker-up docker-down docs
+.PHONY: help install test test-all lint typecheck docker-up docker-down docs migrate
 
 help:
 	@echo "Verfügbare Befehle:"
@@ -11,6 +11,7 @@ help:
 	@echo "  make typecheck   - mypy (backend) + tsc (frontend)"
 	@echo "  make docker-up   - Startet den kompletten Stack via Docker"
 	@echo "  make docker-down - Stoppt alle Container"
+	@echo "  make migrate     - Alembic DB-Migrationen (aus backend/)"
 	@echo "  make docs        - MkDocs Entwicklungsserver"
 
 install:
@@ -38,6 +39,9 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+migrate:
+	cd backend && alembic upgrade head
 
 docs:
 	mkdocs serve

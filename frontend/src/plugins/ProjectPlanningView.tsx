@@ -50,7 +50,7 @@ export default function ProjectPlanningView() {
           <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2">{t.project_title}</h1>
           <p className="text-[var(--text-secondary)] text-sm">{t.project_subtitle}</p>
         </div>
-        <button onClick={addProject} className="flex items-center px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg">
+        <button onClick={addProject} className="flex items-center px-4 py-2 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-colors shadow-lg">
           <Plus className="w-4 h-4 mr-2" />
           {t.project_create}
         </button>
@@ -71,8 +71,8 @@ export default function ProjectPlanningView() {
              <div key={i} className="glass-card rounded-[8px] p-6 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 transition-all group">
                 <div className="flex justify-between items-start mb-6">
                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-[#2979ff]/10 rounded-[4px] flex items-center justify-center border border-[#2979ff]/20">
-                         <Target className="w-5 h-5 text-[#2979ff]" />
+                      <div className="w-10 h-10 bg-[var(--accent)]/10 rounded-[4px] flex items-center justify-center border border-[var(--accent)]/20">
+                         <Target className="w-5 h-5 text-[var(--accent)]" />
                       </div>
                       <div>
                          <h4 className="text-[var(--text-primary)] font-medium group-hover:text-[var(--accent)] transition-colors">{p.title}</h4>
@@ -90,14 +90,14 @@ export default function ProjectPlanningView() {
                       <span>{p.progress}%</span>
                    </div>
                    <div className="w-full h-1 bg-black/10 dark:bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#2979ff]" style={{ width: `${p.progress}%` }} />
+                      <div className="h-full bg-[var(--accent)]" style={{ width: `${p.progress}%` }} />
                    </div>
                 </div>
 
                 <div className="flex items-center justify-between mt-8">
                    <div className="flex -space-x-2">
                       {Array.from({ length: p.team }).map((_, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full bg-[var(--bg-secondary)] border border-black/10 dark:border-black/10 dark:border-white/10 flex items-center justify-center text-[8px] font-bold text-gray-400">
+                        <div key={i} className="w-6 h-6 rounded-full bg-[var(--bg-secondary)] border border-black/10 dark:border-black/10 dark:border-white/10 flex items-center justify-center text-[8px] font-bold text-[var(--text-secondary)]">
                           {String.fromCharCode(65 + i)}
                         </div>
                       ))}
@@ -107,7 +107,7 @@ export default function ProjectPlanningView() {
                          <LayoutGrid className="w-3 h-3 mr-1" />
                          {p.tasks} Tasks
                       </div>
-                      <div className="flex items-center text-[10px] text-emerald-500 font-bold uppercase">
+                      <div className="flex items-center text-[10px] text-[var(--success)] font-bold uppercase">
                          <Zap className="w-3 h-3 mr-1" />
                          On Track
                       </div>

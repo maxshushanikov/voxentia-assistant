@@ -108,14 +108,16 @@ async def get_embedding(text: str) -> list[float]:
         _embedding_cache[text] = disk
         return disk
 
-    from app.core.http_client import shared_client
+    from app.core.http_client import traced_post
+
     try:
-        response = await shared_client.post(
+        response = await traced_post(
+            "ollama",
             f"{settings.OLLAMA_URL}/api/embeddings",
             json={"model": settings.EMBEDDING_MODEL, "prompt": text},
             timeout=settings.OLLAMA_TIMEOUT,
+            operation="embeddings",
         )
-        response.raise_for_status()
         emb = response.json().get("embedding", [])
         if emb:
             _embedding_cache[text] = emb
@@ -139,8 +141,46 @@ def extract_text_from_pdf(filepath: str) -> str:
     return text
 
 
+_LIST_LINE = re.compile(r"^(\s*[-*•]\s+|\s*\d+[.)]\s+)")
+_TABLE_LINE = re.compile(r"^\|.+\|$")
+
+
+def _is_structured_line(line: str) -> bool:
+    stripped = line.strip()
+    return bool(_LIST_LINE.match(stripped) or _TABLE_LINE.match(stripped))
+
+
+def _split_structured_paragraph(para: str) -> list[str]:
+    """Keep markdown lists and table rows grouped for better RAG retrieval."""
+    lines = para.splitlines()
+    if not any(_is_structured_line(ln) for ln in lines):
+        return [para]
+
+    blocks: list[str] = []
+    current: list[str] = []
+    for line in lines:
+        if _is_structured_line(line):
+            if current and not all(_is_structured_line(l) for l in current):
+                blocks.append("\n".join(current).strip())
+                current = []
+            current.append(line)
+        else:
+            if current and all(_is_structured_line(l) for l in current):
+                blocks.append("\n".join(current).strip())
+                current = []
+            current.append(line)
+    if current:
+        blocks.append("\n".join(current).strip())
+    return [b for b in blocks if b]
+
+
 def _split_paragraphs(text: str) -> list[str]:
-    blocks = [b.strip() for b in re.split(r"\n\s*\n+", text) if b.strip()]
+    blocks: list[str] = []
+    for raw in re.split(r"\n\s*\n+", text):
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        blocks.extend(_split_structured_paragraph(stripped))
     return blocks if blocks else [text.strip()] if text.strip() else []
 
 

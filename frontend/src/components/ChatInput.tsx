@@ -58,7 +58,7 @@ export default function ChatInput({
               type="button"
               onClick={onNewChat}
               className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              title="New chat"
+              title={t.newChat}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -66,7 +66,7 @@ export default function ChatInput({
               type="button"
               onClick={onFileClick}
               className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              title="Attach file"
+              title={t.attach_file}
             >
               <Paperclip className="w-4 h-4" />
             </button>
@@ -80,7 +80,7 @@ export default function ChatInput({
                   <span className="w-[1.5px] bg-[var(--danger)] rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '70%', animationDelay: '0.3s', transformOrigin: 'bottom' }} />
                   <span className="w-[1.5px] bg-[var(--danger)] rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '100%', animationDelay: '0.5s', transformOrigin: 'bottom' }} />
                   <span className="w-[1.5px] bg-[var(--danger)] rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '60%', animationDelay: '0.2s', transformOrigin: 'bottom' }} />
-                  <span className="w-[1.5px] bg-red-500 rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '40%', animationDelay: '0.4s', transformOrigin: 'bottom' }} />
+                  <span className="w-[1.5px] bg-[var(--danger)] rounded-full animate-[soundwave_0.8s_infinite_ease-in-out]" style={{ height: '40%', animationDelay: '0.4s', transformOrigin: 'bottom' }} />
                 </div>
               </div>
             )}
@@ -91,20 +91,20 @@ export default function ChatInput({
                 'p-2 transition-colors relative',
                 isRecording ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]',
               )}
-              title={isRecording ? 'Stop recording' : 'Start recording'}
-              aria-label={isRecording ? 'Sprachaufnahme stoppen' : 'Sprachaufnahme starten'}
+              title={isRecording ? t.stop_recording : t.start_recording}
+              aria-label={isRecording ? t.stop_recording : t.start_recording}
               role="button"
             >
               <Mic className="w-4 h-4" />
-              {isRecording && <span className="absolute inset-0 rounded-full animate-ping bg-red-500/20" />}
+              {isRecording && <span className="absolute inset-0 rounded-full animate-ping bg-[var(--danger)]/20" />}
             </button>
             <button
               type="button"
               onClick={onSend}
               disabled={isThinking}
               className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
-              title="Send"
-              aria-label="Nachricht senden"
+              title={t.send_message}
+              aria-label={t.send_message}
               role="button"
             >
               <Send className="w-4 h-4" />

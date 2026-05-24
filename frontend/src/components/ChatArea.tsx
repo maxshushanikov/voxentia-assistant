@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Sparkles, MessageSquare, Zap, Shield, Copy, Pencil, RefreshCw, Cpu, GitBranch } from 'lucide-react';
+import MarkdownMessage from './MarkdownMessage';
 import type { ReactNode } from 'react';
 
 import { useTranslation } from '../i18n/context';
@@ -37,7 +37,7 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl">
           <WelcomeTile
-            icon={<Zap className="w-4 h-4 text-amber-500" />}
+            icon={<Zap className="w-4 h-4 text-[var(--warning)]" />}
             title={t.chat_quickAnalysis}
             desc={t.chat_quickAnalysisDesc}
             onClick={() => onTileClick?.((t as unknown as Record<string, string>).chat_quickAnalysisPrompt || t.chat_quickAnalysis)}
@@ -49,7 +49,7 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
             onClick={() => onTileClick?.((t as unknown as Record<string, string>).chat_creativeWritingPrompt || t.chat_creativeWriting)}
           />
           <WelcomeTile
-            icon={<Shield className="w-4 h-4 text-emerald-500" />}
+            icon={<Shield className="w-4 h-4 text-[var(--success)]" />}
             title={t.chat_privateSecure}
             desc={t.chat_privateSecureDesc}
             onClick={() => onTileClick?.((t as unknown as Record<string, string>).chat_privateSecurePrompt || t.chat_privateSecure)}
@@ -115,12 +115,12 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-[60vw]">
                   <div className="flex flex-col border-r border-black/10 dark:border-white/10 pr-6 last:border-r-0 last:pr-0">
                     <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-black/5 dark:border-b-white/5">
-                      <Cpu className="w-3.5 h-3.5 text-[#2979ff]" />
+                      <Cpu className="w-3.5 h-3.5 text-[var(--accent)]" />
                       <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                         {msg.comparison.modelA}
                       </span>
                       {msg.comparison.streamingA && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2979ff] animate-ping" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-ping" />
                       )}
                       {msg.comparison.latencyA != null && !msg.comparison.streamingA && (
                         <span className="text-[10px] text-[var(--text-secondary)] ml-auto">
@@ -129,47 +129,18 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                       )}
                     </div>
                     <div className="flex-1 overflow-x-auto min-w-0">
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          code: (props) => {
-                            const { children, className, ...rest } = props;
-                            const match = /language-(\w+)/.exec(className || '');
-                            return match ? (
-                              <div className="relative group/code mt-2 mb-4">
-                                <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
-                                    className="bg-black/30 hover:bg-black/50 dark:bg-white/10 dark:hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/10"
-                                  >
-                                    Copy
-                                  </button>
-                                </div>
-                                <code className={cn("block bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/5 p-4 rounded text-xs overflow-x-auto", className)} {...rest}>
-                                  {children}
-                                </code>
-                              </div>
-                            ) : (
-                              <code className="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/5 px-1.5 py-0.5 rounded text-[13px]" {...rest}>
-                                {children}
-                              </code>
-                            )
-                          },
-                        }}
-                      >
-                        {msg.comparison.contentA}
-                      </ReactMarkdown>
+                      <MarkdownMessage content={msg.comparison.contentA} />
                     </div>
                   </div>
 
                   <div className="flex flex-col">
                     <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-black/5 dark:border-b-white/5">
-                      <Cpu className="w-3.5 h-3.5 text-amber-500" />
+                      <Cpu className="w-3.5 h-3.5 text-[var(--warning)]" />
                       <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                         {msg.comparison.modelB}
                       </span>
                       {msg.comparison.streamingB && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)] animate-ping" />
                       )}
                       {msg.comparison.latencyB != null && !msg.comparison.streamingB && (
                         <span className="text-[10px] text-[var(--text-secondary)] ml-auto">
@@ -178,73 +149,15 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                       )}
                     </div>
                     <div className="flex-1 overflow-x-auto min-w-0">
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          code: (props) => {
-                            const { children, className, ...rest } = props;
-                            const match = /language-(\w+)/.exec(className || '');
-                            return match ? (
-                              <div className="relative group/code mt-2 mb-4">
-                                <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
-                                    className="bg-black/30 hover:bg-black/50 dark:bg-white/10 dark:hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/10"
-                                  >
-                                    Copy
-                                  </button>
-                                </div>
-                                <code className={cn("block bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/5 p-4 rounded text-xs overflow-x-auto", className)} {...rest}>
-                                  {children}
-                                </code>
-                              </div>
-                            ) : (
-                              <code className="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/5 px-1.5 py-0.5 rounded text-[13px]" {...rest}>
-                                {children}
-                              </code>
-                            )
-                          },
-                        }}
-                      >
-                        {msg.comparison.contentB}
-                      </ReactMarkdown>
+                      <MarkdownMessage content={msg.comparison.contentB} />
                     </div>
                   </div>
                 </div>
               ) : (
-                <ReactMarkdown
-                  components={{
-                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                    code: (props) => {
-                      const { children, className, ...rest } = props;
-                      const match = /language-(\w+)/.exec(className || '');
-                      return match ? (
-                        <div className="relative group/code mt-2 mb-4">
-                          <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => navigator.clipboard.writeText(String(children).replace(/\n$/, ''))}
-                              className="bg-black/30 hover:bg-black/50 dark:bg-white/10 dark:hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/10"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                          <code className={cn("block bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/5 p-4 rounded text-xs overflow-x-auto", className)} {...rest}>
-                            {children}
-                          </code>
-                        </div>
-                      ) : (
-                        <code className="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/5 px-1.5 py-0.5 rounded text-[13px]" {...rest}>
-                          {children}
-                        </code>
-                      )
-                    },
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
+                <MarkdownMessage content={msg.content} />
               )}
               {msg.role === 'assistant' && msg.intentConfidence != null && msg.intentConfidence < 0.6 && (
-                <p className="mt-2 text-[11px] text-amber-600/90 dark:text-amber-400/90 italic">
+                <p className="mt-2 text-[11px] text-[var(--warning)] italic">
                   Ich bin mir bei der Interpretation unsicher — meintest du das so?
                 </p>
               )}

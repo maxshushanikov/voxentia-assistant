@@ -44,7 +44,7 @@ export default function ModelSelect() {
   return (
     <div className="hidden sm:flex items-center gap-2">
       <div className="flex items-center gap-1.5">
-        <Cpu className="w-3.5 h-3.5 text-[#2979ff] shrink-0" />
+        <Cpu className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
         <select
           value={selectedModel ?? ''}
           onChange={(e) => setSelectedModel(e.target.value || null)}
@@ -63,7 +63,7 @@ export default function ModelSelect() {
         onClick={() => setCompareMode(!compareMode)}
         className={`p-1.5 rounded-[4px] border transition-all ${
           compareMode
-            ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+            ? 'bg-[var(--warning)]/10 border-[var(--warning)]/30 text-[var(--warning)]'
             : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
         }`}
         title="Compare Models side-by-side"
@@ -73,11 +73,11 @@ export default function ModelSelect() {
 
       {compareMode && (
         <div className="flex items-center gap-1.5 animate-fade-in">
-          <Cpu className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <Cpu className="w-3.5 h-3.5 text-[var(--warning)] shrink-0" />
           <select
             value={selectedModelB ?? ''}
             onChange={(e) => setSelectedModelB(e.target.value || null)}
-            className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-[4px] text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] px-2 py-1.5 max-w-[140px] truncate focus:outline-none focus:border-amber-500 transition-colors"
+            className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-[4px] text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] px-2 py-1.5 max-w-[140px] truncate focus:outline-none focus:border-[var(--warning)] transition-colors"
             title="LLM model B"
           >
             {models.map((name) => (

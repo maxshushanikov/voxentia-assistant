@@ -258,7 +258,7 @@ function Avatar({
   const badgeClass = isListening
     ? 'bg-[var(--danger)]/15 text-[var(--danger)] border-[var(--danger)]/30'
     : isThinking || emotion === 'thinking'
-      ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+      ? 'bg-[var(--warning)]/15 text-[var(--warning)] border-[var(--warning)]/30'
       : isSpeaking
         ? 'bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/30'
         : 'bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] border-black/10 dark:border-white/10';
@@ -278,20 +278,20 @@ function Avatar({
         >
           {badgeText}
         </span>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#2979ff]/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#2979ff]/15 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--accent)]/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[var(--accent)]/15 rounded-full blur-[80px] pointer-events-none" />
 
         <div className="relative flex items-center justify-center w-36 h-36 rounded-full bg-gradient-to-tr from-[var(--bg-primary)] to-[var(--bg-secondary)] border border-white/10 shadow-2xl">
           {isSpeaking && (
             <>
-              <div className="absolute inset-0 rounded-full border-2 border-[#2979ff]/50 animate-ping opacity-75" />
-              <div className="absolute -inset-4 rounded-full border border-[#2979ff]/30 animate-pulse opacity-50" />
+              <div className="absolute inset-0 rounded-full border-2 border-[var(--accent)]/50 animate-ping opacity-75" />
+              <div className="absolute -inset-4 rounded-full border border-[var(--accent)]/30 animate-pulse opacity-50" />
             </>
           )}
           
-          <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-b from-[#2979ff]/20 to-[#2979ff]/5 flex items-center justify-center border border-[#2979ff]/20">
+          <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center border border-[var(--accent)]/20">
             <svg 
-              className={`w-16 h-16 transition-all duration-300 ${isSpeaking ? 'text-[#2979ff] scale-110' : 'text-[var(--text-secondary)] scale-100'}`} 
+              className={`w-16 h-16 transition-all duration-300 ${isSpeaking ? 'text-[var(--accent)] scale-110' : 'text-[var(--text-secondary)] scale-100'}`} 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor" 

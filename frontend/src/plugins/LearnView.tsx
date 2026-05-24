@@ -74,7 +74,7 @@ function Dashboard({ onSelect }: { onSelect: (m: LearnMode) => void }) {
       <section>
         <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6">Learning Stats</h3>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-           <StatsBox label="WORDS LEARNED" value="1,248" color="#2979ff" />
+           <StatsBox label="WORDS LEARNED" value="1,248" color="var(--accent)" />
            <StatsBox label="SIMULATIONS" value="42" color="#10b981" />
            <StatsBox label="ACCURACY" value="94%" color="#fbbf24" />
            <StatsBox label="STREAK" value="12 Days" color="#f43f5e" />
@@ -87,9 +87,9 @@ function Dashboard({ onSelect }: { onSelect: (m: LearnMode) => void }) {
 function LearnTile({ icon, title, description, buttonLabel, onClick, highlight = false }: { icon: React.ReactNode, title: string, description: string, buttonLabel: string, onClick: () => void, highlight?: boolean }) {
   return (
     <div className={`glass-card rounded-[12px] p-8 border transition-all group flex flex-col h-full
-      ${highlight ? 'border-[#2979ff]/30 bg-[#2979ff]/5' : 'border-white/5 hover:border-black/10 dark:border-white/10'}
+      ${highlight ? 'border-[var(--accent)]/30 bg-[var(--accent)]/5' : 'border-white/5 hover:border-black/10 dark:border-white/10'}
     `}>
-       <div className="w-12 h-12 bg-black/10 dark:bg-black/5 dark:bg-white/5 rounded-[4px] flex items-center justify-center text-[#2979ff] mb-8 group-hover:scale-110 transition-transform">
+       <div className="w-12 h-12 bg-black/10 dark:bg-black/5 dark:bg-white/5 rounded-[4px] flex items-center justify-center text-[var(--accent)] mb-8 group-hover:scale-110 transition-transform">
           {icon}
        </div>
        <h3 className="text-xl text-[var(--text-primary)] font-medium mb-3">{title}</h3>
@@ -97,7 +97,7 @@ function LearnTile({ icon, title, description, buttonLabel, onClick, highlight =
        <button 
          onClick={onClick}
          className={`w-full py-3 rounded-[4px] text-xs font-bold uppercase tracking-widest transition-all
-           ${highlight ? 'bg-[var(--accent)] text-[var(--text-primary)] hover:bg-blue-600 shadow-lg shadow-blue-500/20' : 'bg-black/10 dark:bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] hover:bg-black/10 dark:hover:bg-black/10 dark:bg-white/10 hover:text-[var(--text-primary)]'}
+           ${highlight ? 'btn-accent hover:bg-[var(--accent-hover)] shadow-lg shadow-[var(--accent)]/20' : 'bg-black/10 dark:bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] hover:bg-black/10 dark:hover:bg-black/10 dark:bg-white/10 hover:text-[var(--text-primary)]'}
          `}
        >
           {buttonLabel}
@@ -132,7 +132,7 @@ function LanguageTraining({ onBack }: { onBack: () => void }) {
              &lt; Exit Training
           </button>
           <div className="flex items-center space-x-2">
-             <Sparkles className="w-4 h-4 text-[#2979ff]" />
+             <Sparkles className="w-4 h-4 text-[var(--accent)]" />
              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Powered by Voxentia AI</span>
           </div>
        </div>
@@ -149,7 +149,7 @@ function LanguageTraining({ onBack }: { onBack: () => void }) {
                    <div 
                      key={mode.id}
                      onClick={() => setActiveMode(mode.id)}
-                     className="glass-card rounded-[8px] p-6 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 hover:bg-[#2979ff]/5 cursor-pointer transition-all group"
+                     className="glass-card rounded-[8px] p-6 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 hover:bg-[var(--accent)]/5 cursor-pointer transition-all group"
                    >
                       <div className="flex items-center space-x-6">
                          <div className="w-12 h-12 bg-black/10 dark:bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:bg-black/10 dark:hover:bg-black/10 dark:bg-white/10 transition-all">
@@ -159,7 +159,7 @@ function LanguageTraining({ onBack }: { onBack: () => void }) {
                             <h4 className="text-[var(--text-primary)] font-medium mb-1">{mode.label}</h4>
                             <p className="text-[var(--text-secondary)] text-xs">{mode.desc}</p>
                          </div>
-                         <ArrowRight className="w-4 h-4 text-gray-700 group-hover:text-[var(--accent)] transition-colors" />
+                         <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors" />
                       </div>
                    </div>
                 ))}
@@ -167,9 +167,9 @@ function LanguageTraining({ onBack }: { onBack: () => void }) {
           ) : (
              <div className="text-center animate-in zoom-in-95">
                 <div className="w-32 h-32 relative mx-auto mb-12">
-                   <div className="absolute inset-0 bg-[#2979ff]/20 rounded-full animate-ping"></div>
-                   <div className="relative w-full h-full bg-[var(--bg-secondary)] rounded-full border-2 border-[#2979ff] flex items-center justify-center">
-                      <Mic className="w-12 h-12 text-[#2979ff]" />
+                   <div className="absolute inset-0 bg-[var(--accent)]/20 rounded-full animate-ping"></div>
+                   <div className="relative w-full h-full bg-[var(--bg-secondary)] rounded-full border-2 border-[var(--accent)] flex items-center justify-center">
+                      <Mic className="w-12 h-12 text-[var(--accent)]" />
                    </div>
                 </div>
                 <h3 className="text-2xl text-[var(--text-primary)] mb-4">Listening for your response...</h3>
@@ -177,7 +177,7 @@ function LanguageTraining({ onBack }: { onBack: () => void }) {
                 <div className="flex justify-center space-x-1 mb-12 h-8 items-center">
                    {[...Array(12)].map((_, i) => (
                       // eslint-disable-next-line react-hooks/purity
-                      <div key={i} className="w-1 bg-[#2979ff] rounded-full" style={{ height: `${Math.random() * 100}%`, transition: 'height 0.2s ease' }}></div>
+                      <div key={i} className="w-1 bg-[var(--accent)] rounded-full" style={{ height: `${Math.random() * 100}%`, transition: 'height 0.2s ease' }}></div>
                    ))}
                 </div>
                 <button 

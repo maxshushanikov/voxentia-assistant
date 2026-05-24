@@ -19,7 +19,7 @@ function categoryLabel(
     ui: t.command_category_ui,
     session: t.command_category_session,
     personality: t.command_category_personality,
-    model: 'Model',
+    model: t.command_category_model ?? 'Model',
   };
   return map[category] ?? category;
 }

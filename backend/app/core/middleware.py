@@ -5,6 +5,7 @@ from contextvars import ContextVar
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from voxentia.observability.tracing import get_trace_id
 
 request_id_ctx: ContextVar[str] = ContextVar("request_id", default="-")
 
@@ -25,6 +26,9 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
             request_id_ctx.reset(token)
 
         response.headers["X-Request-ID"] = request_id
+        trace_id = get_trace_id()
+        if trace_id:
+            response.headers["X-Trace-ID"] = trace_id
         return response
 
 

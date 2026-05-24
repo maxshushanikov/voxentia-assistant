@@ -77,6 +77,18 @@ services:
     networks:
       - avatar-network
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - avatar-network
+
   db:
     image: postgres:15
     environment:
@@ -86,7 +98,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d voxentia"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,6 +120,12 @@ services:
       - WHISPER_URL=http://whisper-server:5003
       - DB_PATH=postgresql+psycopg2://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-pass}@db:5432/${POSTGRES_DB:-voxentia}
       - USER_FINGERPRINT=${USER_FINGERPRINT:-}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - ENABLE_EVENT_BUS=${ENABLE_EVENT_BUS:-true}
+      - ENABLE_TRACING=${ENABLE_TRACING:-true}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - ENABLE_METRICS=${ENABLE_METRICS:-true}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
     volumes:
       # Runtime data only — plugins/code come from the image (see docker-compose.dev.yml)
       - ./data:/app/data
@@ -125,6 +143,8 @@ services:
       whisper-server:
         condition: service_healthy
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - avatar-network

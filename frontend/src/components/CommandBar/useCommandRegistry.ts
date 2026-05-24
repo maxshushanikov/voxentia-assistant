@@ -25,22 +25,38 @@ export function useCommandRegistry(): Command[] {
   const setCommandBarOpen = useAppStore((s) => s.setCommandBarOpen);
 
   return useMemo(() => {
+    const tr = t as unknown as Record<string, string>;
+
     const pluginCommands: Command[] = plugins.map((p) => ({
       id: `cmd-plugin-${p.id}`,
-      label: `📦 ${(t as unknown as Record<string, string>)[p.nameKey] ?? p.nameKey}`,
+      label: `📦 ${tr[p.nameKey] ?? p.nameKey}`,
       category: 'plugin' as const,
-      keywords: [p.id, p.nameKey, (t as unknown as Record<string, string>)[p.nameKey] ?? ''],
+      keywords: [p.id, p.nameKey, tr[p.nameKey] ?? ''],
       action: () => {
         setActivePlugin(p.id);
         setCommandBarOpen(false);
       },
     }));
 
+    const pluginQuickCommands: Command[] = plugins.flatMap((p) =>
+      (p.quickCommands ?? []).map((qc) => ({
+        id: `cmd-${qc.id}`,
+        label: `⚡ ${tr[qc.labelKey] ?? qc.labelKey}`,
+        category: 'plugin' as const,
+        keywords: [...qc.keywords, p.id, tr[p.nameKey] ?? ''],
+        action: () => {
+          setActivePlugin(p.id);
+          setCommandBarOpen(false);
+        },
+      })),
+    );
+
     return [
       ...pluginCommands,
+      ...pluginQuickCommands,
       {
         id: 'cmd-professional',
-        label: '🎭 Persönlichkeit: Professionell',
+        label: `🎭 ${tr.cmd_personality_professional}`,
         category: 'personality',
         keywords: ['personality', 'professional', 'formal'],
         action: () => {
@@ -50,7 +66,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-friendly',
-        label: '🎭 Persönlichkeit: Freundlich',
+        label: `🎭 ${tr.cmd_personality_friendly}`,
         category: 'personality',
         keywords: ['friendly', 'freundlich', 'happy'],
         action: () => {
@@ -60,7 +76,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-lang-de',
-        label: '🌐 Sprache: Deutsch',
+        label: `🌐 ${tr.cmd_language_de}`,
         category: 'ui',
         keywords: ['deutsch', 'german', 'language', 'sprache'],
         action: () => {
@@ -70,7 +86,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-lang-en',
-        label: '🌐 Sprache: English',
+        label: `🌐 ${tr.cmd_language_en}`,
         category: 'ui',
         keywords: ['english', 'englisch', 'language'],
         action: () => {
@@ -80,7 +96,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-theme-dark',
-        label: '🌙 Theme: Dark',
+        label: `🌙 ${tr.cmd_theme_dark}`,
         category: 'ui',
         keywords: ['dark', 'theme', 'dunkel'],
         action: () => {
@@ -90,7 +106,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-theme-light',
-        label: '☀️ Theme: Light',
+        label: `☀️ ${tr.cmd_theme_light}`,
         category: 'ui',
         keywords: ['light', 'theme', 'hell'],
         action: () => {
@@ -100,7 +116,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-avatar-toggle',
-        label: showAvatar ? '👤 Avatar ausblenden' : '👤 Avatar einblenden',
+        label: showAvatar ? `👤 ${tr.cmd_avatar_hide}` : `👤 ${tr.cmd_avatar_show}`,
         category: 'ui',
         keywords: ['avatar', '3d', 'anzeige'],
         action: () => {
@@ -110,7 +126,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-reset',
-        label: '🗑️ Neuer Chat',
+        label: `🗑️ ${tr.newChat}`,
         category: 'session',
         shortcut: 'Ctrl+Shift+N',
         keywords: ['neu', 'new', 'reset', 'clear', 'leeren', 'session'],
@@ -121,7 +137,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-knowledge',
-        label: '🧠 Wissensgraph',
+        label: `🧠 ${tr.cmd_knowledge_graph}`,
         category: 'plugin',
         keywords: ['knowledge', 'graph', 'wissen', 'triplets'],
         action: () => {
@@ -131,7 +147,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-marketplace',
-        label: '🛒 Plugin Marketplace',
+        label: `🛒 ${tr.cmd_marketplace}`,
         category: 'plugin',
         keywords: ['marketplace', 'plugins', 'install'],
         action: () => {
@@ -141,7 +157,7 @@ export function useCommandRegistry(): Command[] {
       },
       {
         id: 'cmd-help',
-        label: '❓ Tastenkürzel',
+        label: `❓ ${tr.cmd_shortcuts}`,
         category: 'ui',
         shortcut: 'Ctrl+/',
         keywords: ['help', 'shortcuts', 'hilfe', 'tasten'],

@@ -14,6 +14,13 @@ def test_persistent_embedding_cache_roundtrip(tmp_path):
     cache.close()
 
 
+def test_hybrid_chunk_preserves_list_block():
+    text = "Intro paragraph.\n\n- Item one\n- Item two\n- Item three\n\nClosing paragraph."
+    chunks = rag_service.hybrid_chunk(text, target_chars=80, overlap_chars=10)
+    list_chunk = next((c for c in chunks if "Item one" in c.text and "Item two" in c.text), None)
+    assert list_chunk is not None
+
+
 def test_hybrid_chunk_overlap():
     text = "First sentence here. Second sentence follows. Third one ends it."
     chunks = rag_service.hybrid_chunk(text, target_chars=40, overlap_chars=10)

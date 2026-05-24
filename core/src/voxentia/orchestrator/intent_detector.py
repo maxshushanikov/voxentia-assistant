@@ -220,9 +220,11 @@ class IntentDetector:
                 return keyword_intent, entities, 0.85, "keyword"
 
             resolved = llm_intent or "fallback"
-            if resolved != "fallback" and self.registry and not self.registry.get_plugin_for_intent(resolved):
-                logger.info("LLM intent %s has no plugin — fallback", resolved)
-                return "fallback", entities, float(confidence), "llm"
+            if resolved != "fallback" and self.registry:
+                plugin = await self.registry.get_plugin_for_intent(resolved)
+                if not plugin and not self.registry.intent_declared(resolved):
+                    logger.info("LLM intent %s has no plugin — fallback", resolved)
+                    return "fallback", entities, float(confidence), "llm"
             return resolved, entities, float(confidence), "llm"
         except Exception as e:
             logger.error("Fehler bei LLM-Intent-Erkennung: %s", e)

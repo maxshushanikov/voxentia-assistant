@@ -4,7 +4,8 @@ import re
 
 import httpx
 from app.core.config import settings
-from app.core.http_client import shared_client
+from app.core.events import publish_app_event
+from app.core.http_client import traced_get, traced_post
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,14 @@ def sanitize_for_tts(text: str) -> str:
     return text[:MAX_TTS_CHARS]
 
 
-async def generate_tts_audio(text: str, speaker: str, language: str) -> str | None:
+async def generate_tts_audio(
+    text: str,
+    speaker: str,
+    language: str,
+    *,
+    event_bus=None,
+    session_id: str | None = None,
+) -> str | None:
     """Proxy to TTS server and cache locally."""
     clean_text = sanitize_for_tts(text)
     if not clean_text:
@@ -38,12 +46,20 @@ async def generate_tts_audio(text: str, speaker: str, language: str) -> str | No
         return f"/api/tts-audio/{filename}"
 
     try:
-        response = await shared_client.post(
+        if event_bus is not None:
+            await publish_app_event(
+                event_bus,
+                "voice.tts.requested",
+                {"session_id": session_id, "speaker": speaker, "language": language},
+            )
+
+        response = await traced_post(
+            "tts",
             f"{settings.TTS_URL}/tts",
             json={"text": clean_text, "speaker": speaker, "language": language},
             timeout=TTS_TIMEOUT,
+            operation="synthesize",
         )
-        response.raise_for_status()
         result = response.json()
 
         audio_remote_url = result.get("audio_url")
@@ -51,15 +67,23 @@ async def generate_tts_audio(text: str, speaker: str, language: str) -> str | No
             logger.warning("TTS server returned no audio_url: %s", result)
             return None
 
-        audio_response = await shared_client.get(
+        audio_response = await traced_get(
+            "tts",
             f"{settings.TTS_URL}{audio_remote_url}",
             timeout=TTS_TIMEOUT,
+            operation="fetch_audio",
         )
-        audio_response.raise_for_status()
 
         filepath.parent.mkdir(parents=True, exist_ok=True)
         filepath.write_bytes(audio_response.content)
         logger.info("TTS cached: %s (%d bytes)", filename, len(audio_response.content))
+
+        if event_bus is not None:
+            await publish_app_event(
+                event_bus,
+                "voice.tts.completed",
+                {"session_id": session_id, "cached": filename},
+            )
         return f"/api/tts-audio/{filename}"
     except httpx.HTTPStatusError as e:
         logger.warning(
@@ -73,17 +97,30 @@ async def generate_tts_audio(text: str, speaker: str, language: str) -> str | No
 
 
 async def transcribe_audio_file(
-    audio_bytes: bytes, filename: str, content_type: str, language: str = "en"
+    audio_bytes: bytes,
+    filename: str,
+    content_type: str,
+    language: str = "en",
+    *,
+    event_bus=None,
 ) -> str:
     try:
-        response = await shared_client.post(
+        response = await traced_post(
+            "whisper",
             f"{settings.WHISPER_URL}/transcribe",
             files={"audio": (filename, audio_bytes, content_type)},
             data={"language": language},
             timeout=60.0,
+            operation="transcribe",
         )
-        response.raise_for_status()
-        return response.json().get("text", "")
+        text = response.json().get("text", "")
+        if event_bus is not None:
+            await publish_app_event(
+                event_bus,
+                "voice.stt.completed",
+                {"language": language, "chars": len(text)},
+            )
+        return text
     except Exception as e:
         logger.warning("Transcription error: %s", e)
         return ""
@@ -98,7 +135,10 @@ async def clone_voice_sample(
         return {"error": "XTTS_URL not configured"}
 
     try:
-        response = await shared_client.post(
+        from app.core.http_client import traced_post as _traced_post
+
+        response = await _traced_post(
+            "xtts",
             f"{xtts_url.rstrip('/')}/register",
             files={"audio": (filename, audio_bytes, "audio/wav")},
             data={"speaker_id": speaker_id},

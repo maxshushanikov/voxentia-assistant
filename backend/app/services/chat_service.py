@@ -18,9 +18,12 @@ from app.services.emotion_service import EmotionService
 from app.services.knowledge_service import KnowledgeService
 from app.services.memory_service import MemoryService
 from app.services.rag_service import RagSourceHit, search_sources
+from app.core.events import publish_app_event
 from app.services.voice_service import generate_tts_audio
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from voxentia.capabilities.registry import CapabilityRegistry
+from voxentia.events.bus import create_event_bus
 from voxentia.orchestrator.model_router import ModelRouter
 from voxentia.orchestrator.router import Orchestrator
 from voxentia.plugins.base import PluginContext
@@ -45,6 +48,11 @@ class ChatService:
         self.emotion_service: EmotionService | None = None
         self.knowledge_service: KnowledgeService | None = None
         self.model_router: ModelRouter | None = None
+        self.capabilities = CapabilityRegistry()
+        self.event_bus = create_event_bus(
+            getattr(settings, "REDIS_URL", None),
+            getattr(settings, "ENABLE_EVENT_BUS", False),
+        )
         self._init_lock = asyncio.Lock()
         self._is_initialized = False
         self._router_refreshed = False
@@ -87,8 +95,39 @@ class ChatService:
             except Exception as e:
                 logger.exception("Plugin initialization failed: %s", e)
 
+            self._refresh_capabilities()
+            if getattr(settings, "ENABLE_EVENT_BUS", False):
+                if await self.event_bus.ensure_connected():
+                    logger.info("Event bus connected (Redis Streams)")
+                else:
+                    logger.info("Event bus active (in-process handlers only)")
+
             self._is_initialized = True
             logger.info("Chat service initialized with %d plugin(s)", len(self.registry.plugins))
+
+    def _refresh_capabilities(self) -> None:
+        self.capabilities.register_service(
+            "ollama",
+            settings.OLLAMA_URL,
+            healthy=True,
+        )
+        self.capabilities.register_service("tts", settings.TTS_URL, healthy=True)
+        self.capabilities.register_service("whisper", settings.WHISPER_URL, healthy=True)
+        self.capabilities.register_model(settings.DEFAULT_MODEL, ["chat", "intent", "memory"])
+        self.capabilities.register_model(settings.EMBEDDING_MODEL, ["embedding"])
+        for name, cls in self.registry.plugin_classes.items():
+            meta = cls.get_metadata(cls)
+            enabled = bool(self.registry._plugin_config.get(name, {}).get("enabled", False))
+            self.capabilities.register_plugin(
+                name,
+                meta.version,
+                cls.get_intents(),
+                enabled=enabled,
+                loaded=name in self.registry.plugins,
+            )
+
+    def capabilities_snapshot(self) -> dict:
+        return self.capabilities.snapshot()
 
     def _personality_prompt(self, personality: str, language: str) -> str:
         profiles = load_personalities().get(personality or "professional", {})
@@ -299,6 +338,12 @@ class ChatService:
         await self.initialize()
         started = time.perf_counter()
 
+        await publish_app_event(
+            self.event_bus,
+            "chat.message.started",
+            {"session_id": request.session_id, "stream": False},
+        )
+
         ctx = await self._prepare_context(db, request)
         lang = ctx["lang"]
         speaker = ctx["speaker"]
@@ -345,9 +390,31 @@ class ChatService:
 
         audio_url: Optional[str] = None
         if settings.TTS_URL and response.text:
-            audio_url = await generate_tts_audio(response.text, speaker, lang)
+            audio_url = await generate_tts_audio(
+                response.text,
+                speaker,
+                lang,
+                event_bus=self.event_bus,
+                session_id=effective_session_id,
+            )
 
         latency_ms = (time.perf_counter() - started) * 1000
+
+        await publish_app_event(
+            self.event_bus,
+            "chat.message.completed",
+            {
+                "session_id": effective_session_id,
+                "intent": response.intent,
+                "latency_ms": int(latency_ms),
+                "model": model,
+            },
+        )
+        await publish_app_event(
+            self.event_bus,
+            "plugin.intent.routed",
+            {"session_id": effective_session_id, "intent": response.intent},
+        )
         logger.info(
             "chat completed",
             extra={
@@ -406,10 +473,17 @@ class ChatService:
         branch_id = ctx["branch_id"]
         temperature = ctx.get("temperature", request.temperature)
 
+        await publish_app_event(
+            self.event_bus,
+            "chat.message.started",
+            {"session_id": effective_session_id, "stream": True},
+        )
+
         message = request.message
         if rag_context:
             message = f"{rag_context}\n\n{request.message}"
 
+        stream_intent = "stream"
         try:
             intent, _, _, _ = await self.orchestrator.pipeline.intent_detector.detect(
                 message,
@@ -417,6 +491,7 @@ class ChatService:
                 model=model,
                 temperature=0.1,
             )
+            stream_intent = intent
             model = await self._resolve_model(request, request.message, intent)
         except Exception as e:
             logger.debug("Stream model routing skipped: %s", e)
@@ -436,7 +511,13 @@ class ChatService:
                     break
                 text_to_speak, spk, lang = item
                 try:
-                    url = await generate_tts_audio(text_to_speak, spk, lang)
+                    url = await generate_tts_audio(
+                        text_to_speak,
+                        spk,
+                        lang,
+                        event_bus=self.event_bus,
+                        session_id=effective_session_id,
+                    )
                     if url:
                         await audio_queue.put(url)
                 except Exception as e:
@@ -517,6 +598,16 @@ class ChatService:
             await self._maybe_generate_session_title(
                 db, effective_session_id, request.message
             )
+
+        await publish_app_event(
+            self.event_bus,
+            "chat.stream.completed",
+            {
+                "session_id": effective_session_id,
+                "intent": stream_intent,
+                "chars": len(full_text),
+            },
+        )
 
         yield {
             "event": "done",
@@ -649,4 +740,5 @@ class ChatService:
 
     async def shutdown(self) -> None:
         await self.registry.shutdown_plugins()
+        await self.event_bus.close()
         self._is_initialized = False

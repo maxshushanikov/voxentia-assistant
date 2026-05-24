@@ -32,7 +32,7 @@ export default function Header({
   return (
     <div className="app-header h-14 border-b border-black/5 dark:border-white/5 flex items-center justify-between px-6 shrink-0 z-20">
       <div className="flex items-center space-x-3">
-         <div className="w-6 h-6 rounded bg-[#2979ff] flex items-center justify-center text-white text-[10px] font-bold">V</div>
+         <div className="w-6 h-6 rounded bg-[var(--accent)] flex items-center justify-center text-[var(--text-on-accent)] text-[10px] font-bold">V</div>
          <span className="font-bold uppercase tracking-[0.2em] text-[11px] text-[var(--text-primary)]">Voxentia</span>
       </div>
       
