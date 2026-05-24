@@ -19,11 +19,18 @@ import ProjectPlanningView from './ProjectPlanningView';
 import KnowledgeView from './KnowledgeView';
 import MarketplaceView from './MarketplaceView';
 
+export interface PluginQuickCommand {
+  id: string;
+  labelKey: string;
+  keywords: string[];
+}
+
 export interface PluginDefinition {
   id: string;
   nameKey: string;
   icon: ReactNode;
   component: ComponentType;
+  quickCommands?: PluginQuickCommand[];
 }
 
 export const plugins: PluginDefinition[] = [
@@ -38,6 +45,11 @@ export const plugins: PluginDefinition[] = [
     nameKey: 'learn',
     icon: <BookOpen className="w-4 h-4" />,
     component: LearnView,
+    quickCommands: [
+      { id: 'learn-flashcards', labelKey: 'cmd_learn_flashcards', keywords: ['flashcard', 'karteikarten', 'learn'] },
+      { id: 'learn-summarize', labelKey: 'cmd_learn_summarize', keywords: ['summarize', 'zusammenfassung', 'summary'] },
+      { id: 'learn-quiz', labelKey: 'cmd_learn_quiz', keywords: ['quiz', 'test', 'abfrage'] },
+    ],
   },
   {
     id: 'jobs',

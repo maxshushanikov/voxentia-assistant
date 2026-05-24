@@ -35,6 +35,9 @@ async def test_pipeline_routes_to_plugin_by_intent():
     llm = MagicMock(spec=OllamaClient)
     llm.generate = AsyncMock(return_value="llm fallback")
 
+    registry.register_plugin_class(_GreetingPlugin)
+    registry._plugin_config = {"test_plugin": {"enabled": True}}
+    registry._context = PluginContext(settings=MagicMock(), llm=llm)
     plugin = _GreetingPlugin(PluginContext(settings=MagicMock(), llm=llm))
     registry.plugins["test_plugin"] = plugin
 

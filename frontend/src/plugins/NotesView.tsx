@@ -41,13 +41,13 @@ export default function NotesView() {
             <input
               type="text"
               placeholder={t.common_search}
-              className="pl-10 pr-4 py-2 bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] text-xs focus:outline-none focus:border-[var(--accent)]/55 transition-all text-gray-300"
+              className="pl-10 pr-4 py-2 bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] text-xs focus:outline-none focus:border-[var(--accent)]/55 transition-all text-[var(--text-secondary)]"
             />
           </div>
           <button
             type="button"
             onClick={addNote}
-            className="flex items-center px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg uppercase tracking-widest"
+            className="flex items-center px-4 py-2 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-colors shadow-lg uppercase tracking-widest"
           >
             <Plus className="w-4 h-4 mr-2" />
             {t.common_newNote}
@@ -68,7 +68,7 @@ export default function NotesView() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center">
-                    <FileText className="w-4 h-4 text-[#2979ff] mr-3" />
+                    <FileText className="w-4 h-4 text-[var(--accent)] mr-3" />
                     <h4 className="text-[var(--text-primary)] font-medium group-hover:text-[var(--accent)] transition-colors">
                       {note.title}
                     </h4>
@@ -106,11 +106,11 @@ function TaskItem({ label, done }: { label: string; done: boolean }) {
   return (
     <div className="flex items-center p-4 glass-card rounded-[4px] border border-black/5 dark:border-white/5 group">
       {done ? (
-        <CheckCircle2 className="w-4 h-4 text-emerald-500 mr-3" />
+        <CheckCircle2 className="w-4 h-4 text-[var(--success)] mr-3" />
       ) : (
         <Circle className="w-4 h-4 text-[var(--text-secondary)] mr-3 group-hover:text-[var(--accent)] transition-colors" />
       )}
-      <span className={`text-sm ${done ? 'text-[var(--text-secondary)] line-through' : 'text-gray-300'}`}>{label}</span>
+      <span className={`text-sm ${done ? 'text-[var(--text-secondary)] line-through' : 'text-[var(--text-secondary)]'}`}>{label}</span>
     </div>
   );
 }

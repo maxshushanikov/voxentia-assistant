@@ -72,6 +72,16 @@ def _apply_chat_message_migrations(conn) -> None:
             continue
         conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
 
+    if not _column_exists(conn, "user_memory", "user_id"):
+        conn.execute(text("ALTER TABLE user_memory ADD COLUMN user_id VARCHAR(128)"))
+        if _is_postgres():
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_user_memory_user_id "
+                    "ON user_memory (user_id)"
+                )
+            )
+
 
 def _init_db_postgres() -> None:
     with engine.connect() as conn:

@@ -14,7 +14,7 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(41, 121, 255, 0.4);
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 

@@ -108,14 +108,16 @@ async def get_embedding(text: str) -> list[float]:
         _embedding_cache[text] = disk
         return disk
 
-    from app.core.http_client import shared_client
+    from app.core.http_client import traced_post
+
     try:
-        response = await shared_client.post(
+        response = await traced_post(
+            "ollama",
             f"{settings.OLLAMA_URL}/api/embeddings",
             json={"model": settings.EMBEDDING_MODEL, "prompt": text},
             timeout=settings.OLLAMA_TIMEOUT,
+            operation="embeddings",
         )
-        response.raise_for_status()
         emb = response.json().get("embedding", [])
         if emb:
             _embedding_cache[text] = emb
@@ -139,29 +141,72 @@ def extract_text_from_pdf(filepath: str) -> str:
     return text
 
 
-def hybrid_chunk(
-    text: str,
-    target_chars: int | None = None,
-    overlap_chars: int | None = None,
-    page_hint: int = 0,
+_LIST_LINE = re.compile(r"^(\s*[-*•]\s+|\s*\d+[.)]\s+)")
+_TABLE_LINE = re.compile(r"^\|.+\|$")
+
+
+def _is_structured_line(line: str) -> bool:
+    stripped = line.strip()
+    return bool(_LIST_LINE.match(stripped) or _TABLE_LINE.match(stripped))
+
+
+def _split_structured_paragraph(para: str) -> list[str]:
+    """Keep markdown lists and table rows grouped for better RAG retrieval."""
+    lines = para.splitlines()
+    if not any(_is_structured_line(ln) for ln in lines):
+        return [para]
+
+    blocks: list[str] = []
+    current: list[str] = []
+    for line in lines:
+        if _is_structured_line(line):
+            if current and not all(_is_structured_line(l) for l in current):
+                blocks.append("\n".join(current).strip())
+                current = []
+            current.append(line)
+        else:
+            if current and all(_is_structured_line(l) for l in current):
+                blocks.append("\n".join(current).strip())
+                current = []
+            current.append(line)
+    if current:
+        blocks.append("\n".join(current).strip())
+    return [b for b in blocks if b]
+
+
+def _split_paragraphs(text: str) -> list[str]:
+    blocks: list[str] = []
+    for raw in re.split(r"\n\s*\n+", text):
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        blocks.extend(_split_structured_paragraph(stripped))
+    return blocks if blocks else [text.strip()] if text.strip() else []
+
+
+def _sentence_chunks_from_block(
+    block: str,
+    target_chars: int,
+    overlap_chars: int,
+    page_hint: int,
+    offset: int,
 ) -> list[RagChunk]:
-    """Sentence-aware chunks with sliding overlap — no external NLP deps."""
-    target_chars = target_chars or settings.RAG_CHUNK_SIZE
-    overlap_chars = overlap_chars or settings.RAG_CHUNK_OVERLAP
     sentences = [
         s.strip()
-        for s in re.split(r'(?<=[.!?])\s+(?=[A-ZÜÄÖ"\'])', text)
+        for s in re.split(r'(?<=[.!?])\s+(?=[A-ZÜÄÖ"\'])', block)
         if s.strip()
     ]
     if not sentences:
-        return [
-            RagChunk(c, page_hint, 0, len(c))
-            for c in split_text_chars(text, target_chars, overlap_chars)
-        ]
+        pos = offset
+        out: list[RagChunk] = []
+        for t in split_text_chars(block, target_chars, overlap_chars):
+            out.append(RagChunk(t, page_hint, pos, pos + len(t)))
+            pos += len(t)
+        return out
 
     chunks: list[RagChunk] = []
     current = ""
-    start = 0
+    start = offset
     for sent in sentences:
         candidate = f"{current} {sent}".strip() if current else sent
         if len(candidate) > target_chars and current:
@@ -178,6 +223,33 @@ def hybrid_chunk(
         chunk_text = current.strip()
         chunks.append(RagChunk(chunk_text, page_hint, start, start + len(chunk_text)))
     return chunks
+
+
+def hybrid_chunk(
+    text: str,
+    target_chars: int | None = None,
+    overlap_chars: int | None = None,
+    page_hint: int = 0,
+) -> list[RagChunk]:
+    """Paragraph- then sentence-aware chunks with sliding overlap."""
+    target_chars = target_chars or settings.RAG_CHUNK_SIZE
+    overlap_chars = overlap_chars or settings.RAG_CHUNK_OVERLAP
+    paragraphs = _split_paragraphs(text)
+    if not paragraphs:
+        return []
+
+    all_chunks: list[RagChunk] = []
+    cursor = 0
+    for para in paragraphs:
+        para_chunks = _sentence_chunks_from_block(
+            para, target_chars, overlap_chars, page_hint, cursor
+        )
+        all_chunks.extend(para_chunks)
+        if para_chunks:
+            cursor = para_chunks[-1].char_end + 1
+        else:
+            cursor += len(para) + 1
+    return all_chunks
 
 
 def split_text_sentences(

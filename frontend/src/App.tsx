@@ -159,6 +159,8 @@ function App() {
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <Avatar
                   isSpeaking={isSpeaking}
+                  isListening={isRecording}
+                  isThinking={isThinking}
                   mouthAlpha={mouthAlpha}
                   gender={speakerGenderMap[speaker]}
                   emotion={avatarEmotion}

@@ -81,6 +81,13 @@ class VoxentiaSettings(BaseSettings):
     DEFAULT_LANGUAGE: str = "en"
     HISTORY_LIMIT: int = 20
     RATE_LIMIT: str = "60/minute"
+    REDIS_URL: Optional[str] = None
+    ENABLE_METRICS: bool = True
+    ENABLE_EVENT_BUS: bool = False
+    ENABLE_TRACING: bool = True
+    OTEL_SERVICE_NAME: str = "voxentia-backend"
+    OTEL_EXPORTER_OTLP_ENDPOINT: Optional[str] = None
+    OTEL_CONSOLE_EXPORT: bool = False
     ALLOWED_ORIGINS: str = (
         "http://localhost:8000,http://127.0.0.1:8000,http://localhost:5173"
     )

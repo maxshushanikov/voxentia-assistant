@@ -7,8 +7,20 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
+from voxentia.observability.tracing import trace_span
 from voxentia.services.llm_base import BaseLLMClient
 from voxentia.utils.logging import logger
+
+
+def _trace_headers() -> dict[str, str]:
+    headers: dict[str, str] = {}
+    try:
+        from opentelemetry.propagate import inject
+
+        inject(headers)
+    except Exception:
+        pass
+    return headers
 
 
 class OllamaClient(BaseLLMClient):
@@ -54,9 +66,18 @@ class OllamaClient(BaseLLMClient):
             "options": {"temperature": temperature, "num_ctx": 2048},
         }
         try:
-            response = await self._client.post(f"{self.base_url}/api/chat", json=payload)
-            response.raise_for_status()
-            result = response.json()
+            with trace_span(
+                "ollama.chat.json",
+                service="ollama",
+                attributes={"llm.model": payload["model"], "llm.stream": False},
+            ):
+                response = await self._client.post(
+                    f"{self.base_url}/api/chat",
+                    json=payload,
+                    headers=_trace_headers(),
+                )
+                response.raise_for_status()
+                result = response.json()
             content = result.get("message", {}).get("content", "{}")
             return json.loads(content)
         except Exception as e:
@@ -78,9 +99,18 @@ class OllamaClient(BaseLLMClient):
             "options": {"temperature": temperature, "num_ctx": 2048},
         }
         try:
-            response = await self._client.post(f"{self.base_url}/api/chat", json=payload)
-            response.raise_for_status()
-            return response.json().get("message", {}).get("content", "")
+            with trace_span(
+                "ollama.chat",
+                service="ollama",
+                attributes={"llm.model": payload["model"], "llm.stream": False},
+            ):
+                response = await self._client.post(
+                    f"{self.base_url}/api/chat",
+                    json=payload,
+                    headers=_trace_headers(),
+                )
+                response.raise_for_status()
+                return response.json().get("message", {}).get("content", "")
         except Exception as e:
             logger.error("LLM generation failed: %s", e)
             raise
@@ -99,20 +129,28 @@ class OllamaClient(BaseLLMClient):
             "stream": True,
             "options": {"temperature": temperature, "num_ctx": 2048},
         }
-        async with self._client.stream(
-            "POST", f"{self.base_url}/api/chat", json=payload
-        ) as response:
-            response.raise_for_status()
-            async for line in response.aiter_lines():
-                if not line:
-                    continue
-                try:
-                    chunk = json.loads(line)
-                    token = chunk.get("message", {}).get("content", "")
-                    if token:
-                        yield token
-                except json.JSONDecodeError:
-                    continue
+        with trace_span(
+            "ollama.chat.stream",
+            service="ollama",
+            attributes={"llm.model": payload["model"], "llm.stream": True},
+        ):
+            async with self._client.stream(
+                "POST",
+                f"{self.base_url}/api/chat",
+                json=payload,
+                headers=_trace_headers(),
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                        token = chunk.get("message", {}).get("content", "")
+                        if token:
+                            yield token
+                    except json.JSONDecodeError:
+                        continue
 
     async def chat_with_tools(
         self,
@@ -132,9 +170,18 @@ class OllamaClient(BaseLLMClient):
             "options": {"temperature": temperature, "num_ctx": 2048},
         }
         try:
-            response = await self._client.post(f"{self.base_url}/api/chat", json=payload)
-            response.raise_for_status()
-            result = response.json()
+            with trace_span(
+                "ollama.chat.tools",
+                service="ollama",
+                attributes={"llm.model": payload["model"], "llm.tools": len(tools)},
+            ):
+                response = await self._client.post(
+                    f"{self.base_url}/api/chat",
+                    json=payload,
+                    headers=_trace_headers(),
+                )
+                response.raise_for_status()
+                result = response.json()
             message = result.get("message", {})
             return message.get("tool_calls")
         except Exception as e:

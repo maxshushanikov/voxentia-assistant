@@ -26,6 +26,8 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "highlight.js": "^11.11.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.0",
     "three": "^0.184.0",

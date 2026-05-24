@@ -228,7 +228,12 @@ async def transcribe_endpoint(
     if len(audio_bytes) > settings.MAX_UPLOAD_BYTES:
         raise HTTPException(413, "Audio file too large")
 
+    bus = getattr(request.app.state, "chat_service", None)
     text = await transcribe_audio_file(
-        audio_bytes, audio.filename, audio.content_type, language
+        audio_bytes,
+        audio.filename,
+        audio.content_type,
+        language,
+        event_bus=bus.event_bus if bus else None,
     )
     return {"text": text}

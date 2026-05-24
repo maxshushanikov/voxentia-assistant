@@ -14,6 +14,9 @@ class PluginMetadata(BaseModel):
     author: str
     icon: Optional[str] = "extension"
     permissions: List[str] = []
+    min_core_version: str = "0.1.0"
+    dependencies: List[str] = []
+    enabled_by_default: bool = False
 
 
 class PluginResponse(BaseModel):

@@ -94,7 +94,7 @@ export default function DocumentView() {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center px-4 py-2 bg-[var(--accent)] text-[var(--text-primary)] rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors uppercase tracking-widest"
+          className="flex items-center px-4 py-2 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-colors uppercase tracking-widest"
         >
           <Upload className="w-4 h-4 mr-2" />
           {t.common_uploadFile}
@@ -113,7 +113,7 @@ export default function DocumentView() {
       </div>
 
       {error && (
-        <p className="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">
+        <p className="mb-4 text-sm alert-danger rounded px-3 py-2">
           {error}
         </p>
       )}
@@ -145,8 +145,8 @@ export default function DocumentView() {
                 <tr key={doc.filename} className="hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <FileText className="w-4 h-4 text-[#2979ff]" />
-                      <span className="text-sm text-gray-300 ml-3">{doc.filename}</span>
+                      <FileText className="w-4 h-4 text-[var(--accent)]" />
+                      <span className="text-sm text-[var(--text-secondary)] ml-3">{doc.filename}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-xs text-[var(--text-secondary)]">{doc.chunks}</td>
@@ -164,7 +164,7 @@ export default function DocumentView() {
                       <button
                         type="button"
                         onClick={() => void handleDelete(doc.filename)}
-                        className="p-2 text-[var(--text-secondary)] hover:text-red-500 transition-colors rounded-full hover:bg-red-500/10"
+                        className="p-2 text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors rounded-full hover:bg-[var(--danger)]/10"
                         aria-label="Delete"
                       >
                         <Trash2 className="w-4 h-4" />

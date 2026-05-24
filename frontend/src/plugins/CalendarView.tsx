@@ -50,7 +50,7 @@ export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
   const [events] = useState<CalendarEvent[]>([
-    { id: '1', title: 'Strategy Meeting', date: toISO(new Date()), time: '10:00 AM', location: 'Meeting Room A', description: 'Quarterly strategy planning.', color: '#2979ff' },
+    { id: '1', title: 'Strategy Meeting', date: toISO(new Date()), time: '10:00 AM', location: 'Meeting Room A', description: 'Quarterly strategy planning.', color: 'var(--accent)' },
     { id: '2', title: 'Design Review', date: toISO(new Date()), time: '02:30 PM', location: 'Virtual', description: 'Reviewing the new avatar models.', color: '#f43f5e' },
     { id: '3', title: 'Workshop', date: toISO(new Date(new Date().getTime() - 2*86400000)), time: '11:00 AM', location: 'Slack', description: 'Team building workshop.', color: '#10b981' }
   ]);
@@ -146,7 +146,7 @@ export default function CalendarView() {
       </div>
       <button
         onClick={goToToday}
-        className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] hover:text-blue-400 transition-colors px-3 py-1 rounded-[4px] border border-[var(--accent)]/33 hover:border-[var(--accent)]/66"
+        className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] hover:text-[var(--accent)] transition-colors px-3 py-1 rounded-[4px] border border-[var(--accent)]/33 hover:border-[var(--accent)]/66"
       >
         {todayLabel}
       </button>
@@ -178,7 +178,7 @@ export default function CalendarView() {
                       <div
                         key={ev.id}
                         onClick={(e) => handleEventClick(ev, e)}
-                        className="px-3 py-1.5 rounded-[4px] text-xs font-medium text-white cursor-pointer hover:brightness-110 transition-all"
+                        className="px-3 py-1.5 rounded-[4px] text-xs font-medium text-[var(--text-primary)] cursor-pointer hover:brightness-110 transition-all"
                         style={{ backgroundColor: `${ev.color}33`, borderLeft: `3px solid ${ev.color}` }}
                       >
                         <span className="font-bold">{ev.time}</span> · {ev.title}
@@ -207,7 +207,7 @@ export default function CalendarView() {
               return (
                 <div key={i} className="p-3 text-center bg-black/2 dark:bg-white/2">
                   <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase mb-1">{WEEKDAYS_SHORT[i]}</p>
-                  <p className={`text-sm font-bold ${isToday ? 'text-[#2979ff]' : 'text-white'}`}>{day.getDate()}</p>
+                  <p className={`text-sm font-bold ${isToday ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{day.getDate()}</p>
                 </div>
               );
             })}
@@ -226,7 +226,7 @@ export default function CalendarView() {
               return (
                 <div
                   key={i}
-                  className={`divide-y divide-black/5 dark:divide-white/5 relative ${isToday ? 'bg-[#2979ff06]' : ''}`}
+                  className={`divide-y divide-black/5 dark:divide-white/5 relative ${isToday ? 'bg-[var(--accent-soft)]' : ''}`}
                   onDoubleClick={openCreateModal}
                 >
                   {Array.from({ length: 24 }).map((_, j) => (
@@ -235,7 +235,7 @@ export default function CalendarView() {
                         <div
                           key={ev.id}
                           onClick={(e) => handleEventClick(ev, e)}
-                          className="absolute left-1 right-1 top-1 px-2 py-1 rounded-[2px] text-[9px] font-bold text-white cursor-pointer z-10 truncate"
+                          className="absolute left-1 right-1 top-1 px-2 py-1 rounded-[2px] text-[9px] font-bold text-[var(--text-primary)] cursor-pointer z-10 truncate"
                           style={{ backgroundColor: `${ev.color}cc` }}
                         >
                           {ev.title}
@@ -274,18 +274,18 @@ export default function CalendarView() {
                 onDoubleClick={() => date && openCreateModal()}
                 className={`aspect-square flex flex-col items-start p-2 border-r border-b border-black/5 dark:border-white/5 transition-all cursor-pointer
                   ${date ? 'hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2' : 'bg-black/10 dark:bg-black/5'}
-                  ${isToday ? 'bg-[#2979ff]/5' : ''}
+                  ${isToday ? 'bg-[var(--accent)]/5' : ''}
                 `}
               >
                 {date && (
                   <>
-                    <span className={`text-[10px] mb-1 font-medium ${isToday ? 'text-[#2979ff] font-bold' : 'text-[var(--text-secondary)]'}`}>{date}</span>
+                    <span className={`text-[10px] mb-1 font-medium ${isToday ? 'text-[var(--accent)] font-bold' : 'text-[var(--text-secondary)]'}`}>{date}</span>
                     <div className="w-full space-y-0.5 overflow-hidden">
                       {dayEvents.map(event => (
                         <div
                           key={event.id}
                           onClick={(e) => handleEventClick(event, e)}
-                          className="w-full px-1.5 py-0.5 rounded-[2px] text-[8px] font-bold truncate text-white/90"
+                          className="w-full px-1.5 py-0.5 rounded-[2px] text-[8px] font-bold truncate text-[var(--text-primary)]"
                           style={{ backgroundColor: `${event.color}33`, borderLeft: `2px solid ${event.color}` }}
                         >
                           {event.title}
@@ -318,7 +318,7 @@ export default function CalendarView() {
             </div>
             <button
               onClick={openCreateModal}
-              className="flex items-center px-4 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-colors shadow-lg"
+              className="flex items-center px-4 py-2 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-colors shadow-lg"
             >
               <Plus className="w-4 h-4 mr-2" />
               {t.cal_newEvent}
@@ -378,38 +378,38 @@ function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | nu
               type="text"
               defaultValue={event?.title || ''}
               placeholder={t.cal_eventTitlePh}
-              className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-sm text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all"
+              className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all"
               autoFocus
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.common_date}</label>
-              <input type="date" defaultValue={event?.date || defaultDate} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
+              <input type="date" defaultValue={event?.date || defaultDate} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_time}</label>
-              <input type="time" defaultValue={event?.time || '10:00'} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
+              <input type="time" defaultValue={event?.time || '10:00'} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
             </div>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_location}</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
-              <input type="text" defaultValue={event?.location || ''} placeholder={t.cal_locationPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all" />
+              <input type="text" defaultValue={event?.location || ''} placeholder={t.cal_locationPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all" />
             </div>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_description}</label>
             <div className="relative">
               <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-[var(--text-secondary)]" />
-              <textarea defaultValue={event?.description || ''} placeholder={t.cal_descriptionPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-white focus:outline-none focus:border-[var(--accent)]/55 transition-all h-24 resize-none" />
+              <textarea defaultValue={event?.description || ''} placeholder={t.cal_descriptionPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all h-24 resize-none" />
             </div>
           </div>
         </div>
         <div className="p-6 bg-black/2 dark:bg-white/2 border-t border-black/5 dark:border-white/5 flex justify-end space-x-3">
           <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] uppercase tracking-widest">{t.common_cancel}</button>
-          <button className="px-6 py-2 bg-[var(--accent)] text-white rounded-[4px] text-xs font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 uppercase tracking-widest">
+          <button className="px-6 py-2 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent)]/20 uppercase tracking-widest">
             {event ? t.common_update : t.common_create}
           </button>
         </div>
@@ -420,17 +420,17 @@ function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | nu
 
 function TabButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
   return (
-    <button onClick={onClick} className={`flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${active ? 'text-[#2979ff]' : 'text-[var(--text-secondary)] hover:text-[var(--text-secondary)]'}`}>
+    <button onClick={onClick} className={`flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-secondary)]'}`}>
       <span className="mr-3">{icon}</span>
       {label}
-      {active && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#2979ff]" />}
+      {active && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--accent)]" />}
     </button>
   );
 }
 
 function ViewButton({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) {
   return (
-    <button onClick={onClick} className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-[2px] transition-all ${active ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+    <button onClick={onClick} className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-[2px] transition-all ${active ? 'btn-accent' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
       {label}
     </button>
   );

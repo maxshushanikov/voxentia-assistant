@@ -68,12 +68,12 @@ export default function MarketplaceView() {
       </div>
 
       {message && (
-        <p className="mb-4 text-sm text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded px-3 py-2">
+        <p className="mb-4 text-sm alert-success rounded px-3 py-2">
           {message}
         </p>
       )}
       {error && (
-        <p className="mb-4 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">
+        <p className="mb-4 text-sm alert-danger rounded px-3 py-2">
           {error}
         </p>
       )}
@@ -96,14 +96,14 @@ export default function MarketplaceView() {
                 <p className="text-sm text-[var(--text-secondary)] mt-2">{p.description}</p>
               </div>
               {p.installed ? (
-                <span className="text-[10px] uppercase tracking-wider text-emerald-500 shrink-0">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--success)] shrink-0">
                   Installiert
                 </span>
               ) : p.installable ? (
                 <button
                   type="button"
                   onClick={() => void install(p.id)}
-                  className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-[var(--accent)] text-white rounded text-xs font-bold"
+                  className="shrink-0 flex items-center gap-1 px-3 py-1.5 btn-accent rounded text-xs font-bold"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Install

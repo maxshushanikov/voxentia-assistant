@@ -208,7 +208,7 @@ export default function Sidebar({
         </button>
 
         <div className="mb-8">
-          <h2 className="text-[10px] font-bold text-gray-600 mb-3 tracking-[0.1em] uppercase">
+          <h2 className="text-[10px] font-bold text-[var(--text-muted)] mb-3 tracking-[0.1em] uppercase">
             {t.plugins}
           </h2>
           <nav className="space-y-1">
@@ -226,14 +226,14 @@ export default function Sidebar({
 
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[10px] font-bold text-gray-600 tracking-[0.1em] uppercase">
+            <h2 className="text-[10px] font-bold text-[var(--text-muted)] tracking-[0.1em] uppercase">
               {t.history}
             </h2>
             {totalSessions > 0 && showAllHistory && (
               <button
                 type="button"
                 onClick={handleDeleteAll}
-                className="text-[9px] text-red-400/80 hover:text-red-400 uppercase tracking-wider"
+                className="text-[9px] text-[var(--danger)]/80 hover:text-[var(--danger)] uppercase tracking-wider"
                 title={t.deleteAllChats}
               >
                 {t.deleteAllChats}
@@ -252,13 +252,13 @@ export default function Sidebar({
           </div>
 
           {visibleGroups.length === 0 ? (
-            <p className="text-[10px] text-gray-700 px-4 italic">{t.noHistory}</p>
+            <p className="text-[10px] text-[var(--text-muted)] px-4 italic">{t.noHistory}</p>
           ) : (
             <>
               <div className="space-y-5">
                 {visibleGroups.map((group) => (
                   <div key={group.label}>
-                    <h3 className="text-[9px] font-bold text-gray-700 uppercase tracking-widest mb-2 ml-2">
+                    <h3 className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2 ml-2">
                       {group.label}
                     </h3>
                     <nav className="space-y-0.5">
@@ -282,7 +282,7 @@ export default function Sidebar({
                             type="button"
                             onClick={(e) => handleDeleteSession(session.session_id, e)}
                             disabled={deletingId === session.session_id}
-                            className="p-2 mr-1 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all disabled:opacity-40"
+                            className="p-2 mr-1 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 hover:text-[var(--danger)] transition-all disabled:opacity-40"
                             title={t.deleteChat}
                             aria-label={t.deleteChat}
                           >
@@ -299,7 +299,7 @@ export default function Sidebar({
                 <button
                   type="button"
                   onClick={() => setShowAllHistory((v) => !v)}
-                  className="mt-4 w-full text-center text-[10px] font-bold text-[#2979ff] hover:text-[#5c9aff] uppercase tracking-widest py-2"
+                  className="mt-4 w-full text-center text-[10px] font-bold text-[var(--accent)] hover:text-[var(--accent-hover)] uppercase tracking-widest py-2"
                 >
                   {showAllHistory ? t.showLessHistory : t.showAllHistory}
                 </button>
@@ -309,7 +309,7 @@ export default function Sidebar({
         </div>
 
         <div className="mb-8">
-          <h2 className="text-[10px] font-bold text-gray-600 mb-3 tracking-[0.1em] uppercase">
+          <h2 className="text-[10px] font-bold text-[var(--text-muted)] mb-3 tracking-[0.1em] uppercase">
             {t.settings.toUpperCase()}
           </h2>
           <nav className="space-y-1">
@@ -328,7 +328,7 @@ export default function Sidebar({
           <span className="text-[10px] text-[var(--text-secondary)]/50 font-bold uppercase tracking-widest">
             Voxentia v{version}
           </span>
-          <span className="text-[10px] text-[#2979ff] font-bold uppercase tracking-widest">Pro</span>
+          <span className="text-[10px] text-[var(--accent)] font-bold uppercase tracking-widest">Pro</span>
         </div>
       </div>
     </aside>
@@ -353,11 +353,11 @@ function SidebarButton({
       className={cn(
         'w-full flex items-center px-4 py-2.5 text-xs font-bold rounded-[4px] transition-all duration-200 group text-left',
         active
-          ? 'bg-[#2979ff] text-white shadow-lg shadow-blue-900/20'
+          ? 'btn-accent shadow-lg shadow-[var(--accent)]/20'
           : 'text-[var(--text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[var(--text-primary)]',
       )}
     >
-      <span className={cn('mr-4', active ? 'text-white' : 'text-[var(--text-secondary)]/60 group-hover:text-[var(--text-primary)]/80')}>
+      <span className={cn('mr-4', active ? 'text-[var(--text-on-accent)]' : 'text-[var(--text-secondary)]/60 group-hover:text-[var(--text-primary)]/80')}>
         {icon}
       </span>
       <span className="uppercase tracking-widest">{label}</span>

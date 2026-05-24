@@ -34,25 +34,25 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="h-screen w-screen bg-[#0b0e14] flex items-center justify-center p-6 font-sans">
-          <div className="absolute inset-0 bg-radial-gradient from-[#2979ff15] to-transparent pointer-events-none" />
-          <div className="max-w-md w-full glass-card p-8 border border-red-500/20 shadow-2xl relative z-10 flex flex-col items-center text-center">
-            <div className="p-4 bg-red-500/10 rounded-full border border-red-500/20 mb-6 text-red-500 animate-pulse">
+          <div className="absolute inset-0 bg-radial-gradient from-[var(--accent-soft)] to-transparent pointer-events-none" />
+          <div className="max-w-md w-full glass-card p-8 border border-[var(--danger)]/20 shadow-2xl relative z-10 flex flex-col items-center text-center">
+            <div className="p-4 bg-[var(--danger)]/10 rounded-full border border-[var(--danger)]/20 mb-6 text-[var(--danger)] animate-pulse">
               <AlertTriangle className="w-10 h-10" />
             </div>
-            <h1 className="text-2xl font-semibold text-white mb-2">Application Error</h1>
+            <h1 className="text-2xl font-semibold text-[var(--text-primary)] mb-2">Application Error</h1>
             <p className="text-sm text-[var(--text-secondary)] mb-6 leading-relaxed">
               Voxentia Assistant encountered an unexpected error while rendering this view.
             </p>
             {this.state.error && (
               <div className="w-full bg-[#161821] border border-white/5 rounded-lg p-3 text-left mb-6 overflow-auto max-h-[120px]">
-                <code className="text-xs text-red-400 font-mono block break-words">
+                <code className="text-xs text-[var(--danger)] font-mono block break-words">
                   {this.state.error.toString()}
                 </code>
               </div>
             )}
             <button
               onClick={this.handleReset}
-              className="flex items-center space-x-2 px-5 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+              className="flex items-center space-x-2 px-5 py-2.5 btn-accent text-sm font-medium rounded-lg transition-colors cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Reload Application</span>

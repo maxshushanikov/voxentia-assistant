@@ -27,14 +27,17 @@ from app.core.http_client import close_shared_client
 from app.core.janitor import DatabaseJanitor
 from app.core.logging_config import configure_backend_logging
 from app.core.middleware import RequestIdMiddleware
+from app.core.events import setup_event_handlers
+from app.core.observability import MetricsMiddleware, RequestIdLogFilter, metrics_payload
 from app.core.rate_limit import limiter
+from app.core.tracing import setup_tracing, shutdown_tracing
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService
 from app.services.health_service import full_health
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -58,6 +61,7 @@ async def lifespan(app: FastAPI):
     service = ChatService()
     await service.initialize()
     app.state.chat_service = service
+    setup_event_handlers(service.event_bus)
 
     janitor_task = None
     if getattr(settings, "JANITOR_ENABLED", True):
@@ -79,10 +83,13 @@ async def lifespan(app: FastAPI):
             pass
     await service.shutdown()
     await close_shared_client()
+    shutdown_tracing()
 
 
 # Configure structured logging (DB schema is created in lifespan)
 configure_backend_logging(settings.LOG_LEVEL)
+for _log_name in ("voxentia", "voxentia.api", "app"):
+    logging.getLogger(_log_name).addFilter(RequestIdLogFilter())
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -90,6 +97,8 @@ app = FastAPI(
     description="Professional Backend for Voxentia AI Assistant",
     lifespan=lifespan,
 )
+
+setup_tracing(app)
 
 app.state.limiter = limiter
 
@@ -101,6 +110,7 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # Middleware configuration
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -156,14 +166,57 @@ if assets_path.exists():
 @limiter.exempt
 async def health_check():
     """Liveness probe returning platform orchestration metrics."""
-    return await full_health()
+    caps = None
+    bus_info = None
+    if hasattr(app.state, "chat_service") and app.state.chat_service:
+        svc = app.state.chat_service
+        caps = svc.capabilities_snapshot()
+        bus_info = {
+            "enabled": getattr(settings, "ENABLE_EVENT_BUS", False),
+            "redis": svc.event_bus.is_enabled(),
+            "connected": await svc.event_bus.ensure_connected()
+            if getattr(settings, "ENABLE_EVENT_BUS", False)
+            else False,
+        }
+    trace_info = {
+        "tracing_enabled": getattr(settings, "ENABLE_TRACING", True),
+        "otlp_endpoint": getattr(settings, "OTEL_EXPORTER_OTLP_ENDPOINT", None) or None,
+    }
+    return await full_health(capabilities=caps, event_bus=bus_info, tracing=trace_info)
 
 
 @app.get("/api/v1/health")
 @limiter.exempt
 async def health_check_v1():
     """Liveness probe alias for v1 api."""
-    return await full_health()
+    caps = None
+    bus_info = None
+    if hasattr(app.state, "chat_service") and app.state.chat_service:
+        svc = app.state.chat_service
+        caps = svc.capabilities_snapshot()
+        bus_info = {
+            "enabled": getattr(settings, "ENABLE_EVENT_BUS", False),
+            "redis": svc.event_bus.is_enabled(),
+            "connected": await svc.event_bus.ensure_connected()
+            if getattr(settings, "ENABLE_EVENT_BUS", False)
+            else False,
+        }
+    trace_info = {
+        "tracing_enabled": getattr(settings, "ENABLE_TRACING", True),
+        "otlp_endpoint": getattr(settings, "OTEL_EXPORTER_OTLP_ENDPOINT", None) or None,
+    }
+    return await full_health(capabilities=caps, event_bus=bus_info, tracing=trace_info)
+
+
+@app.get("/metrics")
+@limiter.exempt
+async def prometheus_metrics():
+    """Prometheus scrape endpoint (when prometheus_client is installed)."""
+    result = metrics_payload()
+    if result is None:
+        raise HTTPException(status_code=404, detail="Metrics disabled or unavailable")
+    body, content_type = result
+    return Response(content=body, media_type=content_type)
 
 
 def check_ws_rate_limit(client_ip: str, max_requests: int = 20, period_seconds: int = 60) -> bool:

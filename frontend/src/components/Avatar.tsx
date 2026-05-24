@@ -12,6 +12,8 @@ import {
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 
+import { useTranslation } from '../i18n/context';
+import { cn } from '../utils/cn';
 import type { AvatarEmotion } from '../types';
 
 const FEMININE_IDLE = '/assets/idle/feminine/F_Talking_Variations_001.glb';
@@ -186,17 +188,23 @@ useGLTF.preload(MASCULINE_IDLE);
 interface AvatarProps {
   gender?: 'feminine' | 'masculine';
   isSpeaking?: boolean;
+  isListening?: boolean;
+  isThinking?: boolean;
   mouthAlpha?: number;
   emotion?: AvatarEmotion;
   avatarSource?: 'default' | 'custom';
+  statusLabel?: string;
 }
 
 function Avatar({
   gender = 'feminine',
   isSpeaking = false,
+  isListening = false,
+  isThinking = false,
   mouthAlpha = 0,
   emotion = 'neutral',
   avatarSource = 'default',
+  statusLabel,
 }: AvatarProps) {
   const [resolvedModelUrl, setResolvedModelUrl] = useState<string>(`/assets/avatar_${gender}.glb`);
 
@@ -236,6 +244,25 @@ function Avatar({
     return () => media.removeEventListener('change', listener);
   }, []);
 
+  const { t } = useTranslation();
+  const badgeText =
+    statusLabel ??
+    (isListening
+      ? t.avatar_status_listening
+      : isThinking || emotion === 'thinking'
+        ? t.avatar_status_thinking
+        : isSpeaking
+          ? t.avatar_status_speaking
+          : t.avatar_status_ready);
+
+  const badgeClass = isListening
+    ? 'bg-[var(--danger)]/15 text-[var(--danger)] border-[var(--danger)]/30'
+    : isThinking || emotion === 'thinking'
+      ? 'bg-[var(--warning)]/15 text-[var(--warning)] border-[var(--warning)]/30'
+      : isSpeaking
+        ? 'bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/30'
+        : 'bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] border-black/10 dark:border-white/10';
+
   if (isMobile) {
     return (
       <div 
@@ -243,20 +270,28 @@ function Avatar({
         role="img"
         aria-label="Moderner 2D-Avatar Sprachassistent"
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#2979ff]/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#2979ff]/15 rounded-full blur-[80px] pointer-events-none" />
+        <span
+          className={cn(
+            'absolute top-4 right-4 z-20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border',
+            badgeClass,
+          )}
+        >
+          {badgeText}
+        </span>
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--accent)]/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[var(--accent)]/15 rounded-full blur-[80px] pointer-events-none" />
 
         <div className="relative flex items-center justify-center w-36 h-36 rounded-full bg-gradient-to-tr from-[var(--bg-primary)] to-[var(--bg-secondary)] border border-white/10 shadow-2xl">
           {isSpeaking && (
             <>
-              <div className="absolute inset-0 rounded-full border-2 border-[#2979ff]/50 animate-ping opacity-75" />
-              <div className="absolute -inset-4 rounded-full border border-[#2979ff]/30 animate-pulse opacity-50" />
+              <div className="absolute inset-0 rounded-full border-2 border-[var(--accent)]/50 animate-ping opacity-75" />
+              <div className="absolute -inset-4 rounded-full border border-[var(--accent)]/30 animate-pulse opacity-50" />
             </>
           )}
           
-          <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-b from-[#2979ff]/20 to-[#2979ff]/5 flex items-center justify-center border border-[#2979ff]/20">
+          <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center border border-[var(--accent)]/20">
             <svg 
-              className={`w-16 h-16 transition-all duration-300 ${isSpeaking ? 'text-[#2979ff] scale-110' : 'text-[var(--text-secondary)] scale-100'}`} 
+              className={`w-16 h-16 transition-all duration-300 ${isSpeaking ? 'text-[var(--accent)] scale-110' : 'text-[var(--text-secondary)] scale-100'}`} 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor" 
@@ -268,17 +303,8 @@ function Avatar({
         </div>
 
         <div className="mt-6 text-center z-10">
-          <p className="text-sm font-semibold tracking-wide uppercase text-[#2979ff]">
-            {isSpeaking ? 'Spricht...' : 'Bereit'}
-          </p>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {emotion === 'thinking'
-              ? 'Überlegt...'
-              : emotion === 'happy'
-                ? 'Fröhlich'
-                : emotion === 'sad'
-                  ? 'Nachdenklich'
-                  : 'Professioneller Assistent'}
+          <p className="text-sm font-semibold tracking-wide uppercase text-[var(--accent)]">
+            {badgeText}
           </p>
         </div>
       </div>
@@ -291,7 +317,15 @@ function Avatar({
       role="img"
       aria-label="Interaktiver 3D-Avatar Sprachassistent"
     >
-      <div className="absolute inset-0 bg-gradient-to-t from-[#2979ff]/8 via-transparent to-transparent pointer-events-none" />
+      <span
+        className={cn(
+          'absolute top-4 right-4 z-20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border',
+          badgeClass,
+        )}
+      >
+        {badgeText}
+      </span>
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--accent)]/8 via-transparent to-transparent pointer-events-none" />
 
       <Canvas
         frameloop={isSpeaking ? "always" : "demand"}
