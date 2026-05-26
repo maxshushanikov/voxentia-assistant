@@ -15,6 +15,7 @@ _CHAT_MESSAGE_COLUMNS: tuple[tuple[str, str], ...] = (
     ("model", "VARCHAR"),
     ("parent_id", "INTEGER"),
     ("branch_id", "VARCHAR(64) DEFAULT 'main'"),
+    ("feedback", "VARCHAR(16)"),
 )
 
 connect_args = {}

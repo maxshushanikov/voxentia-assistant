@@ -17,6 +17,7 @@ export interface Message {
   intentConfidence?: number;
   intentSource?: string;
   dbId?: number;
+  feedback?: 'like' | 'dislike';
   comparison?: {
     modelA: string;
     contentA: string;

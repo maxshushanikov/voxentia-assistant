@@ -8,6 +8,7 @@ from app.core.rate_limit import limiter
 from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
+    FeedbackRequest,
     ForkSessionRequest,
     ForkSessionResponse,
     HistoryResponse,
@@ -32,7 +33,7 @@ async def chat_endpoint(
     db: Session = Depends(get_db),
     chat_service: ChatService = Depends(get_chat_service),
 ):
-    text, audio_url, intent, plugin_data, rag_sources, effective_session_id = (
+    text, audio_url, intent, plugin_data, rag_sources, effective_session_id, message_id = (
         await chat_service.process_message(db, body, http_request=request)
     )
     intent_confidence = None
@@ -50,6 +51,7 @@ async def chat_endpoint(
         "intent_source": intent_source,
         "plugin_data": plugin_data,
         "rag_sources": rag_sources,
+        "message_id": message_id,
     }
 
 
@@ -93,6 +95,7 @@ async def get_chat_history(
             model=m.model,
             parent_id=m.parent_id,
             branch_id=m.branch_id,
+            feedback=m.feedback,
         )
         for m in history
     ]
@@ -146,6 +149,25 @@ async def fork_session(
         copied_messages=copied,
         parent_message_id=body.message_id,
     )
+
+
+@router.post("/chat/feedback")
+@limiter.limit("20/minute")
+async def chat_feedback(
+    request: Request,
+    body: FeedbackRequest,
+    db: Session = Depends(get_db),
+    chat_service: ChatService = Depends(get_chat_service),
+):
+    try:
+        chat_service.set_feedback(db, body.session_id, body.message_id, body.feedback)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    return {
+        "session_id": body.session_id,
+        "message_id": body.message_id,
+        "feedback": body.feedback,
+    }
 
 
 @router.post("/avatar/custom")

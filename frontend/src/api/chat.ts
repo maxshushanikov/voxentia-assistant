@@ -14,6 +14,16 @@ export function postChat(body: ChatRequestBody) {
   });
 }
 
+export function postMessageFeedback(sessionId: string, messageId: number, feedback: 'like' | 'dislike' | null) {
+  return apiFetch<{ session_id: string; message_id: number; feedback: 'like' | 'dislike' | null }>(
+    '/api/chat/feedback',
+    {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, message_id: messageId, feedback }),
+    },
+  );
+}
+
 export function getChatHistory(sessionId: string) {
   return apiFetch<ChatHistoryResponse>(
     `/api/chat/history?session_id=${encodeURIComponent(sessionId)}`,

@@ -226,9 +226,16 @@ export default function Sidebar({
 
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[10px] font-bold text-[var(--text-muted)] tracking-[0.1em] uppercase">
-              {t.history}
-            </h2>
+            <div>
+              <h2 className="text-[10px] font-bold text-[var(--text-muted)] tracking-[0.1em] uppercase">
+                {t.history}
+              </h2>
+              {totalSessions > 0 && (
+                <p className="text-[9px] text-[var(--text-secondary)] mt-1">
+                  {totalSessions} chats in history
+                </p>
+              )}
+            </div>
             {totalSessions > 0 && showAllHistory && (
               <button
                 type="button"
@@ -246,7 +253,7 @@ export default function Sidebar({
                type="text"
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
-               placeholder={t.common_search || 'Search...'}
+               placeholder={(t as unknown as Record<string, string>).common_search || 'Search...'}
                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded px-3 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-colors"
              />
           </div>

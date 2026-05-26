@@ -70,6 +70,36 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
           </p>
         </header>
 
+        <section className="glass-card rounded-[8px] p-6 border border-black/5 dark:border-white/5">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Getting started</h2>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Start a new chat, ask your first question, or explore the sidebar plugins to get the most from Voxentia.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+            <div className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-[var(--accent)]" />
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">New chat</p>
+              </div>
+              <p className="text-xs text-[var(--text-primary)]">Ask anything — from summaries to planning and code help.</p>
+            </div>
+            <div className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">Upload docs</p>
+              </div>
+              <p className="text-xs text-[var(--text-primary)]">Attach PDFs to let Voxentia answer from your own content.</p>
+            </div>
+            <div className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
+              <div className="flex items-center gap-2 mb-2">
+                <Compass className="w-4 h-4 text-[var(--accent)]" />
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">Explore plugins</p>
+              </div>
+              <p className="text-xs text-[var(--text-primary)]">Open a plugin from the sidebar for specialized workflows.</p>
+            </div>
+          </div>
+        </section>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatusCard
             label="Ollama"

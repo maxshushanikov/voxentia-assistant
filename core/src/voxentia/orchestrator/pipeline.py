@@ -105,8 +105,33 @@ class OrchestratorPipeline:
             webhooks = []
         if webhooks:
             import httpx
+            from urllib.parse import urlparse
+            import socket
+            import ipaddress
+
+            def _is_safe_url(u: str) -> bool:
+                try:
+                    parsed = urlparse(u)
+                    if parsed.scheme not in ("http", "https"):
+                        return False
+                    host = parsed.hostname
+                    if not host:
+                        return False
+                    addr_info = socket.getaddrinfo(host, parsed.port or (80 if parsed.scheme == "http" else 443))
+                    ips = [info[4][0] for info in addr_info]
+                    for ip in ips:
+                        ip_obj = ipaddress.ip_address(ip)
+                        if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local or ip_obj.is_multicast or ip_obj.is_reserved:
+                            return False
+                    return True
+                except Exception:
+                    return False
+
             async with httpx.AsyncClient() as client:
                 for url in webhooks:
+                    if not _is_safe_url(url):
+                        logger.warning("Skipping webhook with unsafe or unresolvable URL: %s", url)
+                        continue
                     try:
                         resp = await client.post(
                             url,
@@ -114,9 +139,9 @@ class OrchestratorPipeline:
                                 "message": ctx.message,
                                 "entities": ctx.entities,
                                 "intent": ctx.intent,
-                                "language": ctx.language
+                                "language": ctx.language,
                             },
-                            timeout=5.0
+                            timeout=5.0,
                         )
                         if resp.status_code == 200:
                             data = resp.json()
@@ -145,15 +170,20 @@ class OrchestratorPipeline:
         plugin = await self.registry.get_plugin_for_intent(ctx.intent)
         if plugin:
             try:
-                res = await plugin.on_message(ctx.intent, ctx.entities)
-                plugin_data = dict(res.data or {})
-                plugin_data["intent_confidence"] = ctx.intent_confidence
-                plugin_data["intent_source"] = ctx.intent_source
-                return VoxentiaResponse(
-                    text=res.text,
-                    plugin_data=plugin_data,
-                    intent=ctx.intent,
-                )
+                from voxentia.config.settings import settings
+
+                timeout_sec = getattr(settings, "PLUGIN_TIMEOUT", 15)
+                # Use the registry's timeout wrapper to run plugin code with
+                # an enforced timeout and isolated error handling.
+                async with self.registry._execute_with_timeout(plugin.__class__.__name__, plugin.on_message(ctx.intent, ctx.entities), timeout_sec=timeout_sec) as res:
+                    plugin_data = dict(res.data or {})
+                    plugin_data["intent_confidence"] = ctx.intent_confidence
+                    plugin_data["intent_source"] = ctx.intent_source
+                    return VoxentiaResponse(
+                        text=res.text,
+                        plugin_data=plugin_data,
+                        intent=ctx.intent,
+                    )
             except Exception as e:
                 logger.exception("Plugin error for intent %s: %s", ctx.intent, e)
                 return await self.llm_fallback(ctx)

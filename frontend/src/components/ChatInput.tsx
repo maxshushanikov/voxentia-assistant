@@ -13,15 +13,20 @@ interface ChatInputProps {
   onNewChat: () => void;
   isRecording: boolean;
   isThinking: boolean;
+  tokenCount?: number;
+  tokenBudget?: number;
 }
 
 export default function ChatInput({
   inputText, setInputText,
   onSend, onMicClick, onFileClick, onNewChat,
   isRecording, isThinking,
+  tokenCount = 0,
+  tokenBudget = 8192,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const remainingTokens = Math.max(0, tokenBudget - tokenCount);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -51,7 +56,12 @@ export default function ChatInput({
           placeholder={isRecording ? t.listening : t.placeholder}
           className="w-full bg-transparent border-none text-[var(--text-primary)] placeholder-[var(--text-secondary)]/60 focus:outline-none focus:ring-0 resize-none min-h-[40px] text-sm py-2 px-3 transition-[height] duration-150 ease-out"
           rows={1}
+          aria-label={t.send_message}
         />
+        <div className="flex items-center justify-between px-2 pb-1 text-[10px] text-[var(--text-secondary)]">
+          <span>{`${tokenCount} tokens used · ${remainingTokens} remaining`}</span>
+          <span>{(t as unknown as Record<string, string>).common_shortcutHint || 'Enter to send, Shift+Enter for newline'}</span>
+        </div>
         <div className="flex items-center justify-between px-2 pb-1">
           <div className="flex items-center space-x-1">
             <button

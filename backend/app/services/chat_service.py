@@ -334,7 +334,7 @@ class ChatService:
 
     async def process_message(
         self, db: Session, request: ChatRequest, http_request=None
-    ) -> Tuple[str, Optional[str], Optional[str], Optional[Any], list[dict]]:
+    ) -> Tuple[str, Optional[str], Optional[str], Optional[Any], list[dict], str, Optional[int]]:
         await self.initialize()
         started = time.perf_counter()
 
@@ -453,6 +453,7 @@ class ChatService:
             response.plugin_data,
             rag_sources,
             effective_session_id,
+            assistant_msg.id,
         )
 
     async def process_message_stream(
@@ -485,6 +486,10 @@ class ChatService:
 
         stream_intent = "stream"
         try:
+            # First run intent detection so the orchestrator can decide whether
+            # a plugin should handle this request. If a non-fallback plugin is
+            # selected, route the request through the orchestrator so plugins
+            # (calendar, weather, etc.) run the same code-path as REST.
             intent, _, _, _ = await self.orchestrator.pipeline.intent_detector.detect(
                 message,
                 system=system_prompt or None,
@@ -527,12 +532,53 @@ class ChatService:
 
         worker_tasks = [asyncio.create_task(tts_worker()) for _ in range(TTS_PARALLEL_WORKERS)]
 
-        async for token in self.llm_client.generate_stream(
-            message, model=model, system=system_prompt or None, temperature=temperature, history=history
-        ):
-            full_text += token
-            current_sentence += token
-            yield {"event": "token", "data": token}
+        # If orchestrator determines a plugin should handle the intent, call
+        # route_request first and stream its text result (chunked) instead of
+        # calling the raw LLM stream. This keeps REST/Stream/WS behavior in
+        # parity for plugin-handled intents. If the intent is 'fallback', we
+        # fall back to streaming from the LLM.
+        routed_response = None
+        try:
+            routed_response = await self.orchestrator.route_request(
+                request.message,
+                language=lang,
+                system_prompt=system_prompt,
+                model=model,
+                temperature=temperature,
+                rag_context=rag_context,
+                history=history,
+            )
+        except Exception:
+            # If routing fails, we'll fallback to LLM streaming below.
+            routed_response = None
+
+        if routed_response and getattr(routed_response, "intent", "fallback") != "fallback":
+            # Stream the routed response by chunking the final text so the
+            # client appears to stream tokens. This avoids skipping plugin
+            # logic for streamed/WS clients.
+            resp_text = routed_response.text or ""
+            chunk_size = 64
+            for i in range(0, len(resp_text), chunk_size):
+                token = resp_text[i : i + chunk_size]
+                full_text += token
+                current_sentence += token
+                yield {"event": "token", "data": token}
+                # flush any audio generated synchronously by plugin data
+                while not audio_queue.empty():
+                    try:
+                        url = audio_queue.get_nowait()
+                        yield {"event": "audio", "data": url}
+                    except asyncio.QueueEmpty:
+                        break
+            # ensure final routed response is reflected in the model variable
+            model = await self._resolve_model(request, request.message, routed_response.intent)
+        else:
+            async for token in self.llm_client.generate_stream(
+                message, model=model, system=system_prompt or None, temperature=temperature, history=history
+            ):
+                full_text += token
+                current_sentence += token
+                yield {"event": "token", "data": token}
 
             emotion_match = re.search(r"\[(happy|thinking|neutral|sad|angry|excited)\]", current_sentence)
             if emotion_match:
@@ -615,9 +661,10 @@ class ChatService:
                 "text": re.sub(r"\[.*?\]|<.*?>", "", full_text).strip(),
                 "audio_url": None,
                 "session_id": effective_session_id,
-                "intent": "stream",
+                "intent": stream_intent,
                 "emotion": current_emotion,
                 "rag_sources": rag_sources,
+                "message_id": assistant_msg.id,
             },
         }
 
@@ -639,10 +686,26 @@ class ChatService:
                 id=m.id,
                 parent_id=m.parent_id,
                 branch_id=m.branch_id or "main",
+                feedback=m.feedback,
             )
             for m in rows
         ]
         return records, total
+
+    def set_feedback(self, db: Session, session_id: str, message_id: int, feedback: Optional[str]) -> None:
+        if feedback not in (None, "like", "dislike"):
+            raise ValueError("Invalid feedback value")
+
+        message = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session_id, ChatMessage.id == message_id)
+            .first()
+        )
+        if not message or message.role != "assistant":
+            raise ValueError("Message not found or feedback is only allowed for assistant replies")
+
+        message.feedback = feedback
+        db.commit()
 
     def get_sessions(self, db: Session) -> List[ChatSession]:
         # A clean, high-performance single JOIN query to fetch everything in one query!
@@ -735,6 +798,16 @@ class ChatService:
 
     def delete_all_sessions(self, db: Session) -> int:
         deleted = db.query(ChatMessage).delete(synchronize_session=False)
+        # Remove session metadata and auxiliary storage to fully purge user data
+        db.query(ChatSessionMeta).delete(synchronize_session=False)
+        if getattr(settings, "ENABLE_MEMORY", True):
+            from app.models.memory import UserMemory
+
+            db.query(UserMemory).delete(synchronize_session=False)
+        if getattr(settings, "ENABLE_SENTIMENT", True):
+            from app.models.sentiment import SentimentRecord
+
+            db.query(SentimentRecord).delete(synchronize_session=False)
         db.commit()
         return deleted
 

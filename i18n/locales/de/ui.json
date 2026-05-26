@@ -81,5 +81,9 @@
   "attach_file": "Datei anhängen",
   "start_recording": "Sprachaufnahme starten",
   "stop_recording": "Sprachaufnahme stoppen",
-  "send_message": "Nachricht senden"
+  "send_message": "Nachricht senden",
+  "common_search": "Suche...",
+  "common_shortcutHint": "Enter zum Senden, Shift+Enter für neue Zeile",
+  "common_like": "Hilfreich",
+  "common_dislike": "Verbesserungswürdig"
 }
