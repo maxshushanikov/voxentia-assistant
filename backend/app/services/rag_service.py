@@ -160,12 +160,12 @@ def _split_structured_paragraph(para: str) -> list[str]:
     current: list[str] = []
     for line in lines:
         if _is_structured_line(line):
-            if current and not all(_is_structured_line(l) for l in current):
+            if current and not all(_is_structured_line(current_line) for current_line in current):
                 blocks.append("\n".join(current).strip())
                 current = []
             current.append(line)
         else:
-            if current and all(_is_structured_line(l) for l in current):
+            if current and all(_is_structured_line(current_line) for current_line in current):
                 blocks.append("\n".join(current).strip())
                 current = []
             current.append(line)

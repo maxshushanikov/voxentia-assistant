@@ -9,6 +9,7 @@ from typing import Any, List, Optional, Tuple
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.errors import PluginError, VoxentiaError
+from app.core.events import publish_app_event
 from app.core.personalities import load_personalities
 from app.domain.chat import ChatMessageRecord, ChatSession
 from app.models.chat import ChatMessage
@@ -18,7 +19,6 @@ from app.services.emotion_service import EmotionService
 from app.services.knowledge_service import KnowledgeService
 from app.services.memory_service import MemoryService
 from app.services.rag_service import RagSourceHit, search_sources
-from app.core.events import publish_app_event
 from app.services.voice_service import generate_tts_audio
 from sqlalchemy import func
 from sqlalchemy.orm import Session

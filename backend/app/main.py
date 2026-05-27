@@ -17,6 +17,7 @@ from app.core.auth import _validate_token, require_auth
 from app.core.config import settings
 from app.core.database import SessionLocal, get_db, init_db
 from app.core.errors import VoxentiaError
+from app.core.events import setup_event_handlers
 from app.core.exceptions import (
     http_exception_handler,
     unhandled_exception_handler,
@@ -27,14 +28,13 @@ from app.core.http_client import close_shared_client
 from app.core.janitor import DatabaseJanitor
 from app.core.logging_config import configure_backend_logging
 from app.core.middleware import RequestIdMiddleware
-from app.core.events import setup_event_handlers
 from app.core.observability import MetricsMiddleware, RequestIdLogFilter, metrics_payload
 from app.core.rate_limit import limiter
 from app.core.tracing import setup_tracing, shutdown_tracing
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService
 from app.services.health_service import full_health
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response

@@ -104,10 +104,11 @@ class OrchestratorPipeline:
             logger.warning("Webhooks skipped in local_only processing mode")
             webhooks = []
         if webhooks:
-            import httpx
-            from urllib.parse import urlparse
-            import socket
             import ipaddress
+            import socket
+            from urllib.parse import urlparse
+
+            import httpx
 
             def _is_safe_url(u: str) -> bool:
                 try:

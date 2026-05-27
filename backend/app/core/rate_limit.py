@@ -1,7 +1,6 @@
+from app.core.config import settings
 from slowapi import Limiter
 from starlette.requests import Request
-
-from app.core.config import settings
 
 
 def get_client_id(request: Request) -> str:
