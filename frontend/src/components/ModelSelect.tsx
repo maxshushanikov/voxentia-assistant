@@ -19,6 +19,7 @@ export default function ModelSelect() {
   const setSelectedModelB = useAppStore((s) => s.setSelectedModelB);
   
   const [models, setModels] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<ModelsResponse>('/api/v1/models')
@@ -36,9 +37,13 @@ export default function ModelSelect() {
           setSelectedModelB(secondModel);
         }
       })
-      .catch(() => setModels([]));
+      .catch(() => {
+        setModels([]);
+        setError('Models not reachable');
+      });
   }, [selectedModel, setSelectedModel, selectedModelB, setSelectedModelB]);
 
+  if (error) return <span title="Modelle nicht erreichbar" className="text-[var(--warning)] text-[10px]">⚠ Offline</span>;
   if (models.length === 0) return null;
 
   return (

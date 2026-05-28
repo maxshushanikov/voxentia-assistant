@@ -1,5 +1,5 @@
 import { Brain, Search } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 import { ApiError, apiFetch } from '../api/client';
 import { useAppStore } from '../store/appStore';
@@ -38,6 +38,10 @@ export default function KnowledgeView() {
       setLoading(false);
     }
   }, [sessionId, entity]);
+
+  useEffect(() => {
+    void loadGraph();
+  }, [loadGraph, sessionId]);
 
   return (
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]">

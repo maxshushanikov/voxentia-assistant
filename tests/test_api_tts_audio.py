@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
 
-from app.main import app
 from app.core.config import settings
+from app.main import app
 from fastapi.testclient import TestClient
 
 
@@ -23,8 +22,9 @@ def test_tts_audio_serves_file(tmp_path, monkeypatch):
 def test_tts_audio_path_traversal_rejected():
     # Call the route handler directly to avoid TestClient path normalization
     import asyncio
-    from fastapi import HTTPException
+
     from app.main import serve_audio
+    from fastapi import HTTPException
 
     try:
         asyncio.get_event_loop().run_until_complete(serve_audio("../secret.txt"))

@@ -1,4 +1,5 @@
 import { Languages, User, Check, ChevronDown } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 import type { Language, Speaker, Personality } from '../types';
 import { useTranslation } from '../i18n/context';
@@ -24,10 +25,21 @@ export default function SettingsDropdown({
 }: SettingsDropdownProps) {
   const { t } = useTranslation();
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const close = () => setIsOpen(false);
 
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const el = rootRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) close();
+    }
+    if (isOpen) document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [isOpen]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

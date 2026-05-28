@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from voxentia.plugins.base import PluginContext, PluginMetadata, PluginResponse, VoxentiaPlugin
+from voxentia.plugins.base import PluginMetadata, PluginResponse, VoxentiaPlugin
 
 
 class TeacherAssistantPlugin(VoxentiaPlugin):

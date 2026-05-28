@@ -65,7 +65,7 @@ function App() {
 
   useShortcuts();
 
-  const tokenCount = estimateTokenCount(messages);
+  const tokenCount = messages.length > 0 ? estimateTokenCount(messages) : null;
 
   const renderMainView = () => {
     if (activePlugin === 'settings') {

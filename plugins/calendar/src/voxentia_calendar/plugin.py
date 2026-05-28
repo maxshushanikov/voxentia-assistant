@@ -1,7 +1,9 @@
-from voxentia.plugins.base import VoxentiaPlugin, PluginMetadata, PluginContext, PluginResponse
-from typing import Dict, Any, List
-from datetime import datetime, timedelta
 import uuid
+from datetime import datetime, timedelta
+from typing import Any, Dict
+
+from voxentia.plugins.base import PluginMetadata, PluginResponse, VoxentiaPlugin
+
 
 class CalendarPlugin(VoxentiaPlugin):
     """Plugin zur Verwaltung von Terminen und Kalenderereignissen."""
@@ -30,14 +32,14 @@ class CalendarPlugin(VoxentiaPlugin):
         elif intent == "add_event":
             title = entities.get("title", "Neuer Termin")
             return await self._add_event(title, entities)
-            
+
         return PluginResponse(text="Intent nicht unterstützt vom Kalender-Plugin.")
 
     async def _list_events(self) -> PluginResponse:
         events = self.adapter.get_events()
         if not events:
             return PluginResponse(text="Du hast heute keine Termine.")
-        
+
         text = f"Du hast heute {len(events)} Termine. Der nächste ist: {events[0]['title']}."
         return PluginResponse(text=text, data={"events": events})
 

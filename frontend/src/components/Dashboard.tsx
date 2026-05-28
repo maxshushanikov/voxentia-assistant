@@ -36,6 +36,16 @@ function greetingForHour(hour: number, lang: string): string {
     if (hour < 18) return 'Добрый день';
     return 'Добрый вечер';
   }
+  if (lang === 'fr' || lang === 'fr-FR') {
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+  if (lang === 'es' || lang === 'es-ES') {
+    if (hour < 12) return 'Buenos días';
+    if (hour < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
@@ -76,27 +86,44 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
             Start a new chat, ask your first question, or explore the sidebar plugins to get the most from Voxentia.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-            <div className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
+            <button
+              type="button"
+              onClick={() => onContinueSession()}
+              className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5 text-left hover:cursor-pointer"
+              aria-label="New chat"
+            >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 text-[var(--accent)]" />
                 <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">New chat</p>
               </div>
               <p className="text-xs text-[var(--text-primary)]">Ask anything — from summaries to planning and code help.</p>
-            </div>
-            <div className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
+            </button>
+
+            <button
+              type="button"
+              onClick={() => document.querySelector('input[type=file]')?.dispatchEvent(new MouseEvent('click'))}
+              className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5 text-left hover:cursor-pointer"
+              aria-label="Upload docs"
+            >
               <div className="flex items-center gap-2 mb-2">
                 <MessageSquare className="w-4 h-4 text-[var(--accent)]" />
                 <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">Upload docs</p>
               </div>
               <p className="text-xs text-[var(--text-primary)]">Attach PDFs to let Voxentia answer from your own content.</p>
-            </div>
-            <div className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenPlugin('docs')}
+              className="rounded-[8px] border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5 text-left hover:cursor-pointer"
+              aria-label="Explore plugins"
+            >
               <div className="flex items-center gap-2 mb-2">
                 <Compass className="w-4 h-4 text-[var(--accent)]" />
                 <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">Explore plugins</p>
               </div>
               <p className="text-xs text-[var(--text-primary)]">Open a plugin from the sidebar for specialized workflows.</p>
-            </div>
+            </button>
           </div>
         </section>
 
@@ -147,11 +174,14 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
                 key={p.id}
                 type="button"
                 onClick={() => onOpenPlugin(p.id)}
-                className="glass-card p-4 rounded-lg border border-white/5 hover:border-[var(--accent)]/40 transition-all text-left group"
+                className="glass-card p-4 rounded-lg border border-white/5 hover:border-[var(--accent)]/40 transition-all text-left group flex items-center gap-3"
               >
-                <p className="text-sm group-hover:text-[var(--accent)] transition-colors text-[var(--text-primary)]">
-                  {(t as unknown as Record<string, string>)[`plugin_${p.nameKey}`] ?? p.nameKey}
-                </p>
+                <span className="mb-2">{p.icon}</span>
+                <div>
+                  <p className="text-sm group-hover:text-[var(--accent)] transition-colors text-[var(--text-primary)]">
+                    {(t as unknown as Record<string, string>)[`plugin_${p.nameKey}`] ?? p.nameKey}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
@@ -165,21 +195,35 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
             </h2>
             <div className="space-y-2">
               {discover.map((p) => (
-                <div
-                  key={p.id}
-                  className="glass-card rounded-lg p-4 border border-dashed border-white/10 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="text-sm text-[var(--text-primary)]">{p.name}</p>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1">
-                      {p.description ?? p.id}
-                    </p>
+                  <div
+                    key={p.id}
+                    className="glass-card rounded-lg p-4 border border-dashed border-white/10 flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-sm text-[var(--text-primary)]">{p.name}</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        {p.description ?? p.id}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await apiFetch(`/api/v1/plugins/install/${p.id}`, { method: 'POST' });
+                            setDiscover((prev) => prev.filter((x) => x.id !== p.id));
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                        className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded bg-[var(--accent)]/10 text-[var(--accent)]"
+                      >
+                        Enable
+                      </button>
+                      <span className="text-[9px] uppercase font-bold text-[var(--warning)] tracking-widest">disabled</span>
+                    </div>
                   </div>
-                  <span className="text-[9px] uppercase font-bold text-[var(--warning)] tracking-widest">
-                    disabled
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
           </section>
         )}
@@ -226,7 +270,11 @@ function StatusCard({
   }
 
   return (
-    <div className="glass-card rounded-lg p-4 border border-white/5 flex flex-col justify-between h-24 hover:border-white/10 hover:bg-white/5 transition-all duration-300">
+    <div
+      onClick={() => window.open(`/api/v1/health?service=${label.toLowerCase()}`, '_blank')}
+      role="button"
+      className="glass-card rounded-lg p-4 border border-white/5 flex flex-col justify-between h-24 hover:border-white/10 hover:bg-white/5 transition-all duration-300 cursor-pointer"
+    >
       <div className="flex items-center justify-between text-[var(--text-secondary)]">
         <div className="p-1.5 rounded bg-white/5 flex items-center justify-center">
           {icon}

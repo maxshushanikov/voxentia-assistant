@@ -1,4 +1,4 @@
-import { Plus, Paperclip, Mic, Send } from 'lucide-react';
+import { Plus, Paperclip, Mic, Send, Loader2 } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 
 import { useTranslation } from '../i18n/context';
@@ -13,7 +13,7 @@ interface ChatInputProps {
   onNewChat: () => void;
   isRecording: boolean;
   isThinking: boolean;
-  tokenCount?: number;
+  tokenCount?: number | null;
   tokenBudget?: number;
 }
 
@@ -26,7 +26,7 @@ export default function ChatInput({
 }: ChatInputProps) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const remainingTokens = Math.max(0, tokenBudget - tokenCount);
+  const remainingTokens = typeof tokenCount === 'number' ? Math.max(0, tokenBudget - tokenCount) : null;
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -58,8 +58,8 @@ export default function ChatInput({
           rows={1}
           aria-label={t.send_message}
         />
-        <div className="flex items-center justify-between px-2 pb-1 text-[10px] text-[var(--text-secondary)]">
-          <span>{`${tokenCount} tokens used · ${remainingTokens} remaining`}</span>
+          <div className="flex items-center justify-between px-2 pb-1 text-[10px] text-[var(--text-secondary)]">
+          <span>{`${typeof tokenCount === 'number' ? tokenCount : '—'} tokens used · ${typeof remainingTokens === 'number' ? remainingTokens : '—'} remaining`}</span>
           <span>{(t as unknown as Record<string, string>).common_shortcutHint || 'Enter to send, Shift+Enter for newline'}</span>
         </div>
         <div className="flex items-center justify-between px-2 pb-1">
@@ -117,7 +117,7 @@ export default function ChatInput({
               aria-label={t.send_message}
               role="button"
             >
-              <Send className="w-4 h-4" />
+              {isThinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>
           </div>
         </div>

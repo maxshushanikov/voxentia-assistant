@@ -1,10 +1,9 @@
 import time
 
-from fastapi import FastAPI, Depends
-from fastapi.testclient import TestClient
-
 from app.core.auth import require_auth
 from app.core.config import settings
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
 
 
 def _make_app():

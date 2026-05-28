@@ -78,7 +78,7 @@ class OrchestratorPipeline:
     async def resolve_model(self, ctx: PipelineContext) -> PipelineContext:
         from voxentia.config.settings import settings
 
-        if not getattr(settings, "ENABLE_MODEL_ROUTING", True):
+        if not settings.ENABLE_MODEL_ROUTING:
             return ctx
         from voxentia.orchestrator.model_router import ModelRouter
 
@@ -173,7 +173,7 @@ class OrchestratorPipeline:
             try:
                 from voxentia.config.settings import settings
 
-                timeout_sec = getattr(settings, "PLUGIN_TIMEOUT", 15)
+                timeout_sec = settings.PLUGIN_TIMEOUT
                 # Use the registry's timeout wrapper to run plugin code with
                 # an enforced timeout and isolated error handling.
                 async with self.registry._execute_with_timeout(plugin.__class__.__name__, plugin.on_message(ctx.intent, ctx.entities), timeout_sec=timeout_sec) as res:

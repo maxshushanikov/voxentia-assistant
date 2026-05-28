@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
+from app.domain.processing import ChatResult
 from app.core.deps import get_chat_service
 from app.main import app
 from fastapi.testclient import TestClient
@@ -8,7 +9,17 @@ from fastapi.testclient import TestClient
 def test_chat_endpoint_returns_assistant_reply():
     mock_service = MagicMock()
     mock_service.process_message = AsyncMock(
-        return_value=("Hello from test", None, "greeting", None, [], "test-session", 123)
+        return_value=ChatResult(
+            text="Hello from test",
+            audio_url=None,
+            session_id="test-session",
+            intent="greeting",
+            intent_confidence=0.99,
+            intent_source="test",
+            plugin_data=None,
+            rag_sources=[],
+            message_id=123,
+        )
     )
     app.dependency_overrides[get_chat_service] = lambda: mock_service
     try:

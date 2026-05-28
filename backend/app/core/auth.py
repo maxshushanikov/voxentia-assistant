@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import secrets
 from typing import Optional
 
 from app.core.config import settings
 from fastapi import HTTPException, Request, Security
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
-import secrets
 
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 _bearer = HTTPBearer(auto_error=False)

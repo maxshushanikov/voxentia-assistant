@@ -25,10 +25,19 @@ class PluginResponse(BaseModel):
 
 
 class PluginContext:
-    def __init__(self, settings: Any, llm: Any, db: Any = None):
+    def __init__(
+        self,
+        settings: Any,
+        llm: Any,
+        db: Any = None,
+        memory: Any = None,
+        knowledge: Any = None,
+    ):
         self.settings = settings
         self.llm = llm
         self.db = db
+        self.memory = memory
+        self.knowledge = knowledge
 
 
 class VoxentiaPlugin(ABC):

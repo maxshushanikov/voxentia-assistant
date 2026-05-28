@@ -18,6 +18,7 @@ class VoxentiaSettings(BaseSettings):
 
     PROJECT_NAME: str = "Voxentia AI"
     VERSION: str = "3.3.0"
+    APP_ENV: str = "development"
 
     REPO_ROOT: Path = _REPO_ROOT
     PLUGINS_DIR: Path = _REPO_ROOT / "plugins"
@@ -82,6 +83,7 @@ class VoxentiaSettings(BaseSettings):
     HISTORY_LIMIT: int = 20
     RATE_LIMIT: str = "60/minute"
     REDIS_URL: Optional[str] = None
+    METRICS_AUTH_REQUIRED: bool = False
     ENABLE_METRICS: bool = True
     ENABLE_EVENT_BUS: bool = False
     ENABLE_TRACING: bool = True
@@ -92,10 +94,11 @@ class VoxentiaSettings(BaseSettings):
         "http://localhost:8000,http://127.0.0.1:8000,http://localhost:5173"
     )
 
-    AUTH_ENABLED: bool = False
+    AUTH_ENABLED: bool = True
     API_KEY: Optional[str] = None
     JWT_SECRET: Optional[str] = None
     JWT_ALGORITHM: str = "HS256"
+    PLUGIN_TIMEOUT: int = 15
 
     PLUGIN_WEBHOOKS: List[str] = Field(default_factory=list)
 
@@ -143,6 +146,14 @@ class VoxentiaSettings(BaseSettings):
             self.EMBEDDING_CACHE_PATH = data / "embedding_cache.db"
         if "MARKETPLACE_PLUGINS_DIR" not in os.environ:
             self.MARKETPLACE_PLUGINS_DIR = data / "marketplace_plugins"
+        if self.APP_ENV.lower() in {"production", "prod"}:
+            dev_origins = {"http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:5173"}
+            configured = {o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()}
+            forbidden = configured.intersection(dev_origins)
+            if forbidden:
+                raise ValueError(
+                    f"ALLOWED_ORIGINS contains development origins in production: {sorted(forbidden)}"
+                )
         return self
 
     @property

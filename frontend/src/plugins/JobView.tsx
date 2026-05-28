@@ -51,18 +51,21 @@ function Dashboard({ onSelect }: { onSelect: (m: JobMode) => void }) {
           title={t.job_cvCheck}
           description={t.job_cvCheckDesc}
           onClick={() => onSelect('cv-check')}
+          disabled
         />
         <JobTile
           icon={<FileText className="w-6 h-6" />}
           title={t.job_coverLetter}
           description={t.job_coverLetterDesc}
           onClick={() => onSelect('cover-letter')}
+          disabled
         />
         <JobTile
           icon={<Search className="w-6 h-6" />}
           title={t.job_jobSearch}
           description={t.job_jobSearchDesc}
           onClick={() => onSelect('job-search')}
+          disabled
         />
       </div>
 
@@ -116,19 +119,21 @@ function JobTile({
   title,
   description,
   onClick,
+  disabled,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
-      className="glass-card rounded-[8px] p-6 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2 transition-all cursor-pointer group"
+      onClick={() => { if (!disabled) onClick(); }}
+      onKeyDown={(e) => e.key === 'Enter' && !disabled && onClick()}
+      className={`glass-card rounded-[8px] p-6 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 hover:bg-black/2 dark:hover:bg-black/2 dark:bg-white/2 transition-all group ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <div className="w-12 h-12 bg-black/10 dark:bg-black/5 dark:bg-white/5 rounded-[4px] flex items-center justify-center text-[var(--accent)] mb-6 group-hover:scale-110 transition-transform">
         {icon}
@@ -138,6 +143,7 @@ function JobTile({
         <ArrowRight className="w-4 h-4 ml-2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
       </h3>
       <p className="text-[var(--text-secondary)] text-sm">{description}</p>
+      {disabled && <div className="mt-4 text-[10px] font-bold text-[var(--text-secondary)] uppercase">Coming soon</div>}
     </div>
   );
 }

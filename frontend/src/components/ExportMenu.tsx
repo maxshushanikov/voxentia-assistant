@@ -1,5 +1,5 @@
 import { Download, FileJson, FileText, FileType } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 import { getChatHistory } from '../api/chat';
 import { useAppStore } from '../store/appStore';
@@ -12,6 +12,7 @@ import {
 
 export default function ExportMenu() {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const sessionId = useAppStore((s) => s.sessionId);
   const messages = useAppStore((s) => s.messages);
 
@@ -40,8 +41,18 @@ export default function ExportMenu() {
     setOpen(false);
   };
 
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const el = rootRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
   return (
-    <div className="hidden sm:block relative">
+    <div ref={rootRef} className="hidden sm:block relative">
       <button
         type="button"
         onClick={() => setOpen(!open)}

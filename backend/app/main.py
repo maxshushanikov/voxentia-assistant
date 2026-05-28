@@ -1,8 +1,6 @@
 import asyncio
-import collections
 import json
 import logging
-import time
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -34,6 +32,7 @@ from app.core.tracing import setup_tracing, shutdown_tracing
 from app.schemas.chat import ChatRequest
 from app.services.chat_service import ChatService
 from app.services.health_service import full_health
+from app.services.ws_rate_limiter import InMemoryWSRateLimiter
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,8 +42,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-# Initialize global rate limit tracking for WebSocket sessions
-ws_rate_limit_records = collections.defaultdict(list)
+ws_rate_limiter = InMemoryWSRateLimiter()
 
 
 async def warmup_models():
@@ -64,7 +62,7 @@ async def lifespan(app: FastAPI):
     setup_event_handlers(service.event_bus)
 
     janitor_task = None
-    if getattr(settings, "JANITOR_ENABLED", True):
+    if settings.JANITOR_ENABLED:
         janitor = DatabaseJanitor(retention_days=settings.JANITOR_RETENTION_DAYS)
         janitor_task = asyncio.create_task(
             janitor.run_forever(SessionLocal, settings.JANITOR_INTERVAL_HOURS)
@@ -192,15 +190,15 @@ async def health_check():
         svc = app.state.chat_service
         caps = svc.capabilities_snapshot()
         bus_info = {
-            "enabled": getattr(settings, "ENABLE_EVENT_BUS", False),
+            "enabled": settings.ENABLE_EVENT_BUS,
             "redis": svc.event_bus.is_enabled(),
             "connected": await svc.event_bus.ensure_connected()
-            if getattr(settings, "ENABLE_EVENT_BUS", False)
+            if settings.ENABLE_EVENT_BUS
             else False,
         }
     trace_info = {
-        "tracing_enabled": getattr(settings, "ENABLE_TRACING", True),
-        "otlp_endpoint": getattr(settings, "OTEL_EXPORTER_OTLP_ENDPOINT", None) or None,
+        "tracing_enabled": settings.ENABLE_TRACING,
+        "otlp_endpoint": settings.OTEL_EXPORTER_OTLP_ENDPOINT or None,
     }
     return await full_health(capabilities=caps, event_bus=bus_info, tracing=trace_info)
 
@@ -215,15 +213,15 @@ async def health_check_v1():
         svc = app.state.chat_service
         caps = svc.capabilities_snapshot()
         bus_info = {
-            "enabled": getattr(settings, "ENABLE_EVENT_BUS", False),
+            "enabled": settings.ENABLE_EVENT_BUS,
             "redis": svc.event_bus.is_enabled(),
             "connected": await svc.event_bus.ensure_connected()
-            if getattr(settings, "ENABLE_EVENT_BUS", False)
+            if settings.ENABLE_EVENT_BUS
             else False,
         }
     trace_info = {
-        "tracing_enabled": getattr(settings, "ENABLE_TRACING", True),
-        "otlp_endpoint": getattr(settings, "OTEL_EXPORTER_OTLP_ENDPOINT", None) or None,
+        "tracing_enabled": settings.ENABLE_TRACING,
+        "otlp_endpoint": settings.OTEL_EXPORTER_OTLP_ENDPOINT or None,
     }
     return await full_health(capabilities=caps, event_bus=bus_info, tracing=trace_info)
 
@@ -234,7 +232,7 @@ async def prometheus_metrics(request: Request):
     """Prometheus scrape endpoint (when prometheus_client is installed)."""
     # Optionally require an API key / token to access metrics to avoid
     # exposing internal telemetry to unauthenticated callers.
-    if getattr(settings, "METRICS_AUTH_REQUIRED", False):
+    if settings.METRICS_AUTH_REQUIRED:
         token = None
         auth_hdr = request.headers.get("authorization")
         if auth_hdr:
@@ -248,18 +246,6 @@ async def prometheus_metrics(request: Request):
         raise HTTPException(status_code=404, detail="Metrics disabled or unavailable")
     body, content_type = result
     return Response(content=body, media_type=content_type)
-
-
-def check_ws_rate_limit(client_ip: str, max_requests: int = 20, period_seconds: int = 60) -> bool:
-    """Sliding-window IP address rate-limiter for high-volume WebSocket clients."""
-    now = time.time()
-    timestamps = ws_rate_limit_records[client_ip]
-    timestamps = [t for t in timestamps if now - t < period_seconds]
-    ws_rate_limit_records[client_ip] = timestamps
-    if len(timestamps) >= max_requests:
-        return False
-    ws_rate_limit_records[client_ip].append(now)
-    return True
 
 
 @app.websocket("/api/v1/chat/ws")
@@ -298,7 +284,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
 
             client_ip = websocket.client.host if websocket.client else "unknown"
-            if not check_ws_rate_limit(client_ip, max_requests=20, period_seconds=60):
+            if not ws_rate_limiter.allow(client_ip, max_requests=20, period_seconds=60):
                 await websocket.send_json({"event": "error", "data": "Rate limit exceeded"})
                 continue
 

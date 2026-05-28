@@ -1,8 +1,9 @@
-import httpx
-from typing import Dict, Any
+from typing import Any, Dict
 
-from voxentia.plugins.base import PluginContext, PluginMetadata, PluginResponse, VoxentiaPlugin
+import httpx
+from voxentia.plugins.base import PluginMetadata, PluginResponse, VoxentiaPlugin
 from voxentia.utils.logging import logger
+
 
 class CoreAssistantPlugin(VoxentiaPlugin):
     """Bietet Basis-Funktionen wie Wetter und Websuche."""

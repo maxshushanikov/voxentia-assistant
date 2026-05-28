@@ -1,11 +1,13 @@
-from typing import List
 import uuid
+from typing import List
+
 from voxentia_job_assistant.adapters.base import JobSourceAdapter
 from voxentia_job_assistant.models.job import JobPosting
 
+
 class MockJobAdapter(JobSourceAdapter):
     """Gibt statische Testdaten für die Jobsuche zurück."""
-    
+
     async def search(self, query: str, location: str) -> List[JobPosting]:
         return [
             JobPosting(
