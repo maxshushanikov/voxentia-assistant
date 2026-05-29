@@ -562,6 +562,10 @@ export function useAppController() {
   const handleEditMessage = (_id: string, newText: string) => {
     setInputText(newText);
   };
+
+  const handleDeleteMessage = (id: string) => {
+    setMessages((prev) => prev.filter((message) => message.id !== id));
+  };
   
   const handleRegenerate = async (id: string) => {
     if (isThinking) return;
@@ -651,5 +655,6 @@ export function useAppController() {
     handleEditMessage,
     handleRegenerate,
     openPlugin,
+    handleDeleteMessage,
   };
 }

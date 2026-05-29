@@ -43,21 +43,21 @@ export default function SettingsDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-1.5 rounded-[4px] bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+        className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-[18px] bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all duration-200 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.75)]"
       >
         <Languages className="w-3.5 h-3.5 text-[var(--accent)]" />
         <span>{language}</span>
-        <span className="w-px h-3 bg-black/10 dark:bg-white/10 mx-1" />
+        <span className="w-px h-4 bg-[rgba(255,255,255,0.12)] mx-1" />
         <User className="w-3.5 h-3.5 text-[var(--accent)]" />
         <span>{speaker}</span>
         <ChevronDown className={cn('w-3 h-3 transition-transform', isOpen && 'rotate-180')} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-secondary)] border border-black/10 dark:border-white/10 rounded-[4px] shadow-2xl p-2 z-50">
+        <div className="absolute top-full right-0 mt-3 w-56 glass-card border border-[rgba(255,255,255,0.12)] shadow-[0_30px_90px_-40px_rgba(0,0,0,0.55)] p-3 z-50">
 
           {/* Personality */}
-          <p className="px-2 py-1 text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-tighter">
+          <p className="px-2 py-1 text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.22em]">
             {t.personality}
           </p>
           {PERSONALITY_OPTIONS.map((pers) => (
@@ -65,17 +65,17 @@ export default function SettingsDropdown({
               key={pers}
               type="button"
               onClick={() => { setPersonality(pers); close(); }}
-              className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-[2px] hover:bg-black/5 dark:hover:bg-white/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="w-full flex items-center justify-between px-2.5 py-2 text-xs rounded-[12px] hover:bg-[rgba(56,189,248,0.1)] text-[var(--text-primary)] transition-all duration-200"
             >
               <span>{t[`pers_${pers}` as keyof typeof t] as string}</span>
               {personality === pers && <Check className="w-3 h-3 text-[var(--accent)]" />}
             </button>
           ))}
 
-          <div className="h-px bg-black/5 dark:bg-white/5 my-1" />
+          <div className="h-px bg-[rgba(255,255,255,0.1)] my-2" />
 
           {/* Language */}
-          <p className="px-2 py-1 text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-tighter">
+          <p className="px-2 py-1 text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.22em]">
             {t.language}
           </p>
           {LANG_OPTIONS.map(({ value, key }) => (
@@ -83,17 +83,17 @@ export default function SettingsDropdown({
               key={value}
               type="button"
               onClick={() => { setLanguage(value); close(); }}
-              className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-[2px] hover:bg-black/5 dark:hover:bg-white/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="w-full flex items-center justify-between px-2.5 py-2 text-xs rounded-[12px] hover:bg-[rgba(56,189,248,0.1)] text-[var(--text-primary)] transition-all duration-200"
             >
               <span>{t[key]}</span>
               {language === value && <Check className="w-3 h-3 text-[var(--accent)]" />}
             </button>
           ))}
 
-          <div className="h-px bg-black/5 dark:bg-white/5 my-1" />
+          <div className="h-px bg-[rgba(255,255,255,0.1)] my-2" />
 
           {/* Voice */}
-          <p className="px-2 py-1 text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-tighter">
+          <p className="px-2 py-1 text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.22em]">
             {t.voice}
           </p>
           {SPEAKER_OPTIONS.map(({ value, key }) => (
@@ -101,7 +101,7 @@ export default function SettingsDropdown({
               key={value}
               type="button"
               onClick={() => { setSpeaker(value); close(); }}
-              className="w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-[2px] hover:bg-black/5 dark:hover:bg-white/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="w-full flex items-center justify-between px-2.5 py-2 text-xs rounded-[12px] hover:bg-[rgba(56,189,248,0.1)] text-[var(--text-primary)] transition-all duration-200"
             >
               <span>{t[key]}</span>
               {speaker === value && <Check className="w-3 h-3 text-[var(--accent)]" />}

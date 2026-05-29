@@ -276,6 +276,10 @@ class ChatService:
             "plugin.intent.routed",
             {"session_id": ctx.effective_session_id, "intent": response.intent},
         )
+        await self.registry.dispatch_event(
+            "chat.message.completed",
+            {"session_id": ctx.effective_session_id, "intent": response.intent},
+        )
         logger.info(
             "chat completed",
             extra={

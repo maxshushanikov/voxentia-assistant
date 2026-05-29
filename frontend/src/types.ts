@@ -32,7 +32,7 @@ export interface Message {
 
 export type Language = 'en' | 'de' | 'ru';
 export type Speaker = 'baya' | 'kseniya' | 'eugene' | 'aidar';
-export type Personality = 'professional' | 'friendly' | 'academic';
+export type Personality = 'professional' | 'friendly' | 'academic' | 'developer' | 'teacher' | 'coach' | 'therapist';
 export type AvatarEmotion = 'neutral' | 'happy' | 'thinking' | 'sad';
 
 export const speakerGenderMap: Record<Speaker, 'feminine' | 'masculine'> = {

@@ -6,10 +6,16 @@ from contextlib import asynccontextmanager
 import uvicorn
 from app.api.v1.chat import router as chat_router
 from app.api.v1.documents import router as documents_router
+from app.api.v1.jobs import router as jobs_router
 from app.api.v1.knowledge import router as knowledge_router
+from app.api.v1.learn import router as learn_router
 from app.api.v1.marketplace import router as marketplace_router
 from app.api.v1.models import router as models_router
+from app.api.v1.notes import router as notes_router
 from app.api.v1.plugins import router as plugin_router
+from app.api.v1.print import router as print_router
+from app.api.v1.tasks import router as tasks_router
+from app.api.v1.vision import router as vision_router
 from app.api.v1.voice import router as voice_router
 from app.core.auth import _validate_token, require_auth
 from app.core.config import settings
@@ -125,6 +131,21 @@ _auth = [Depends(require_auth)]
 app.include_router(chat_router, prefix="/api/v1", tags=["Chat"], dependencies=_auth)
 app.include_router(
     documents_router, prefix="/api/v1/documents", tags=["Documents"], dependencies=_auth
+)
+app.include_router(
+    notes_router, prefix="/api/v1/notes", tags=["Notes"], dependencies=_auth
+)
+app.include_router(
+    tasks_router, prefix="/api/v1/tasks", tags=["Tasks"], dependencies=_auth
+)
+app.include_router(
+    jobs_router, prefix="/api/v1/jobs", tags=["Jobs"], dependencies=_auth
+)
+app.include_router(
+    learn_router, prefix="/api/v1/learn", tags=["Learn"], dependencies=_auth
+)
+app.include_router(
+    print_router, prefix="/api/v1/print", tags=["Print"], dependencies=_auth
 )
 app.include_router(
     plugin_router, prefix="/api/v1/plugins", tags=["Plugins"], dependencies=_auth

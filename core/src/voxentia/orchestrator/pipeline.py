@@ -26,6 +26,9 @@ class PipelineContext:
     intent_source: str = "unknown"  # keyword | tool_call | llm | fallback
     entities: Dict[str, Any] = field(default_factory=dict)
     plugin_data: Optional[Dict[str, Any]] = None
+    memory_hint: str = ""
+    knowledge_hint: str = ""
+    session_id: str = ""
     history: Optional[List[Dict[str, str]]] = None
 
 
@@ -89,6 +92,13 @@ class OrchestratorPipeline:
         await router.refresh_available(settings.OLLAMA_TIMEOUT)
         tokens = max(1, len(ctx.message.split()))
         ctx.model = router.resolve(ctx.intent, tokens, ctx.model)
+        return ctx
+
+    def enrich_memory(self, ctx: PipelineContext) -> PipelineContext:
+        if ctx.memory_hint:
+            ctx.system_prompt = f"{ctx.system_prompt}\n\n{ctx.memory_hint}"
+        if ctx.knowledge_hint:
+            ctx.system_prompt = f"{ctx.system_prompt}\n\n{ctx.knowledge_hint}"
         return ctx
 
     async def plugin_pre_llm(self, ctx: PipelineContext) -> PipelineContext:
@@ -168,7 +178,8 @@ class OrchestratorPipeline:
                 intent="greeting",
             )
 
-        plugin = await self.registry.get_plugin_for_intent(ctx.intent)
+        message = ctx.message or ctx.raw_message
+        plugin = await self.registry.get_plugin_for_intent(ctx.intent, message)
         if plugin:
             try:
                 from voxentia.config.settings import settings
@@ -218,6 +229,7 @@ class OrchestratorPipeline:
         ctx = self.enrich_rag(ctx)
         ctx = await self.detect_intent(ctx)
         ctx = await self.resolve_model(ctx)
+        ctx = self.enrich_memory(ctx)
         ctx = await self.plugin_pre_llm(ctx)
 
         plugin_response = await self.route_plugin(ctx)

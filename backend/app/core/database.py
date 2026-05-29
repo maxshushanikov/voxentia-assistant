@@ -69,8 +69,12 @@ def init_db():
     from app.models.experiment import ExperimentEvent  # noqa: F401
     from app.models.knowledge import KnowledgeEdge  # noqa: F401
     from app.models.memory import UserMemory  # noqa: F401
+    from app.models.note import Note  # noqa: F401
     from app.models.sentiment import SentimentRecord  # noqa: F401
     from app.models.session import ChatSessionMeta  # noqa: F401
+    from app.models.task import Task  # noqa: F401
+    from app.models.learn import LearningPlan, FlashcardDeck, DailyGoal, LearningHistory  # noqa: F401
+    from app.models.job_tracker import JobApplication  # noqa: F401
 
     if _is_postgres():
         _init_db_postgres()

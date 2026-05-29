@@ -14,6 +14,8 @@ class ProcessingContext:
     rag_context: str
     rag_sources: list[dict[str, Any]]
     system_prompt: str
+    memory_hint: str
+    knowledge_hint: str
     is_first_exchange: bool
     effective_session_id: str
     branch_id: str

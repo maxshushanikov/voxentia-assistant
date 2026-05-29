@@ -1,7 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Manrope', 'Geist', 'Söhne', system-ui, sans-serif;
 }
 
 @layer base {
@@ -80,6 +81,23 @@
     transition: background-color 0.25s ease, color 0.25s ease;
   }
 
+  body, input, textarea, button {
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+
+  h1 { font-size: clamp(2.5rem, 4vw, 3.5rem); }
+  h2 { font-size: clamp(1.75rem, 3vw, 2.5rem); }
+  h3 { font-size: clamp(1.35rem, 2.2vw, 1.75rem); }
+
+  p {
+    line-height: 1.78;
+  }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -93,8 +111,27 @@
   .glass-card {
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 40px 120px -80px rgba(15, 23, 42, 0.5);
+  }
+
+  .soft-glow {
+    box-shadow: 0 24px 90px -28px rgba(56, 189, 248, 0.35);
+  }
+
+  .plugin-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.4rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 9999px;
+    background: rgba(56, 189, 248, 0.12);
+    color: var(--accent);
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    font-weight: 700;
   }
 
   .app-shell {
@@ -223,6 +260,14 @@
     animation: fadeIn 0.25s ease-out;
   }
 
+  .animate-soft-slide-up {
+    animation: softSlideUp 0.2s ease-out both;
+  }
+
+  .animate-tts-wave {
+    animation: ttsWave 1.2s ease-in-out infinite;
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -234,6 +279,28 @@
     }
   }
 
+  @keyframes softSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes ttsWave {
+    0%, 100% {
+      transform: scaleY(0.5);
+      opacity: 0.65;
+    }
+    50% {
+      transform: scaleY(1.2);
+      opacity: 1;
+    }
+  }
+
   @keyframes soundwave {
     0%, 100% {
       transform: scaleY(0.3);
@@ -241,5 +308,52 @@
     50% {
       transform: scaleY(1);
     }
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+    background-image: none !important;
+    color: black !important;
+    overflow: visible !important;
+  }
+  .app-header, 
+  .sidebar-container, 
+  .sidebar, 
+  aside,
+  button, 
+  form,
+  .chat-input,
+  .no-print,
+  nav,
+  input,
+  select,
+  header {
+    display: none !important;
+  }
+  .app-shell, 
+  .main-content, 
+  .flex-1,
+  .chat-area {
+    overflow: visible !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .glass-card {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  p, span, div, h1, h2, h3, h4, h5, h6, li, pre, code {
+    color: #111111 !important;
   }
 }

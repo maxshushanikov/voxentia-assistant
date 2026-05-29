@@ -1,4 +1,4 @@
-import { Download, FileJson, FileText, FileType } from 'lucide-react';
+import { Download, FileJson, FileText, FileType, Printer } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 import { getChatHistory } from '../api/chat';
@@ -56,36 +56,44 @@ export default function ExportMenu() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="p-2 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.14)] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[rgba(255,255,255,0.12)] transition-all duration-200 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.75)]"
         title="Export chat"
       >
         <Download className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute top-full right-0 mt-1 w-40 bg-[var(--bg-secondary)] border border-black/10 dark:border-white/10 rounded-[4px] shadow-xl z-50 p-1">
+        <div className="absolute top-full right-0 mt-2 w-44 glass-card border border-[rgba(255,255,255,0.12)] rounded-[18px] shadow-[0_30px_90px_-40px_rgba(0,0,0,0.55)] z-50 p-2">
           <button
             type="button"
             onClick={() => void exportChat('md')}
-            className="w-full flex items-center gap-2 px-2 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--text-primary)] rounded-[14px] hover:bg-[rgba(56,189,248,0.1)] transition-all duration-200"
           >
-            <FileText className="w-3.5 h-3.5" />
+            <FileText className="w-4 h-4" />
             Markdown
           </button>
           <button
             type="button"
             onClick={() => void exportChat('json')}
-            className="w-full flex items-center gap-2 px-2 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--text-primary)] rounded-[14px] hover:bg-[rgba(56,189,248,0.1)] transition-all duration-200"
           >
-            <FileJson className="w-3.5 h-3.5" />
+            <FileJson className="w-4 h-4" />
             JSON
           </button>
           <button
             type="button"
             onClick={() => void exportChat('pdf')}
-            className="w-full flex items-center gap-2 px-2 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--text-primary)] rounded-[14px] hover:bg-[rgba(56,189,248,0.1)] transition-all duration-200"
           >
-            <FileType className="w-3.5 h-3.5" />
+            <FileType className="w-4 h-4" />
             PDF
+          </button>
+          <button
+            type="button"
+            onClick={() => { window.print(); setOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--text-primary)] rounded-[14px] hover:bg-[rgba(56,189,248,0.1)] transition-all duration-200"
+          >
+            <Printer className="w-4 h-4" />
+            Drucken (Browser)
           </button>
         </div>
       )}

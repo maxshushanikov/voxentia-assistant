@@ -46,6 +46,12 @@ class ChatContextBuilder:
         rag_context = "\n\n".join(h.text for h in rag_hits if h.text)
         rag_sources = self._rag_sources_from_hits(rag_hits)
         system_prompt = self.chat_service._build_system_prompt(db, personality, lang, effective_session_id)
+        memory_hint = ""
+        knowledge_hint = ""
+        if settings.ENABLE_MEMORY:
+            memory_hint = self.chat_service.memory_service.build_memory_prompt(db, effective_session_id)
+        if settings.ENABLE_KNOWLEDGE_GRAPH:
+            knowledge_hint = self.chat_service.knowledge_service.build_graph_prompt(db, effective_session_id)
         temperature = request.temperature
         system_prompt, temperature, ab_assignment = self.chat_service._apply_ab_testing(
             effective_session_id, system_prompt, temperature
@@ -61,6 +67,8 @@ class ChatContextBuilder:
             rag_context=rag_context,
             rag_sources=rag_sources,
             system_prompt=system_prompt,
+            memory_hint=memory_hint,
+            knowledge_hint=knowledge_hint,
             is_first_exchange=is_first_exchange,
             effective_session_id=effective_session_id,
             branch_id=branch_id,

@@ -7,6 +7,19 @@ import type {
   TranscribeResponseBody,
 } from './types';
 
+export interface PluginListItem {
+  id: string;
+  name: string;
+  version: string;
+  status: string;
+  enabled: boolean;
+  description?: string;
+  intents?: string[];
+  capabilities?: string[];
+  triggers?: string[];
+  permissions?: string[];
+}
+
 export function postChat(body: ChatRequestBody) {
   return apiFetch<ChatResponseBody>('/api/chat', {
     method: 'POST',
@@ -77,9 +90,14 @@ export function listPlugins() {
     plugins: {
       id: string;
       name: string;
+      version: string;
       status: string;
+      enabled: boolean;
       description?: string;
       intents?: string[];
+      capabilities?: string[];
+      triggers?: string[];
+      permissions?: string[];
     }[];
   }>('/api/v1/plugins/list');
 }

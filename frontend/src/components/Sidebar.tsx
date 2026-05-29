@@ -1,8 +1,8 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { X, Settings, Plus, Trash2 } from 'lucide-react';
+import { type DragEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { X, Settings, Plus, Trash2, GripVertical } from 'lucide-react';
 import { useTranslation } from '../i18n/context';
 import { plugins } from '../plugins/registry';
-import { deleteAllSessions, deleteSession, getSessions } from '../api/chat';
+import { deleteAllSessions, deleteSession, getSessions, listPlugins } from '../api/chat';
 import { cn } from '../utils/cn';
 
 const SIDEBAR_HISTORY_PREVIEW_LIMIT = 8;
@@ -102,6 +102,9 @@ export default function Sidebar({
 }: SidebarProps) {
   const { t } = useTranslation();
   const [allGroups, setAllGroups] = useState<HistoryGroup[]>([]);
+  const [pluginOrder, setPluginOrder] = useState(() => plugins);
+  const [pluginMetadata, setPluginMetadata] = useState<Record<string, {status: string; enabled: boolean; capabilities?: string[]; triggers?: string[]}>>({});
+  const [draggingPlugin, setDraggingPlugin] = useState<string | null>(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,6 +115,26 @@ export default function Sidebar({
       .then((r) => r.json())
       .then((d) => setVersion(d.version || '...'))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const data = await listPlugins();
+        const meta: Record<string, {status: string; enabled: boolean; capabilities?: string[]; triggers?: string[]}> = {};
+        data.plugins.forEach((item) => {
+          meta[item.id] = {
+            status: item.status,
+            enabled: item.enabled,
+            capabilities: item.capabilities,
+            triggers: item.triggers,
+          };
+        });
+        setPluginMetadata(meta);
+      } catch (error) {
+        console.warn('Failed to load plugin metadata', error);
+      }
+    })();
   }, []);
 
   const loadSessions = useCallback(async () => {
@@ -144,6 +167,35 @@ export default function Sidebar({
     }
     return limitHistoryGroups(groups, SIDEBAR_HISTORY_PREVIEW_LIMIT).groups;
   }, [allGroups, showAllHistory, searchQuery]);
+
+  const handleDragStart = (pluginId: string) => {
+    setDraggingPlugin(pluginId);
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDragEnd = () => {
+    setDraggingPlugin(null);
+  };
+
+  const handleDrop = (targetId: string) => {
+    if (!draggingPlugin || draggingPlugin === targetId) {
+      setDraggingPlugin(null);
+      return;
+    }
+    setPluginOrder((prev) => {
+      const draggedIndex = prev.findIndex((item) => item.id === draggingPlugin);
+      const targetIndex = prev.findIndex((item) => item.id === targetId);
+      if (draggedIndex === -1 || targetIndex === -1) return prev;
+      const next = [...prev];
+      const [dragged] = next.splice(draggedIndex, 1);
+      next.splice(targetIndex, 0, dragged);
+      return next;
+    });
+    setDraggingPlugin(null);
+  };
 
   const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -186,7 +238,7 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 lg:relative lg:translate-x-0 transition-transform duration-300 z-50 w-[260px] flex flex-col h-screen bg-[var(--bg-secondary)] border-r border-black/5 dark:border-white/5 shrink-0',
+        'fixed inset-y-0 left-0 lg:relative lg:translate-x-0 transition-transform duration-300 z-50 w-[280px] flex flex-col h-screen bg-[rgba(15,23,42,0.82)] backdrop-blur-[18px] border-r border-[rgba(255,255,255,0.08)] shadow-[0_24px_90px_-40px_rgba(0,0,0,0.65)] shrink-0',
         isOpen ? 'translate-x-0' : '-translate-x-full',
       )}
     >
@@ -211,16 +263,57 @@ export default function Sidebar({
           <h2 className="text-[10px] font-bold text-[var(--text-muted)] mb-3 tracking-[0.1em] uppercase">
             {t.plugins}
           </h2>
-          <nav className="space-y-1">
-            {plugins.map((plugin) => (
-              <SidebarButton
-                key={plugin.id}
-                icon={plugin.icon}
-                label={(t[plugin.nameKey as keyof typeof t] as string) || plugin.id}
-                active={activePlugin === plugin.id}
-                onClick={() => setActivePlugin(plugin.id)}
-              />
-            ))}
+          <nav className="space-y-2">
+            {pluginOrder.map((plugin) => {
+              const isActivePlugin = activePlugin === plugin.id;
+              const isDisabled = pluginMetadata[plugin.id]?.enabled === false;
+
+              return (
+                <div
+                  key={plugin.id}
+                  draggable
+                  onDragStart={(event) => {
+                    handleDragStart(plugin.id);
+                    event.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(plugin.id)}
+                  className={cn(
+                    'flex items-center rounded-[18px] bg-[rgba(255,255,255,0.06)] border border-transparent hover:border-[rgba(56,189,248,0.18)] hover:shadow-[0_20px_60px_-36px_rgba(56,189,248,0.45)] transition-all duration-200',
+                    isDisabled && 'opacity-70 cursor-not-allowed',
+                    isActivePlugin && 'bg-[rgba(56,189,248,0.18)] border-[rgba(56,189,248,0.3)] shadow-[0_18px_60px_-36px_rgba(56,189,248,0.45)]',
+                    draggingPlugin === plugin.id && 'opacity-80',
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => !isDisabled && setActivePlugin(plugin.id)}
+                    disabled={isDisabled}
+                    className={cn(
+                      'flex-1 flex items-center px-4 py-3 text-xs font-semibold rounded-[18px] text-left w-full transition-colors duration-200',
+                      isActivePlugin ? 'text-[var(--text-on-accent)]' : 'text-[var(--text-primary)]',
+                      isDisabled && 'text-[var(--text-secondary)]',
+                    )}
+                  >
+                    <span className={cn('mr-3', isActivePlugin ? 'text-[var(--text-on-accent)]' : 'text-[var(--accent)]')}>
+                      {plugin.icon}
+                    </span>
+                    <span className="uppercase tracking-[0.12em] truncate">{(t[plugin.nameKey as keyof typeof t] as string) || plugin.id}</span>
+                  </button>
+                  <div className="flex items-center pr-3 space-x-2">
+                    {pluginMetadata[plugin.id]?.status && pluginMetadata[plugin.id]?.status !== 'active' ? (
+                      <span className="plugin-badge">{pluginMetadata[plugin.id].status}</span>
+                    ) : plugin.badge ? (
+                      <span className="plugin-badge">{plugin.badge}</span>
+                    ) : null}
+                    <span className="text-[var(--text-secondary)]">
+                      <GripVertical className="w-4 h-4" />
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </nav>
         </div>
 

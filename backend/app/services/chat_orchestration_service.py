@@ -21,6 +21,9 @@ class ChatOrchestrationService:
                 model=ctx.model,
                 temperature=ctx.temperature,
                 rag_context=ctx.rag_context,
+                memory_hint=ctx.memory_hint,
+                knowledge_hint=ctx.knowledge_hint,
+                session_id=ctx.effective_session_id,
                 history=ctx.history,
             )
         )
