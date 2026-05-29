@@ -1,56 +1,15 @@
 import { create } from 'zustand';
 import { createSession } from '../api/chat';
+import { storage } from './storage';
 
 import type { AvatarEmotion, Language, Message, Personality, Speaker } from '../types';
 
 export type Theme = 'dark' | 'light' | 'glass';
 
-const THEME_KEY = 'voxentia-theme';
-const AVATAR_KEY = 'voxentia-show-avatar';
-const MODEL_KEY = 'voxentia-model';
-const STREAM_KEY = 'voxentia-stream';
-
 function newSessionId() {
   return 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
 }
 
-function loadTheme(): Theme {
-  const v = localStorage.getItem(THEME_KEY);
-  if (v === 'light' || v === 'glass' || v === 'dark') return v;
-  return 'dark';
-}
-
-function loadShowAvatar(): boolean {
-  return localStorage.getItem(AVATAR_KEY) !== 'false';
-}
-
-function loadModel(): string | null {
-  return localStorage.getItem(MODEL_KEY);
-}
-
-function loadStreamEnabled(): boolean {
-  return localStorage.getItem(STREAM_KEY) !== 'false';
-}
-
-function loadLanguage(): Language {
-  const v = localStorage.getItem('voxentia-lang');
-  return (v as Language) || 'en';
-}
-
-function loadAvatarSource(): 'default' | 'custom' {
-  const v = localStorage.getItem('voxentia-avatar-source');
-  return v === 'custom' ? 'custom' : 'default';
-}
-
-function loadSpeaker(): Speaker {
-  const v = localStorage.getItem('voxentia-speaker');
-  return (v as Speaker) || 'baya';
-}
-
-function loadPersonality(): Personality {
-  const v = localStorage.getItem('voxentia-personality');
-  return (v as Personality) || 'professional';
-}
 
 interface AppState {
   sessionId: string;
@@ -107,22 +66,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   sessionId: newSessionId(),
   messages: [],
   inputText: '',
-  language: loadLanguage(),
-  speaker: loadSpeaker(),
-  personality: loadPersonality(),
-  selectedModel: loadModel(),
+  language: storage.getLanguage(),
+  speaker: storage.getSpeaker(),
+  personality: storage.getPersonality(),
+  selectedModel: storage.getModel(),
   activePlugin: null,
   isThinking: false,
   isSidebarOpen: false,
   isSettingsOpen: false,
   historyRefreshKey: 0,
   voiceState: 'idle',
-  theme: loadTheme(),
-  showAvatar: loadShowAvatar(),
+  theme: storage.getTheme(),
+  showAvatar: storage.getShowAvatar(),
   avatarEmotion: 'neutral',
   viewKey: 'dashboard',
-  streamEnabled: loadStreamEnabled(),
-  avatarSource: loadAvatarSource(),
+  streamEnabled: storage.getStreamEnabled(),
+  avatarSource: storage.getAvatarSource(),
   compareMode: false,
   selectedModelB: null,
   commandBarOpen: false,
@@ -133,20 +92,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
   setInputText: (inputText) => set({ inputText }),
   setLanguage: (language) => {
-    localStorage.setItem('voxentia-lang', language);
+    storage.setLanguage(language);
     set({ language });
   },
   setSpeaker: (speaker) => {
-    localStorage.setItem('voxentia-speaker', speaker);
+    storage.setSpeaker(speaker);
     set({ speaker });
   },
   setPersonality: (personality) => {
-    localStorage.setItem('voxentia-personality', personality);
+    storage.setPersonality(personality);
     set({ personality });
   },
   setSelectedModel: (selectedModel) => {
-    if (selectedModel) localStorage.setItem(MODEL_KEY, selectedModel);
-    else localStorage.removeItem(MODEL_KEY);
+    storage.setModel(selectedModel);
     set({ selectedModel });
   },
   setActivePlugin: (activePlugin) =>
@@ -168,21 +126,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       avatarEmotion: voiceState === 'speaking' ? 'happy' : get().avatarEmotion,
     }),
   setTheme: (theme) => {
-    localStorage.setItem(THEME_KEY, theme);
+    storage.setTheme(theme);
     document.documentElement.setAttribute('data-theme', theme);
     set({ theme });
   },
   setShowAvatar: (showAvatar) => {
-    localStorage.setItem(AVATAR_KEY, String(showAvatar));
+    storage.setShowAvatar(showAvatar);
     set({ showAvatar });
   },
   setAvatarEmotion: (avatarEmotion) => set({ avatarEmotion }),
   setStreamEnabled: (streamEnabled) => {
-    localStorage.setItem(STREAM_KEY, String(streamEnabled));
+    storage.setStreamEnabled(streamEnabled);
     set({ streamEnabled });
   },
   setAvatarSource: (avatarSource) => {
-    localStorage.setItem('voxentia-avatar-source', avatarSource);
+    storage.setAvatarSource(avatarSource);
     set({ avatarSource });
   },
   setCompareMode: (compareMode) => set({ compareMode }),
@@ -212,4 +170,4 @@ export const useAppStore = create<AppState>((set, get) => ({
 }));
 
 // Apply theme on module load
-document.documentElement.setAttribute('data-theme', loadTheme());
+document.documentElement.setAttribute('data-theme', storage.getTheme());

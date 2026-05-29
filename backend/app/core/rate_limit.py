@@ -1,7 +1,6 @@
+from app.core.config import settings
 from slowapi import Limiter
 from starlette.requests import Request
-
-from app.core.config import settings
 
 
 def get_client_id(request: Request) -> str:
@@ -12,7 +11,7 @@ def get_client_id(request: Request) -> str:
 
 
 def _build_limiter() -> Limiter:
-    redis_url = getattr(settings, "REDIS_URL", None) or ""
+    redis_url = settings.REDIS_URL or ""
     if redis_url.strip():
         return Limiter(
             key_func=get_client_id,

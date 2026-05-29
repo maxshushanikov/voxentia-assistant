@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-
 from app.core.tracing import inject_trace_headers
 from voxentia.observability.tracing import trace_span
 

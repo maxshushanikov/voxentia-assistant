@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from typing import Optional
 
 from app.core.config import settings
@@ -13,13 +14,31 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 def _validate_token(token: str) -> bool:
-    if settings.API_KEY and token == settings.API_KEY:
-        return True
+    # Timing-safe comparison for API key
+    if settings.API_KEY:
+        try:
+            if secrets.compare_digest(str(token), str(settings.API_KEY)):
+                return True
+        except Exception:
+            # Fall through to try JWT if available
+            pass
+
     if settings.JWT_SECRET:
         try:
             import jwt
 
-            jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+            decode_kwargs = {
+                "key": settings.JWT_SECRET,
+                "algorithms": [settings.JWT_ALGORITHM],
+                "options": {"require": ["exp"]},
+            }
+            # If settings define an audience or issuer, verify them
+            if getattr(settings, "JWT_AUDIENCE", None):
+                decode_kwargs["audience"] = settings.JWT_AUDIENCE
+            if getattr(settings, "JWT_ISSUER", None):
+                decode_kwargs["issuer"] = settings.JWT_ISSUER
+
+            jwt.decode(token, **decode_kwargs)
             return True
         except Exception:
             return False

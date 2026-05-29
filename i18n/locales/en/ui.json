@@ -81,5 +81,9 @@
   "attach_file": "Attach file",
   "start_recording": "Start voice recording",
   "stop_recording": "Stop voice recording",
-  "send_message": "Send message"
+  "send_message": "Send message",
+  "common_search": "Search...",
+  "common_shortcutHint": "Enter to send, Shift+Enter for newline",
+  "common_like": "Helpful",
+  "common_dislike": "Needs improvement"
 }

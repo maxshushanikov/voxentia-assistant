@@ -13,6 +13,10 @@ class PluginMetadata(BaseModel):
     description: str
     author: str
     icon: Optional[str] = "extension"
+    category: Optional[str] = None
+    tags: List[str] = []
+    capabilities: List[str] = []
+    triggers: List[str] = []
     permissions: List[str] = []
     min_core_version: str = "0.1.0"
     dependencies: List[str] = []
@@ -25,10 +29,19 @@ class PluginResponse(BaseModel):
 
 
 class PluginContext:
-    def __init__(self, settings: Any, llm: Any, db: Any = None):
+    def __init__(
+        self,
+        settings: Any,
+        llm: Any,
+        db: Any = None,
+        memory: Any = None,
+        knowledge: Any = None,
+    ):
         self.settings = settings
         self.llm = llm
         self.db = db
+        self.memory = memory
+        self.knowledge = knowledge
 
 
 class VoxentiaPlugin(ABC):
@@ -60,13 +73,16 @@ class VoxentiaPlugin(ABC):
     async def shutdown(self) -> None:
         pass
 
-    async def on_startup(self) -> None:
+    async def on_load(self) -> None:
         await self.initialize()
 
     async def on_message(self, intent: str, entities: Dict[str, Any]) -> PluginResponse:
         return await self.handle_intent(intent, entities)
 
-    async def on_shutdown(self) -> None:
+    async def on_event(self, event: str, payload: Dict[str, Any]) -> None:
+        return None
+
+    async def on_unload(self) -> None:
         await self.shutdown()
 
     async def pre_llm(self, message: str, entities: Dict[str, Any]) -> Optional[str]:

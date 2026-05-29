@@ -7,11 +7,34 @@ import type {
   TranscribeResponseBody,
 } from './types';
 
+export interface PluginListItem {
+  id: string;
+  name: string;
+  version: string;
+  status: string;
+  enabled: boolean;
+  description?: string;
+  intents?: string[];
+  capabilities?: string[];
+  triggers?: string[];
+  permissions?: string[];
+}
+
 export function postChat(body: ChatRequestBody) {
   return apiFetch<ChatResponseBody>('/api/chat', {
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+export function postMessageFeedback(sessionId: string, messageId: number, feedback: 'like' | 'dislike' | null) {
+  return apiFetch<{ session_id: string; message_id: number; feedback: 'like' | 'dislike' | null }>(
+    '/api/chat/feedback',
+    {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, message_id: messageId, feedback }),
+    },
+  );
 }
 
 export function getChatHistory(sessionId: string) {
@@ -67,9 +90,14 @@ export function listPlugins() {
     plugins: {
       id: string;
       name: string;
+      version: string;
       status: string;
+      enabled: boolean;
       description?: string;
       intents?: string[];
+      capabilities?: string[];
+      triggers?: string[];
+      permissions?: string[];
     }[];
   }>('/api/v1/plugins/list');
 }

@@ -2,6 +2,7 @@
   "common_cancel": "Cancel",
   "common_create": "Create",
   "common_update": "Update",
+  "common_delete": "Delete",
   "common_search": "Search...",
   "common_backDashboard": "Back to dashboard",
   "common_featureDev": "Feature in development",

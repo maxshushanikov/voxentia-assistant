@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from voxentia.plugins.base import PluginResponse, VoxentiaPlugin
 from voxentia.utils.logging import logger
@@ -49,13 +49,20 @@ class PluginRegistry:
         """Beendet alle Plugins sauber."""
         for name, instance in self.plugins.items():
             try:
-                await instance.shutdown()
+                await instance.on_unload()
                 logger.info(f"Plugin heruntergefahren: {name}")
             except Exception as e:
                 logger.error(f"Fehler beim Beenden von {name}: {e}")
         self.plugins.clear()
 
-    async def get_plugin(self, name: str) -> Optional[VoxentiaPlugin]:
+    async def dispatch_event(self, event_name: str, payload: Dict[str, Any]) -> None:
+        for plugin in list(self.plugins.values()):
+            try:
+                await plugin.on_event(event_name, payload)
+            except Exception as e:
+                logger.error(f"Plugin event handler failed for {event_name}: {e}")
+
+    async def load_plugin(self, name: str) -> Optional[VoxentiaPlugin]:
         if name in self.plugins:
             return self.plugins[name]
         cls = self.plugin_classes.get(name)
@@ -65,13 +72,16 @@ class PluginRegistry:
             return None
         try:
             instance = cls(self._context)
-            await instance.initialize()
+            await instance.on_load()
             self.plugins[name] = instance
             logger.info(f"Lazy loaded plugin: {name}")
             return instance
         except Exception as e:
             logger.error(f"Fehler beim Lazy Loading von {name}: {e}")
             return None
+
+    async def get_plugin(self, name: str) -> Optional[VoxentiaPlugin]:
+        return await self.load_plugin(name)
 
     def intent_declared(self, intent: str) -> bool:
         """True if any registered plugin class declares this intent (enabled or not)."""
@@ -83,13 +93,50 @@ class PluginRegistry:
                 return name
         return None
 
-    async def get_plugin_for_intent(self, intent: str) -> Optional[VoxentiaPlugin]:
-        """Resolve plugin by declared intents; lazy-load from plugin_classes when enabled."""
+    def plugin_name_for_trigger(self, message: str) -> Optional[str]:
+        lowered = message.lower()
+        for name, cls in self.plugin_classes.items():
+            if not self._plugin_config.get(name, {}).get("enabled", False):
+                continue
+            meta = cls.get_metadata(cls)
+            for trigger in meta.triggers:
+                if trigger.lower() in lowered:
+                    return name
+        return None
+
+    def primary_intent_for_trigger(self, message: str) -> Optional[str]:
+        lowered = message.lower()
+        for name, cls in self.plugin_classes.items():
+            if not self._plugin_config.get(name, {}).get("enabled", False):
+                continue
+            meta = cls.get_metadata(cls)
+            for trigger in meta.triggers:
+                if trigger.lower() in lowered and cls.get_intents():
+                    return cls.get_intents()[0]
+        return None
+
+    def all_triggers(self) -> list[str]:
+        triggers: list[str] = []
+        for name, cls in self.plugin_classes.items():
+            if self._plugin_config.get(name, {}).get("enabled", False):
+                triggers.extend(cls.get_metadata(cls).triggers)
+        return sorted(set(triggers))
+
+    async def get_plugin_for_intent(self, intent: str, message: str | None = None) -> Optional[VoxentiaPlugin]:
+        """Resolve plugin by declared intents or runtime triggers; lazy-load from plugin_classes when enabled."""
         name = self.plugin_name_for_intent(intent)
         if name:
             loaded = await self.get_plugin(name)
             if loaded:
                 return loaded
+
+        if message:
+            trigger_name = self.plugin_name_for_trigger(message)
+            if trigger_name:
+                loaded = await self.get_plugin(trigger_name)
+                if loaded:
+                    return loaded
+
         for plugin in self.plugins.values():
             if intent in type(plugin).get_intents():
                 return plugin

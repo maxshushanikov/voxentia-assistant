@@ -30,6 +30,16 @@ class ForkSessionResponse(BaseModel):
     parent_message_id: int
 
 
+class FeedbackRequest(BaseModel):
+    session_id: str = Field(..., max_length=128)
+    message_id: int = Field(..., ge=1)
+    feedback: Optional[str] = Field(
+        None,
+        description="Assistant reaction feedback",
+        pattern="^(like|dislike)$",
+    )
+
+
 class RagSource(BaseModel):
     filename: str
     page: Optional[int] = None
@@ -46,6 +56,7 @@ class ChatResponse(BaseModel):
     intent_source: Optional[str] = None
     plugin_data: Optional[Any] = None
     rag_sources: list[RagSource] = []
+    message_id: Optional[int] = None
 
 
 class MessageHistory(BaseModel):
@@ -56,6 +67,7 @@ class MessageHistory(BaseModel):
     model: Optional[str] = None
     parent_id: Optional[int] = None
     branch_id: Optional[str] = "main"
+    feedback: Optional[str] = None
 
 
 class HistoryResponse(BaseModel):

@@ -1,5 +1,7 @@
-from voxentia.plugins.base import VoxentiaPlugin, PluginMetadata, PluginResponse
-from typing import Dict, Any
+from typing import Any, Dict
+
+from voxentia.plugins.base import PluginMetadata, PluginResponse, VoxentiaPlugin
+
 
 class MinimalExamplePlugin(VoxentiaPlugin):
     """Ein absolut minimales Plugin zum Lernen."""

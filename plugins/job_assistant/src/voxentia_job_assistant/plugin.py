@@ -1,6 +1,9 @@
-from voxentia.plugins.base import VoxentiaPlugin, PluginMetadata, PluginContext, PluginResponse
+from typing import Any, Dict
+
+from voxentia.plugins.base import PluginMetadata, PluginResponse, VoxentiaPlugin
+
 from voxentia_job_assistant.adapters.mock import MockJobAdapter
-from typing import Dict, Any
+
 
 class JobAssistantPlugin(VoxentiaPlugin):
     """Plugin zur Unterstützung bei der Jobsuche und Karriereplanung."""
@@ -29,29 +32,29 @@ class JobAssistantPlugin(VoxentiaPlugin):
 
     async def handle_intent(self, intent: str, entities: Dict[str, Any]) -> PluginResponse:
         lang = entities.get("language", "en")
-        
+
         if intent == "job_search":
             return await self._handle_job_search(entities, lang)
-            
+
         elif intent == "cv_check":
             return await self._handle_cv_check(entities, lang)
-            
+
         elif intent == "generate_cover_letter":
             return await self._handle_cover_letter(entities, lang)
-            
+
         elif intent == "interview_simulation":
             return await self._handle_interview(entities, lang)
-            
+
         return PluginResponse(text="I'm sorry, I don't support that career feature yet.")
 
     async def _handle_job_search(self, entities: Dict[str, Any], lang: str) -> PluginResponse:
         query = entities.get("query", "Software Engineer")
         location = entities.get("location", "Remote")
         jobs = await self.adapter.search(query, location)
-        
+
         text = f"I found {len(jobs)} positions for '{query}' in {location}."
         if lang == "de": text = f"Ich habe {len(jobs)} Stellen für '{query}' in {location} gefunden."
-        
+
         return PluginResponse(text=text, data={"jobs": [j.dict() for j in jobs]})
 
     async def _handle_cv_check(self, entities: Dict[str, Any], lang: str) -> PluginResponse:
@@ -70,7 +73,7 @@ class JobAssistantPlugin(VoxentiaPlugin):
         user_answer = entities.get("user_answer", "")
         if not user_answer:
             return PluginResponse(text="Let's start the simulation. Tell me about yourself.")
-            
+
         # Mock feedback logic as requested
         feedback = {
             "clarity": 85,

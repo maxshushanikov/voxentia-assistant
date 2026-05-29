@@ -2,7 +2,7 @@ import { Activity, Compass, MessageSquare, Sparkles, Zap } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { apiFetch } from '../api/client';
-import { listPlugins } from '../api/chat';
+import { listPlugins, type PluginListItem } from '../api/chat';
 import { useTranslation } from '../i18n/context';
 import { plugins } from '../plugins/registry';
 import { useAppStore } from '../store/appStore';
@@ -36,6 +36,16 @@ function greetingForHour(hour: number, lang: string): string {
     if (hour < 18) return 'Добрый день';
     return 'Добрый вечер';
   }
+  if (lang === 'fr' || lang === 'fr-FR') {
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+  if (lang === 'es' || lang === 'es-ES') {
+    if (hour < 12) return 'Buenos días';
+    if (hour < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
@@ -46,29 +56,111 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
   const messages = useAppStore((s) => s.messages);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [discover, setDiscover] = useState<RemotePlugin[]>([]);
+  const [remotePlugins, setRemotePlugins] = useState<PluginListItem[]>([]);
 
   useEffect(() => {
     apiFetch<HealthResponse>('/health')
       .then(setHealth)
       .catch(() => setHealth(null));
     listPlugins()
-      .then((data) => setDiscover(data.plugins.filter((p) => p.status === 'disabled')))
-      .catch(() => setDiscover([]));
+      .then((data) => {
+        setRemotePlugins(data.plugins);
+        setDiscover(data.plugins.filter((p) => p.status === 'disabled'));
+      })
+      .catch(() => {
+        setRemotePlugins([]);
+        setDiscover([]);
+      });
   }, []);
 
   const greet = greetingForHour(new Date().getHours(), language);
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto custom-scrollbar animate-fade-in">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <header>
-          <h1 className="text-3xl font-light mb-2" style={{ color: 'var(--text-primary)' }}>
-            {greet} — <span className="text-[var(--accent)]">Voxentia</span>
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            {(t as unknown as Record<string, string>).dashboard_subtitle ?? 'Your control center'}
-          </p>
+    <div className="flex-1 p-8 overflow-y-auto custom-scrollbar animate-fade-in bg-[rgba(8,12,24,0.8)]">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <header className="glass-card rounded-[28px] p-8 border border-[rgba(255,255,255,0.08)] shadow-[0_30px_120px_-80px_rgba(3,10,26,0.86)]">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm uppercase tracking-[0.35em] text-[var(--accent)]">Welcome back</p>
+              <h1 className="text-4xl sm:text-5xl font-semibold leading-tight text-[var(--text-primary)]">
+                {greet} — <span className="text-[var(--accent)]">Voxentia</span>
+              </h1>
+              <p className="max-w-2xl text-[15px] leading-8 text-[var(--text-secondary)]">
+                {(t as unknown as Record<string, string>).dashboard_subtitle ?? 'Your control center for AI chat, knowledge work and productivity flows.'}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-[24px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] p-4">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-secondary)]">Sessions</p>
+                <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{messages.length}</p>
+                <p className="mt-1 text-[12px] text-[var(--text-secondary)]">Messages available to continue</p>
+              </div>
+              <div className="rounded-[24px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] p-4">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-secondary)]">Plugins</p>
+                <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{plugins.length}</p>
+                <p className="mt-1 text-[12px] text-[var(--text-secondary)]">Fast access to your workflow tools</p>
+              </div>
+              <div className="rounded-[24px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] p-4">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-secondary)]">Status</p>
+                <p className="mt-3 text-3xl font-semibold text-[var(--accent)]">Live</p>
+                <p className="mt-1 text-[12px] text-[var(--text-secondary)]">AI services & chat ready</p>
+              </div>
+            </div>
+          </div>
         </header>
+
+        <section className="glass-card rounded-[28px] p-6 border border-[rgba(255,255,255,0.08)] shadow-[0_28px_110px_-86px_rgba(3,10,26,0.8)]">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Getting started</h2>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Start a new chat, ask your first question, or explore the sidebar plugins to get the most from Voxentia.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+            <button
+              type="button"
+              onClick={() => onContinueSession()}
+              className="glass-card rounded-[24px] border border-[rgba(255,255,255,0.08)] p-5 text-left transition-all duration-200 hover:border-[var(--accent)]/40 hover:shadow-[0_28px_120px_-76px_rgba(56,189,248,0.45)]"
+              aria-label="New chat"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[rgba(56,189,248,0.16)] text-[var(--accent)]">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">New chat</p>
+              </div>
+              <p className="text-sm text-[var(--text-primary)] leading-6">Ask anything — from summaries to planning and code help.</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => document.querySelector('input[type=file]')?.dispatchEvent(new MouseEvent('click'))}
+              className="glass-card rounded-[24px] border border-[rgba(255,255,255,0.08)] p-5 transition-all duration-200 hover:border-[var(--accent)]/40 hover:shadow-[0_28px_120px_-76px_rgba(56,189,248,0.45)] text-left"
+              aria-label="Upload docs"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[rgba(56,189,248,0.16)] text-[var(--accent)]">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">Upload docs</p>
+              </div>
+              <p className="text-sm text-[var(--text-primary)] leading-6">Attach PDFs to let Voxentia answer from your own content.</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenPlugin('docs')}
+              className="glass-card rounded-[24px] border border-[rgba(255,255,255,0.08)] p-5 transition-all duration-200 hover:border-[var(--accent)]/40 hover:shadow-[0_28px_120px_-76px_rgba(56,189,248,0.45)] text-left"
+              aria-label="Explore plugins"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[rgba(56,189,248,0.16)] text-[var(--accent)]">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">Explore plugins</p>
+              </div>
+              <p className="text-sm text-[var(--text-primary)] leading-6">Open a plugin from the sidebar for specialized workflows.</p>
+            </button>
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatusCard
@@ -112,18 +204,30 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
             {(t as unknown as Record<string, string>).dashboard_plugins ?? 'Quick actions'}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {plugins.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onOpenPlugin(p.id)}
-                className="glass-card p-4 rounded-lg border border-white/5 hover:border-[var(--accent)]/40 transition-all text-left group"
-              >
-                <p className="text-sm group-hover:text-[var(--accent)] transition-colors text-[var(--text-primary)]">
-                  {(t as unknown as Record<string, string>)[`plugin_${p.nameKey}`] ?? p.nameKey}
-                </p>
-              </button>
-            ))}
+            {(
+              remotePlugins.length > 0
+                ? plugins.filter((p) => remotePlugins.some((plugin) => plugin.id === p.id && plugin.enabled))
+                : plugins
+            ).map((p) => {
+              const remoteMeta = remotePlugins.find((plugin) => plugin.id === p.id);
+              const label = remoteMeta?.name || ((t as unknown as Record<string, string>)[`plugin_${p.nameKey}`] ?? p.nameKey);
+
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onOpenPlugin(p.id)}
+                  className="glass-card p-4 rounded-lg border border-white/5 hover:border-[var(--accent)]/40 transition-all text-left group flex items-center gap-3"
+                >
+                  <span className="mb-2">{p.icon}</span>
+                  <div>
+                    <p className="text-sm group-hover:text-[var(--accent)] transition-colors text-[var(--text-primary)]">
+                      {label}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -135,21 +239,38 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
             </h2>
             <div className="space-y-2">
               {discover.map((p) => (
-                <div
-                  key={p.id}
-                  className="glass-card rounded-lg p-4 border border-dashed border-white/10 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="text-sm text-[var(--text-primary)]">{p.name}</p>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1">
-                      {p.description ?? p.id}
-                    </p>
+                  <div
+                    key={p.id}
+                    className="glass-card rounded-lg p-4 border border-dashed border-white/10 flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-sm text-[var(--text-primary)]">{p.name}</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        {p.description ?? p.id}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await apiFetch(`/api/v1/marketplace/install`, {
+                              method: 'POST',
+                              body: JSON.stringify({ plugin_id: p.id }),
+                            });
+                            setDiscover((prev) => prev.filter((x) => x.id !== p.id));
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                        className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded bg-[var(--accent)]/10 text-[var(--accent)]"
+                      >
+                        Enable
+                      </button>
+                      <span className="text-[9px] uppercase font-bold text-[var(--warning)] tracking-widest">disabled</span>
+                    </div>
                   </div>
-                  <span className="text-[9px] uppercase font-bold text-[var(--warning)] tracking-widest">
-                    disabled
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
           </section>
         )}
@@ -196,7 +317,11 @@ function StatusCard({
   }
 
   return (
-    <div className="glass-card rounded-lg p-4 border border-white/5 flex flex-col justify-between h-24 hover:border-white/10 hover:bg-white/5 transition-all duration-300">
+    <div
+      onClick={() => window.open(`/api/v1/health?service=${label.toLowerCase()}`, '_blank')}
+      role="button"
+      className="glass-card rounded-lg p-4 border border-white/5 flex flex-col justify-between h-24 hover:border-white/10 hover:bg-white/5 transition-all duration-300 cursor-pointer"
+    >
       <div className="flex items-center justify-between text-[var(--text-secondary)]">
         <div className="p-1.5 rounded bg-white/5 flex items-center justify-center">
           {icon}

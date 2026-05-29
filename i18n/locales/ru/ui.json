@@ -81,5 +81,9 @@
   "attach_file": "Прикрепить файл",
   "start_recording": "Начать запись",
   "stop_recording": "Остановить запись",
-  "send_message": "Отправить сообщение"
+  "send_message": "Отправить сообщение",
+  "common_search": "Поиск...",
+  "common_shortcutHint": "Enter — отправить, Shift+Enter — новая строка",
+  "common_like": "Полезно",
+  "common_dislike": "Нужно улучшить"
 }

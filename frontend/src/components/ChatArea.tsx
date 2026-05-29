@@ -1,28 +1,59 @@
-import { useRef, useEffect } from 'react';
-import { Sparkles, MessageSquare, Zap, Shield, Copy, Pencil, RefreshCw, Cpu, GitBranch } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
+import { Sparkles, MessageSquare, Zap, Shield, Copy, Pencil, RefreshCw, Cpu, ThumbsUp, ThumbsDown, Trash2 } from 'lucide-react';
 import MarkdownMessage from './MarkdownMessage';
 import type { ReactNode } from 'react';
 
 import { useTranslation } from '../i18n/context';
 import { cn } from '../utils/cn';
 import type { Message } from '../types';
+import { postMessageFeedback } from '../api/chat';
 
 interface ChatAreaProps {
+  sessionId: string;
   messages: Message[];
   isThinking: boolean;
   onTileClick?: (prompt: string) => void;
   onEditMessage?: (id: string, content: string) => void;
   onRegenerate?: (id: string) => void;
+  onDeleteMessage?: (id: string) => void;
 }
 
-export default function ChatArea({ messages, isThinking, onTileClick, onEditMessage, onRegenerate }: ChatAreaProps) {
+export default function ChatArea({ sessionId, messages, isThinking, onTileClick, onEditMessage, onRegenerate, onDeleteMessage }: ChatAreaProps) {
   const { t } = useTranslation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasStreaming = messages.some((m) => m.streaming);
+  const [feedbackState, setFeedbackState] = useState<Partial<Record<string, 'like' | 'dislike'>>>({});
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const mapped: Partial<Record<string, 'like' | 'dislike'>> = {};
+    messages.forEach((message) => {
+      if (message.feedback) {
+        const key = message.dbId ? message.dbId.toString() : message.id;
+        mapped[key] = message.feedback;
+      }
+    });
+    setFeedbackState(mapped);
+  }, [messages]);
+
+  const toggleFeedback = (message: Message, value: 'like' | 'dislike') => {
+    const messageKey = message.dbId ? message.dbId.toString() : message.id;
+    const nextValue = feedbackState[messageKey] === value ? undefined : value;
+
+    setFeedbackState((prev) => ({
+      ...prev,
+      [messageKey]: nextValue,
+    }));
+
+    if (message.dbId) {
+      void postMessageFeedback(sessionId, message.dbId, nextValue ?? null).catch((error) => {
+        console.error('Failed to persist message feedback', error);
+      });
+    }
+  };
 
   if (messages.length === 0 || (messages.length === 1 && messages[0].id === 'greeting')) {
     return (
@@ -60,19 +91,20 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative bg-[var(--bg-primary)]">
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative bg-[rgba(10,15,28,0.88)] backdrop-blur-[14px]">
+      <div className="absolute inset-x-8 bottom-8 h-px bg-[rgba(255,255,255,0.06)]" />
       <div className="max-w-4xl mx-auto w-full">
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={cn('flex flex-col mb-8', msg.role === 'user' ? 'items-end' : 'items-start')}
+            className={cn('flex flex-col mb-8 animate-soft-slide-up', msg.role === 'user' ? 'items-end' : 'items-start')}
           >
             <div
               className={cn(
-                'max-w-[85%] rounded-[12px] p-4 text-[15px] leading-relaxed relative group',
+                'max-w-[85%] rounded-[20px] p-5 text-[15px] leading-relaxed relative group transition-all duration-200',
                 msg.role === 'user'
-                  ? 'bg-[var(--accent)]/8 border border-[var(--accent)]/20 text-[var(--text-primary)] shadow-sm'
-                  : 'bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-[var(--text-primary)]',
+                  ? 'bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.22),_rgba(56,189,248,0.08)_45%,_rgba(15,23,42,0.85))] border border-[rgba(56,189,248,0.18)] text-[var(--text-primary)] shadow-[0_24px_80px_-40px_rgba(56,189,248,0.45)]'
+                  : 'bg-[linear-gradient(135deg,_rgba(255,255,255,0.14),_rgba(255,255,255,0.05))] border border-[rgba(255,255,255,0.08)] text-[var(--text-primary)] shadow-[0_20px_60px_-40px_rgba(0,0,0,0.35)]',
               )}
             >
               {msg.role === 'assistant' && (
@@ -87,16 +119,16 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                   <button
                     onClick={() => onRegenerate?.(msg.id)}
                     className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
-                    title="Andere Antwort generieren (Branch)"
-                  >
-                    <GitBranch className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => onRegenerate?.(msg.id)}
-                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
                     title="Antwort neu generieren"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => onDeleteMessage?.(msg.id)}
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--danger)] rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
+                    title="Antwort löschen"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
@@ -108,6 +140,13 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                     title="Edit message"
                   >
                     <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => onDeleteMessage?.(msg.id)}
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--danger)] rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10"
+                    title="Nachricht löschen"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
@@ -173,6 +212,39 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
                   ))}
                 </div>
               )}
+              {msg.role === 'assistant' && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-secondary)]">
+                  <span className="font-semibold uppercase tracking-[0.2em]">Feedback</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleFeedback(msg, 'like')}
+                    aria-pressed={feedbackState[msg.dbId?.toString() ?? msg.id] === 'like'}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors',
+                      feedbackState[msg.dbId?.toString() ?? msg.id] === 'like'
+                        ? 'bg-[var(--accent)]/15 border-[var(--accent)] text-[var(--text-primary)]'
+                        : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-[var(--text-secondary)] hover:bg-black/10 dark:hover:bg-white/10',
+                    )}
+                  >
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                    {(t as unknown as Record<string, string>).common_like || 'Helpful'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleFeedback(msg, 'dislike')}
+                    aria-pressed={feedbackState[msg.dbId?.toString() ?? msg.id] === 'dislike'}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors',
+                      feedbackState[msg.dbId?.toString() ?? msg.id] === 'dislike'
+                        ? 'bg-[var(--danger)]/15 border-[var(--danger)] text-[var(--text-primary)]'
+                        : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-[var(--text-secondary)] hover:bg-black/10 dark:hover:bg-white/10',
+                    )}
+                  >
+                    <ThumbsDown className="w-3.5 h-3.5" />
+                    {(t as unknown as Record<string, string>).common_dislike || 'Needs improvement'}
+                  </button>
+                </div>
+              )}
               {msg.timestamp && (
                 <div className={cn("text-[10px] mt-2 opacity-40 select-none", msg.role === 'user' ? "text-right" : "text-left")}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -189,7 +261,7 @@ export default function ChatArea({ messages, isThinking, onTileClick, onEditMess
         ))}
         {isThinking && !hasStreaming && (
           <div className="flex justify-start">
-            <div className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full px-4 py-2 flex space-x-1.5 items-center">
+            <div className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full px-4 py-2 flex space-x-1.5 items-center" role="status" aria-live="polite">
               <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" />
               <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce [animation-delay:0.2s]" />
               <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce [animation-delay:0.4s]" />

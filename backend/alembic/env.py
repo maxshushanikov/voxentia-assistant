@@ -10,6 +10,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+from app.core.config import settings  # noqa: E402
 from app.core.database import Base  # noqa: E402
 from app.models.chat import ChatMessage  # noqa: F401,E402
 from app.models.experiment import ExperimentEvent  # noqa: F401,E402
@@ -17,7 +18,6 @@ from app.models.knowledge import KnowledgeEdge  # noqa: F401,E402
 from app.models.memory import UserMemory  # noqa: F401,E402
 from app.models.sentiment import SentimentRecord  # noqa: F401,E402
 from app.models.session import ChatSessionMeta  # noqa: F401,E402
-from app.core.config import settings  # noqa: E402
 
 target_metadata = Base.metadata
 config.set_main_option("sqlalchemy.url", settings.DB_PATH)

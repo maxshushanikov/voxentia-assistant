@@ -1,9 +1,7 @@
-import sqlite3
-import json
 import os
-from datetime import datetime
-from typing import List, Dict, Any
-from voxentia.utils.logging import logger
+import sqlite3
+from typing import Any, Dict, List
+
 
 class SQLiteCalendarAdapter:
     def __init__(self, db_path: str = "data/calendar.db"):
