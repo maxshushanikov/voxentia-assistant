@@ -28,6 +28,7 @@ from voxentia.orchestrator.router import Orchestrator
 from voxentia.plugins.base import PluginContext
 from voxentia.plugins.registry import PluginRegistry
 from voxentia.services.llm_client import OllamaClient
+from voxentia.services.ai_core import AICore
 
 logger = logging.getLogger("voxentia.api")
 
@@ -40,6 +41,7 @@ class ChatService:
         self.emotion_service: EmotionService | None = None
         self.knowledge_service: KnowledgeService | None = None
         self.model_router: ModelRouter | None = None
+        self.ai_core: AICore | None = None
         self.capabilities = CapabilityRegistry()
         self.persistence = ChatPersistenceService()
         self.context_builder = ChatContextBuilder(self.persistence, self)
@@ -72,7 +74,16 @@ class ChatService:
                 default=settings.DEFAULT_MODEL,
                 ollama_url=settings.OLLAMA_URL,
             )
-            self.orchestrator = Orchestrator(self.registry, self.llm_client)
+            self.ai_core = AICore(
+                llm=self.llm_client,
+                memory_service=self.memory_service,
+                safety_enabled=True,
+            )
+            self.orchestrator = Orchestrator(
+                self.registry,
+                self.llm_client,
+                ai_core=self.ai_core,
+            )
 
             config_path = settings.PLUGIN_CONFIG_PATH
             config: dict = {"plugins": {}}
@@ -91,6 +102,8 @@ class ChatService:
                     llm=self.llm_client,
                     memory=self.memory_service,
                     knowledge=self.knowledge_service,
+                    event_bus=self.event_bus,
+                    ai_core=self.ai_core,
                 )
                 await self.registry.initialize_plugins(context, config)
             except Exception as e:

@@ -18,7 +18,9 @@ class CalendarPlugin(VoxentiaPlugin):
             description="Verwalte deine Termine und lass dich an wichtige Ereignisse erinnern.",
             author="Voxentia Team",
             icon="calendar_today",
-            permissions=["calendar_read", "calendar_write"]
+            capabilities=["calendar:create", "calendar:read"],
+            triggers=["termin", "kalender", "calendar", "event", "meeting"],
+            permissions=["calendar_read", "calendar_write"],
         )
 
     async def initialize(self):
@@ -52,6 +54,7 @@ class CalendarPlugin(VoxentiaPlugin):
             "location": entities.get("location", "Unbekannt")
         }
         self.adapter.add_event(new_event)
+        await self.emit_event("calendar.created", {"event": new_event})
         return PluginResponse(text=f"Termin '{title}' wurde hinzugefügt.", data={"new_event": new_event})
 
     async def shutdown(self):

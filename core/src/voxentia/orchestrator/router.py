@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from voxentia.orchestrator.pipeline import OrchestratorPipeline, PipelineContext
 from voxentia.orchestrator.response_formatter import VoxentiaResponse
@@ -11,8 +11,13 @@ from voxentia.services.llm_base import BaseLLMClient
 
 
 class Orchestrator:
-    def __init__(self, registry: PluginRegistry, llm_client: BaseLLMClient) -> None:
-        self.pipeline = OrchestratorPipeline(registry, llm_client)
+    def __init__(
+        self,
+        registry: PluginRegistry,
+        llm_client: BaseLLMClient,
+        ai_core: Optional[Any] = None,
+    ) -> None:
+        self.pipeline = OrchestratorPipeline(registry, llm_client, ai_core=ai_core)
 
     async def route_request(
         self,

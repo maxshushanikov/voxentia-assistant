@@ -16,12 +16,6 @@ import { getPluginDefinition } from './plugins/registry';
 import { I18nProvider } from './i18n/context';
 import { speakerGenderMap } from './types';
 
-function estimateTokenCount(messages: { content: string }[]) {
-  return messages.reduce((sum, message) => {
-    const length = message.content.trim().length;
-    return sum + Math.max(1, Math.round(length / 4));
-  }, 0);
-}
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,8 +77,6 @@ function App() {
   }, []);
 
   useShortcuts();
-
-  const tokenCount = messages.length > 0 ? estimateTokenCount(messages) : null;
 
   const renderMainView = () => {
     if (activePlugin === 'settings') {
@@ -194,7 +186,6 @@ function App() {
                 onNewChat={handleNewChat}
                 isRecording={isRecording}
                 isThinking={isThinking}
-                tokenCount={tokenCount}
               />
             </section>
 

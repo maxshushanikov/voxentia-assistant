@@ -33,9 +33,15 @@ class PipelineContext:
 
 
 class OrchestratorPipeline:
-    def __init__(self, registry: PluginRegistry, llm: BaseLLMClient) -> None:
+    def __init__(
+        self,
+        registry: PluginRegistry,
+        llm: BaseLLMClient,
+        ai_core: Optional[Any] = None,
+    ) -> None:
         self.registry = registry
         self.llm = llm
+        self.ai_core = ai_core
         self.intent_detector = IntentDetector(llm, registry)
         self._pre_hooks: list = []
         self._post_hooks: list = []
@@ -203,13 +209,22 @@ class OrchestratorPipeline:
 
     async def llm_fallback(self, ctx: PipelineContext) -> VoxentiaResponse:
         try:
-            text = await self.llm.generate(
-                ctx.message,
-                model=ctx.model,
-                system=ctx.system_prompt or None,
-                temperature=ctx.temperature,
-                history=ctx.history,
-            )
+            if self.ai_core is not None:
+                text = await self.ai_core.generate(
+                    ctx.message,
+                    model=ctx.model,
+                    system=ctx.system_prompt or None,
+                    temperature=ctx.temperature,
+                    history=ctx.history,
+                )
+            else:
+                text = await self.llm.generate(
+                    ctx.message,
+                    model=ctx.model,
+                    system=ctx.system_prompt or None,
+                    temperature=ctx.temperature,
+                    history=ctx.history,
+                )
         except Exception as e:
             logger.error("LLM fallback failed: %s", e)
             text = "I'm sorry, I could not reach the language model right now."

@@ -8,6 +8,13 @@ import { cn } from '../utils/cn';
 import type { Message } from '../types';
 import { postMessageFeedback } from '../api/chat';
 
+function estimateTokenCount(messages: { content: string }[]) {
+  return messages.reduce((sum, message) => {
+    const length = message.content.trim().length;
+    return sum + Math.max(1, Math.round(length / 4));
+  }, 0);
+}
+
 interface ChatAreaProps {
   sessionId: string;
   messages: Message[];
@@ -23,6 +30,9 @@ export default function ChatArea({ sessionId, messages, isThinking, onTileClick,
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasStreaming = messages.some((m) => m.streaming);
   const [feedbackState, setFeedbackState] = useState<Partial<Record<string, 'like' | 'dislike'>>>({});
+
+  const tokenCount = messages.length > 0 ? estimateTokenCount(messages) : null;
+  const tokenBudget = 8192;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,6 +102,14 @@ export default function ChatArea({ sessionId, messages, isThinking, onTileClick,
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative bg-[rgba(10,15,28,0.88)] backdrop-blur-[14px]">
+      {tokenCount !== null && (
+        <div className="sticky top-0 float-right z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[rgba(56,189,248,0.12)] border border-[rgba(56,189,248,0.24)] backdrop-blur-lg shadow-sm mr-2 select-none">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+          <span className="text-[9px] font-extrabold text-[var(--accent)] uppercase tracking-wider">
+            {tokenCount} / {tokenBudget} Tokens
+          </span>
+        </div>
+      )}
       <div className="absolute inset-x-8 bottom-8 h-px bg-[rgba(255,255,255,0.06)]" />
       <div className="max-w-4xl mx-auto w-full">
         {messages.map((msg) => (
@@ -101,10 +119,10 @@ export default function ChatArea({ sessionId, messages, isThinking, onTileClick,
           >
             <div
               className={cn(
-                'max-w-[85%] rounded-[20px] p-5 text-[15px] leading-relaxed relative group transition-all duration-200',
+                'max-w-[85%] rounded-[24px] p-5 text-[15px] leading-relaxed relative group transition-all duration-200',
                 msg.role === 'user'
-                  ? 'bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.22),_rgba(56,189,248,0.08)_45%,_rgba(15,23,42,0.85))] border border-[rgba(56,189,248,0.18)] text-[var(--text-primary)] shadow-[0_24px_80px_-40px_rgba(56,189,248,0.45)]'
-                  : 'bg-[linear-gradient(135deg,_rgba(255,255,255,0.14),_rgba(255,255,255,0.05))] border border-[rgba(255,255,255,0.08)] text-[var(--text-primary)] shadow-[0_20px_60px_-40px_rgba(0,0,0,0.35)]',
+                  ? 'rounded-tr-none bg-gradient-to-tr from-[rgba(41,121,255,0.18)] via-[rgba(41,121,255,0.06)] to-[rgba(15,23,42,0.85)] border border-[var(--accent)]/30 text-[var(--text-primary)] shadow-[0_12px_40px_rgba(41,121,255,0.15)]'
+                  : 'rounded-tl-none bg-[rgba(255,255,255,0.03)] dark:bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] text-[var(--text-primary)] shadow-[0_12px_36px_rgba(0,0,0,0.18)] backdrop-blur-md',
               )}
             >
               {msg.role === 'assistant' && (

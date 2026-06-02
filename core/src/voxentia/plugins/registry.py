@@ -142,6 +142,28 @@ class PluginRegistry:
                 return plugin
         return None
 
+    def plugin_name_for_capability(self, capability: str) -> Optional[str]:
+        """Return the name of the first enabled plugin that declares ``capability``.
+
+        Capability strings follow the ``domain:action`` convention,
+        e.g. ``"calendar:create"`` or ``"jobsearch:query"``.
+        """
+        for name, cls in self.plugin_classes.items():
+            if not self._plugin_config.get(name, {}).get("enabled", False):
+                continue
+            if capability in cls.get_capabilities():
+                return name
+        return None
+
+    async def get_plugin_for_capability(
+        self, capability: str
+    ) -> Optional[VoxentiaPlugin]:
+        """Lazy-load and return the plugin that handles ``capability``, or None."""
+        name = self.plugin_name_for_capability(capability)
+        if name:
+            return await self.load_plugin(name)
+        return None
+
     def all_intents(self) -> list[str]:
         intents: list[str] = []
         for name, cls in self.plugin_classes.items():

@@ -23,7 +23,9 @@ class JobAssistantPlugin(VoxentiaPlugin):
             description="KI-gestützte Karriereberatung, CV-Check und Interview-Simulation.",
             author="Voxentia Team",
             icon="work",
-            permissions=["web_access", "file_read", "llm_generate"]
+            capabilities=["jobsearch:query", "jobsearch:cv_check", "jobsearch:cover_letter", "jobsearch:interview"],
+            triggers=["job", "stelle", "arbeit", "career", "cv", "lebenslauf", "bewerbung", "interview"],
+            permissions=["web_access", "file_read", "llm_generate"],
         )
 
     async def initialize(self):

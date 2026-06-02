@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Command, 
   Menu, 
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import { useAppStore } from '../store/appStore';
+import { cn } from '../utils/cn';
 
 import ExportMenu from './ExportMenu';
 import ModelSelect from './ModelSelect';
@@ -51,20 +52,69 @@ export default function Header({
   const setCommandBarOpen = useAppStore((s) => s.setCommandBarOpen);
   const setActivePlugin = useAppStore((s) => s.setActivePlugin);
   const setMessages = useAppStore((s) => s.setMessages);
+  const voiceState = useAppStore((s) => s.voiceState);
+  const isThinking = useAppStore((s) => s.isThinking);
+
   const [personaDropdownOpen, setPersonaDropdownOpen] = useState(false);
+  const [online, setOnline] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/v1/health')
+      .then((r) => setOnline(r.ok))
+      .catch(() => setOnline(false));
+  }, []);
 
   const activePersona = personaConfig[personality] || personaConfig.professional;
 
   return (
     <div className="app-header h-16 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(12,18,34,0.78)] backdrop-blur-[18px] shadow-[0_24px_80px_-52px_rgba(0,0,0,0.7)] flex items-center justify-between px-6 shrink-0 z-20">
       <div className="flex items-center space-x-4">
-        <button type="button" onClick={() => { setActivePlugin(null); setMessages(() => []); }} className="flex items-center gap-3 rounded-2xl bg-[rgba(56,189,248,0.12)] border border-[rgba(56,189,248,0.2)] px-3 py-2 transition-all hover:bg-[rgba(56,189,248,0.16)]">
+        <button type="button" onClick={() => { setActivePlugin(null); setMessages(() => []); }} className="flex items-center gap-3 rounded-2xl bg-[rgba(56,189,248,0.12)] border border-[rgba(56,189,248,0.2)] px-3 py-2 transition-all hover:bg-[rgba(56,189,248,0.16)] shrink-0">
           <div className="w-8 h-8 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-[var(--text-on-accent)] text-[12px] font-black">V</div>
-          <div className="flex flex-col leading-tight">
+          <div className="flex flex-col leading-tight text-left">
             <span className="text-[12px] uppercase tracking-[0.3em] text-[var(--accent)]">Voxentia</span>
             <span className="text-[11px] text-[var(--text-secondary)]">Premium AI workspace</span>
           </div>
         </button>
+
+        <div className="hidden lg:block h-6 w-px bg-white/10 mx-1" />
+
+        <div className="hidden md:flex items-center gap-2 select-none">
+          {/* System Health Indicator */}
+          <span className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-colors",
+            online 
+              ? "bg-[var(--success)]/10 border-[var(--success)]/20 text-[var(--success)]"
+              : "bg-[var(--danger)]/10 border-[var(--danger)]/20 text-[var(--danger)] animate-pulse"
+          )}>
+            <span className={cn("w-1.5 h-1.5 rounded-full", online ? "bg-[var(--success)]" : "bg-[var(--danger)]")} />
+            {online ? "API Live" : "Offline"}
+          </span>
+
+          {/* Avatar Status Indicator */}
+          <span className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-colors",
+            voiceState === 'recording'
+              ? "bg-[var(--danger)]/10 border-[var(--danger)]/20 text-[var(--danger)] animate-pulse"
+              : isThinking
+                ? "bg-[var(--warning)]/10 border-[var(--warning)]/20 text-[var(--warning)] animate-pulse"
+                : voiceState === 'speaking'
+                  ? "bg-[var(--accent)]/15 border-[var(--accent)]/20 text-[var(--accent)]"
+                  : "bg-white/5 border-white/10 text-[var(--text-secondary)]"
+          )}>
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              voiceState === 'recording' ? "bg-[var(--danger)]" :
+              isThinking ? "bg-[var(--warning)] animate-ping" :
+              voiceState === 'speaking' ? "bg-[var(--accent)] animate-pulse" :
+              "bg-gray-400"
+            )} />
+            {voiceState === 'recording' ? "Listening" :
+             isThinking ? "Thinking" :
+             voiceState === 'speaking' ? "Speaking" :
+             "Idle"}
+          </span>
+        </div>
       </div>
       
       <div className="flex items-center space-x-3">
