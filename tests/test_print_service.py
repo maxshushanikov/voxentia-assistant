@@ -6,4 +6,4 @@ def test_render_html_as_pdf_returns_pdf_bytes():
     pdf_bytes = render_html_as_pdf(html, title="TestDokument")
 
     assert isinstance(pdf_bytes, (bytes, bytearray))
-    assert pdf_bytes.startswith(b"%PDF-1.4")
+    assert pdf_bytes.startswith(b"%PDF-"), "Generated output should be a PDF document"

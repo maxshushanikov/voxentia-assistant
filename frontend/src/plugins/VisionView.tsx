@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Eye, RefreshCw, Sparkles, FileText, CheckCircle } from 'lucide-react';
+import { useTranslation } from '../i18n/context';
 
 export default function VisionView() {
+  const { t } = useTranslation();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -106,7 +108,7 @@ export default function VisionView() {
       });
 
       if (!response.ok) {
-        throw new Error("Fehler beim Analysieren des Bildes.");
+        throw new Error(t.vision_errorAnalyzeImage);
       }
 
       const data = await response.json();
@@ -124,8 +126,8 @@ export default function VisionView() {
     } catch (err) {
       console.error(err);
       setResult({
-        description: "### Fehler\nDie Analyse konnte nicht abgeschlossen werden. Ist das Backend erreichbar?",
-        ocr_text: "Fehler beim Auslesen."
+        description: t.vision_errorDescription,
+        ocr_text: t.vision_errorOcrText,
       });
     } finally {
       setScanning(false);
@@ -137,10 +139,10 @@ export default function VisionView() {
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2 flex items-center gap-3">
-            <Eye className="w-8 h-8 text-[var(--accent)]" /> Vision-Modus
+            <Eye className="w-8 h-8 text-[var(--accent)]" /> {t.vision_title}
           </h1>
           <p className="text-[var(--text-secondary)] text-sm">
-            Echtzeit-Webcam-Analyse, Handschriften-Entzifferung und intelligente Objekterkennung.
+            {t.vision_subtitle}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -158,7 +160,7 @@ export default function VisionView() {
             {scanning && (
               <div className="absolute inset-0 bg-black/40 z-30 flex flex-col items-center justify-center text-white">
                 <RefreshCw className="w-12 h-12 text-[var(--accent)] animate-spin mb-4" />
-                <p className="text-xs font-bold uppercase tracking-widest">Scanne Bild...</p>
+                <p className="text-xs font-bold uppercase tracking-widest">{t.vision_scanningImage}</p>
                 {/* Laser scan line effect */}
                 <div className="absolute left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent animate-tts-wave" style={{ animationDuration: '2s', height: '4px' }}></div>
               </div>
@@ -178,7 +180,7 @@ export default function VisionView() {
                   <div className="w-4 h-4 border-t-2 border-r-2 border-[var(--accent)] absolute top-0 right-0"></div>
                   <div className="w-4 h-4 border-b-2 border-l-2 border-[var(--accent)] absolute bottom-0 left-0"></div>
                   <div className="w-4 h-4 border-b-2 border-r-2 border-[var(--accent)] absolute bottom-0 right-0"></div>
-                  <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Kamera ausrichten</span>
+                  <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">{t.vision_cameraAlign}</span>
                 </div>
               </>
             )}
@@ -194,12 +196,12 @@ export default function VisionView() {
             {!webcamAvailable && !capturedImage && (
               <div className="text-center p-8">
                 <Upload className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
-                <h3 className="text-lg text-[var(--text-primary)] mb-2 font-medium">Keine Webcam erkannt</h3>
+                <h3 className="text-lg text-[var(--text-primary)] mb-2 font-medium">{t.vision_noWebcamTitle}</h3>
                 <p className="text-xs text-[var(--text-secondary)] mb-6 max-w-sm">
-                  Schließe eine Webcam an oder lade ein Foto hoch, um den Vision-Modus zu nutzen.
+                  {t.vision_noWebcamDesc}
                 </p>
                 <label className="btn-accent px-6 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-[var(--accent-hover)] transition-all">
-                  Foto hochladen
+                  {t.vision_uploadPhoto}
                   <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
                 </label>
               </div>
@@ -214,7 +216,7 @@ export default function VisionView() {
                   onClick={capturePhoto}
                   className="px-6 py-2.5 btn-accent rounded-[4px] text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-[var(--accent-hover)] shadow-lg shadow-[var(--accent)]/15"
                 >
-                  <Camera className="w-4 h-4" /> Foto aufnehmen
+                  <Camera className="w-4 h-4" /> {t.vision_takePhoto}
                 </button>
               )}
               {capturedImage && (
@@ -222,12 +224,12 @@ export default function VisionView() {
                   onClick={startWebcam}
                   className="px-6 py-2.5 bg-black/10 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[var(--text-secondary)] rounded-[4px] text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:text-[var(--text-primary)] hover:bg-black/15 transition-all"
                 >
-                  <RefreshCw className="w-4 h-4" /> Kamera neu starten
+                  <RefreshCw className="w-4 h-4" /> {t.vision_restartCamera}
                 </button>
               )}
               {webcamAvailable && stream && (
                 <label className="px-6 py-2.5 bg-black/10 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[var(--text-secondary)] rounded-[4px] text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 cursor-pointer hover:text-[var(--text-primary)] hover:bg-black/15 transition-all">
-                  <Upload className="w-4 h-4" /> Bild hochladen
+                  <Upload className="w-4 h-4" /> {t.vision_uploadPhoto}
                   <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
                 </label>
               )}
@@ -240,14 +242,14 @@ export default function VisionView() {
                   disabled={scanning}
                   className="px-5 py-2.5 border border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-[4px] text-[10px] font-bold uppercase tracking-widest transition-all"
                 >
-                  Text auslesen (OCR)
+                  {t.vision_extractText}
                 </button>
                 <button
                   onClick={() => analyzeImage('analyze')}
                   disabled={scanning}
                   className="px-5 py-2.5 btn-accent rounded-[4px] text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent)]/15"
                 >
-                  „Was sehe ich gerade?“
+                  {t.vision_whatDoISee}
                 </button>
               </div>
             )}
@@ -260,9 +262,9 @@ export default function VisionView() {
             {!scanning && !result && (
               <div className="flex-1 flex flex-col items-center justify-center text-center text-[var(--text-muted)]">
                 <Eye className="w-16 h-16 opacity-30 mb-4" />
-                <h3 className="text-base text-[var(--text-secondary)] font-medium mb-1">Bereit zur Analyse</h3>
+                <h3 className="text-base text-[var(--text-secondary)] font-medium mb-1">{t.vision_readyForAnalysis}</h3>
                 <p className="text-xs max-w-xs">
-                  Mache ein Foto oder lade ein Bild hoch, um das OCR- und Erkennungssystem zu starten.
+                  {t.vision_readyForAnalysisDesc}
                 </p>
               </div>
             )}
@@ -270,9 +272,9 @@ export default function VisionView() {
             {scanning && (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <div className="w-16 h-16 rounded-full border-2 border-t-[var(--accent)] border-r-[var(--accent)] border-b-transparent border-l-transparent animate-spin mb-6"></div>
-                <h3 className="text-base text-[var(--text-primary)] font-medium mb-1">Lese Bildinformationen...</h3>
+                <h3 className="text-base text-[var(--text-primary)] font-medium mb-1">{t.vision_readingImage}</h3>
                 <p className="text-xs text-[var(--text-secondary)] max-w-xs">
-                  Erkenne Strukturen, filtere Textelemente und vergleiche Objekte mit Modellen.
+                  {t.vision_readingImageDesc}
                 </p>
               </div>
             )}
@@ -281,12 +283,12 @@ export default function VisionView() {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div className="flex items-center space-x-2 text-[var(--success)]">
                   <CheckCircle className="w-5 h-5" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Analyse erfolgreich</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{t.vision_analysisSuccess}</span>
                 </div>
 
                 {result.objects && (
                   <div>
-                    <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3">Erkannte Objekte</h4>
+                    <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3">{t.vision_detectedObjects}</h4>
                     <div className="flex flex-wrap gap-2">
                       {result.objects.map((obj, i) => (
                         <span key={i} className="px-3 py-1 bg-black/10 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-full text-[10px] text-[var(--text-primary)]">
@@ -300,7 +302,7 @@ export default function VisionView() {
                 {result.ocr_text && (
                   <div>
                     <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[var(--accent)]" /> Extrahierter Text / OCR
+                      <FileText className="w-4 h-4 text-[var(--accent)]" /> {t.vision_extractedText}
                     </h4>
                     <div className="p-4 bg-black/10 dark:bg-black/25 rounded-[8px] text-xs text-[var(--text-primary)] font-mono whitespace-pre-line border border-black/5 dark:border-white/5 leading-relaxed">
                       {result.ocr_text}
@@ -310,7 +312,7 @@ export default function VisionView() {
 
                 {result.handwriting && (
                   <div>
-                    <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2">Handschriftenerkennung</h4>
+                    <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2">{t.vision_handwritingRecognition}</h4>
                     <p className="text-sm text-[var(--text-secondary)] italic">
                       "{result.handwriting}"
                     </p>
@@ -319,7 +321,7 @@ export default function VisionView() {
 
                 {result.description && (
                   <div>
-                    <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3">Ausführliche Beschreibung</h4>
+                    <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-3">{t.vision_detailedDescription}</h4>
                     <div className="text-xs text-[var(--text-secondary)] leading-relaxed space-y-4 prose prose-invert">
                       {result.description.split('\n\n').map((paragraph, index) => {
                         if (paragraph.startsWith('###')) {

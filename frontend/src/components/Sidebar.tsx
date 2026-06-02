@@ -281,7 +281,7 @@ export default function Sidebar({
           type="button"
           onClick={toggleCollapse}
           className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--text-secondary)] hover:text-white transition-all cursor-pointer hidden lg:block"
-          title={isCollapsed ? 'Expand Navigation' : 'Collapse Navigation'}
+          title={isCollapsed ? t.sidebar_expandNavigation : t.sidebar_collapseNavigation}
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -309,7 +309,7 @@ export default function Sidebar({
             {/* Chat button */}
             <SidebarCollapsedButton
               icon={<MessageSquare className="w-4 h-4" />}
-              label="Chat"
+              label={t.title_chat}
               active={activePlugin === null}
               onClick={() => setActivePlugin(null)}
             />
@@ -387,7 +387,7 @@ export default function Sidebar({
               <div className="flex items-center justify-between ml-2">
                 <h2 className="text-[9px] font-bold text-[var(--text-muted)] tracking-[0.15em] uppercase flex items-center gap-1.5">
                   <MessageSquare className="w-3 h-3 text-[var(--accent)]" />
-                  Chat Workspace
+                {t.sidebar_chatWorkspace}
                 </h2>
               </div>
               <SidebarButton
@@ -400,7 +400,9 @@ export default function Sidebar({
               {/* Chat History Section */}
               <div className="pt-2">
                 <div className="flex items-center justify-between mb-2 ml-2">
-                  <span className="text-[8px] font-bold text-[var(--text-muted)] tracking-wider uppercase">History ({totalSessions})</span>
+                  <span className="text-[8px] font-bold text-[var(--text-muted)] tracking-wider uppercase">
+                    {t.history} ({totalSessions})
+                  </span>
                   {totalSessions > 0 && showAllHistory && (
                     <button
                       type="button"
@@ -408,7 +410,7 @@ export default function Sidebar({
                       className="text-[8px] text-[var(--danger)]/80 hover:text-[var(--danger)] uppercase font-semibold"
                       title={t.deleteAllChats}
                     >
-                      Clear All
+                      {t.deleteAllChats}
                     </button>
                   )}
                 </div>
@@ -509,7 +511,7 @@ export default function Sidebar({
                         onClick={() => !isDisabled && setActivePlugin(plugin.id)}
                         disabled={isDisabled}
                         className={cn(
-                          'flex-1 flex items-center px-3.5 py-2 text-xs font-semibold text-left w-full rounded-xl transition-all cursor-pointer',
+                        'flex-1 min-w-0 flex items-center px-3.5 py-2 text-xs font-semibold text-left w-full rounded-xl transition-all cursor-pointer',
                           isActivePlugin ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-white',
                         )}
                       >
@@ -539,7 +541,7 @@ export default function Sidebar({
             <div className="space-y-2">
               <h2 className="text-[9px] font-bold text-[var(--text-muted)] tracking-[0.15em] uppercase flex items-center gap-1.5 ml-2">
                 <FolderHeart className="w-3 h-3 text-[var(--accent)]" />
-                Tools
+                {t.sidebar_tools}
               </h2>
               <nav className="space-y-1">
                 {toolsGroup.map((plugin) => {
@@ -566,7 +568,7 @@ export default function Sidebar({
                         onClick={() => !isDisabled && setActivePlugin(plugin.id)}
                         disabled={isDisabled}
                         className={cn(
-                          'flex-1 flex items-center px-3.5 py-2 text-xs font-semibold text-left w-full rounded-xl transition-all cursor-pointer',
+                          'flex-1 min-w-0 flex items-center px-3.5 py-2 text-xs font-semibold text-left w-full rounded-xl transition-all cursor-pointer',
                           isActivePlugin ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-white',
                         )}
                       >

@@ -15,6 +15,7 @@ import {
   Clipboard,
 } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import { useTranslation } from '../i18n/context';
 
 type JobMode = 'dashboard' | 'search' | 'cv-upload' | 'tracker' | 'interview';
 
@@ -82,46 +83,48 @@ export default function JobView() {
    1. JOB COACH DASHBOARD
    ========================================== */
 function JobDashboard({ onNavigate, cvUploaded, onStartInterview }: { onNavigate: (m: JobMode) => void, cvUploaded: boolean, onStartInterview: () => void }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
       <div className="mb-10 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2">Job Coach</h1>
-          <p className="text-[var(--text-secondary)] text-sm">Optimiere deine Bewerbungen, finde passende Stellenangebote und trainiere Interviews.</p>
+          <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2">{t.job_coachTitle}</h1>
+          <p className="text-[var(--text-secondary)] text-sm">{t.job_coachSubtitle}</p>
         </div>
         <div className="flex items-center space-x-2">
           <Sparkles className="w-4 h-4 text-[var(--accent)] animate-pulse" />
-          <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Powered by Voxentia AI</span>
+          <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{t.common_poweredBy}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
         <MenuTile
           icon={<Search className="w-6 h-6" />}
-          title="Stellensuche"
-          description="Durchsuche Stepstone, LinkedIn und Indeed mit Live-Analyse."
+          title={t.job_searchTitle}
+          description={t.job_searchDesc}
           onClick={() => onNavigate('search')}
           color="var(--accent)"
         />
         <MenuTile
           icon={<FileCheck className="w-6 h-6" />}
-          title="Profil-Analyse"
-          description="Lade deinen Lebenslauf hoch, um deinen Matching-Score zu berechnen."
+          title={t.job_profileAnalysisTitle}
+          description={t.job_profileAnalysisDesc}
           onClick={() => onNavigate('cv-upload')}
           color="#10b981"
-          badge={cvUploaded ? "Aktiv" : undefined}
+          badge={cvUploaded ? t.job_active : undefined}
         />
         <MenuTile
           icon={<Layers className="w-6 h-6" />}
-          title="Bewerbungs-Tracker"
-          description="Behalte deine offenen Bewerbungen im Kanban-Board im Blick."
+          title={t.job_trackerTitle}
+          description={t.job_trackerDesc}
           onClick={() => onNavigate('tracker')}
           color="#fbbf24"
         />
         <MenuTile
           icon={<MessageSquare className="w-6 h-6" />}
-          title="Interview-Trainer"
-          description="Trainiere das Vorstellungsgespräch im Dialog mit dem 3D-Avatar."
+          title={t.job_interviewTrainerTitle}
+          description={t.job_interviewTrainerDesc}
           onClick={onStartInterview}
           color="#f43f5e"
         />
@@ -129,7 +132,7 @@ function JobDashboard({ onNavigate, cvUploaded, onStartInterview }: { onNavigate
 
       {/* Featured Recruiter Section */}
       <section>
-        <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6">Empfohlenes Training</h3>
+        <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6">{t.job_recommendedTrainingTitle}</h3>
         <div className="glass-card rounded-[12px] p-8 border border-black/5 dark:border-white/5 bg-gradient-to-br from-[var(--accent)]/10 to-transparent relative overflow-hidden group">
           <div className="relative z-10 max-w-xl">
             <div className="flex items-center space-x-3 mb-4">
@@ -142,16 +145,15 @@ function JobDashboard({ onNavigate, cvUploaded, onStartInterview }: { onNavigate
                 <Star className="w-3 h-3 fill-current" />
               </div>
             </div>
-            <h2 className="text-2xl text-[var(--text-primary)] mb-3">AI-Recruiter Simulation</h2>
+            <h2 className="text-2xl text-[var(--text-primary)] mb-3">{t.job_recruiterSimTitle}</h2>
             <p className="text-[var(--text-secondary)] text-sm mb-8 leading-relaxed">
-              Erlebe ein lebensechtes Bewerbungsgespräch. Der AI-Recruiter stellt dir fachliche und persönliche Fragen, 
-              analysiert deine Kommunikationsstärke und liefert dir eine fundierte Stärken-Schwächen-Analyse.
+              {t.job_recruiterSimDesc}
             </p>
             <button
               onClick={onStartInterview}
               className="flex items-center px-8 py-3.5 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent)]/20 uppercase tracking-widest"
             >
-              <Play className="w-4 h-4 mr-3 fill-current" /> Simulation starten
+              <Play className="w-4 h-4 mr-3 fill-current" /> {t.job_startSimulation}
             </button>
           </div>
           <div className="absolute right-[5%] top-1/2 -translate-y-1/2 opacity-10 group-hover:opacity-15 transition-opacity pointer-events-none">
@@ -285,43 +287,43 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
     <div className="flex-1 flex flex-col p-8 overflow-y-auto custom-scrollbar">
       <div className="mb-8">
         <button onClick={onBack} className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] uppercase tracking-widest mb-4">
-          &lt; Zurück zum Dashboard
+          &lt; {t.job_backToDashboard}
         </button>
-        <h2 className="text-3xl font-light text-[var(--text-primary)]">Stellensuche</h2>
-        <p className="text-[var(--text-secondary)] text-sm">Durchsuche mehrere Jobportale gleichzeitig und erhalte deinen individuellen Matching-Score.</p>
+        <h2 className="text-3xl font-light text-[var(--text-primary)]">{t.job_searchSectionTitle}</h2>
+        <p className="text-[var(--text-secondary)] text-sm">{t.job_searchSectionDesc}</p>
       </div>
 
       {/* Filter Form */}
       <div className="glass-card p-6 border border-black/5 dark:border-white/5 rounded-[12px] bg-black/2 dark:bg-white/2 mb-8">
         <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
-            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest block mb-2">Stichwort</label>
+            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest block mb-2">{t.job_searchKeywordLabel}</label>
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="z.B. React Entwickler, AI Engineer..."
+              placeholder={t.job_searchKeywordPlaceholder}
               className="w-full px-4 py-3 rounded-[4px] bg-black/5 dark:bg-black/20 border border-black/10 dark:border-white/10 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
           <div>
-            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest block mb-2">Ort</label>
+            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest block mb-2">{t.job_searchLocationLabel}</label>
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="z.B. Berlin, Remote..."
+              placeholder={t.job_searchLocationPlaceholder}
               className="w-full px-4 py-3 rounded-[4px] bg-black/5 dark:bg-black/20 border border-black/10 dark:border-white/10 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
           <div>
-            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest block mb-2">Portal</label>
+            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest block mb-2">{t.job_searchPortalLabel}</label>
             <select
               value={portal}
               onChange={(e) => setPortal(e.target.value)}
               className="w-full px-4 py-3 rounded-[4px] bg-black/5 dark:bg-black/20 border border-black/10 dark:border-white/10 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
             >
-              <option value="All">Alle Portale</option>
+              <option value="All">{t.job_searchPortalAll}</option>
               <option value="Stepstone">Stepstone</option>
               <option value="LinkedIn">LinkedIn</option>
               <option value="Indeed">Indeed</option>
@@ -332,7 +334,7 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
             disabled={loading}
             className="w-full py-3.5 btn-accent rounded-[4px] text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent)]/15"
           >
-            {loading ? 'Suche...' : <><Search className="w-4 h-4" /> Jobs suchen</>}
+            {loading ? t.job_searching : <><Search className="w-4 h-4" /> {t.job_searchButton}</>}
           </button>
         </form>
       </div>

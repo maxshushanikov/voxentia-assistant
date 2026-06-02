@@ -14,6 +14,7 @@ import {
   Award,
   Zap,
 } from 'lucide-react';
+import { useTranslation } from '../i18n/context';
 
 type Mode = 'dashboard' | 'plan' | 'quiz' | 'flashcards' | 'eli5';
 
@@ -54,11 +55,12 @@ export default function LearnView() {
    1. LEARNING DASHBOARD
    ========================================== */
 function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     words_learned: 250,
     simulations: 0,
     accuracy: '100%',
-    streak: '0 Tage',
+    streak: '0 ' + t.learn_days,
     daily_goals: [] as any[],
     history: [] as any[],
   });
@@ -104,7 +106,7 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg-primary)]">
         <div className="w-10 h-10 rounded-full border-2 border-t-[var(--accent)] border-r-[var(--accent)] border-b-transparent border-l-transparent animate-spin mb-4" />
-        <p className="text-xs text-[var(--text-secondary)]">Lade Statistiken...</p>
+        <p className="text-xs text-[var(--text-secondary)]">{t.learn_loadingStats}</p>
       </div>
     );
   }
@@ -117,12 +119,12 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
     <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
       <div className="mb-10 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2">Learning Dashboard</h1>
-          <p className="text-[var(--text-secondary)] text-sm">Verfolge deine Ziele, absolviere Quizzes und organisiere deinen Lernfortschritt.</p>
+          <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2">{t.learn_dashboard_title}</h1>
+          <p className="text-[var(--text-secondary)] text-sm">{t.learn_dashboard_desc}</p>
         </div>
         <div className="flex items-center space-x-2">
           <Sparkles className="w-4 h-4 text-[var(--accent)] animate-pulse" />
-          <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Powered by Voxentia AI</span>
+          <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{t.common_poweredBy}</span>
         </div>
       </div>
 
@@ -130,29 +132,29 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
         <MenuTile
           icon={<BookOpen className="w-6 h-6" />}
-          title="Lernplaner"
-          description="Generiere strukturierte Lernpläne zu beliebigen Themen."
+          title={t.learn_tile_planner_title}
+          description={t.learn_tile_planner_desc}
           onClick={() => onNavigate('plan')}
           color="var(--accent)"
         />
         <MenuTile
           icon={<HelpCircle className="w-6 h-6" />}
-          title="Quiz-Modus"
-          description="Testest dein Wissen mit dynamisch generierten Quizzes."
+          title={t.learn_tile_quiz_title}
+          description={t.learn_tile_quiz_desc}
           onClick={() => onNavigate('quiz')}
           color="#10b981"
         />
         <MenuTile
           icon={<Brain className="w-6 h-6" />}
-          title="Karteikarten"
-          description="Erstelle PDF-basierte Lernkarten mit 3D-Effekten."
+          title={t.learn_tile_flashcards_title}
+          description={t.learn_tile_flashcards_desc}
           onClick={() => onNavigate('flashcards')}
           color="#fbbf24"
         />
         <MenuTile
           icon={<FileText className="w-6 h-6" />}
-          title="Explain Like I'm 5"
-          description="Lass dir komplexe Konzepte extrem einfach erklären."
+          title={t.learn_tile_eli5_title}
+          description={t.learn_tile_eli5_desc}
           onClick={() => onNavigate('eli5')}
           color="#f43f5e"
         />
@@ -160,10 +162,10 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <StatsCard label="WÖRTER GELERNT" value={stats.words_learned.toString()} color="var(--accent)" />
-        <StatsCard label="SIMULATIONEN" value={stats.simulations.toString()} color="#10b981" />
-        <StatsCard label="GENAUIGKEIT" value={stats.accuracy} color="#fbbf24" />
-        <StatsCard label="LERN-STRÄHNE" value={stats.streak} color="#f43f5e" />
+        <StatsCard label={t.learn_wordsLearned.toUpperCase()} value={stats.words_learned.toString()} color="var(--accent)" />
+        <StatsCard label={t.learn_simulations.toUpperCase()} value={stats.simulations.toString()} color="#10b981" />
+        <StatsCard label={t.learn_accuracy.toUpperCase()} value={stats.accuracy} color="#fbbf24" />
+        <StatsCard label={t.learn_streak.toUpperCase()} value={stats.streak} color="#f43f5e" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -171,8 +173,8 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
         <div className="lg:col-span-6 flex flex-col">
           <div className="glass-card flex-1 p-6 border border-black/5 dark:border-white/5 rounded-[12px] bg-black/2 dark:bg-white/2">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">Tagesziele</h3>
-              <span className="text-[10px] text-[var(--text-secondary)] font-bold">{completedGoals}/{totalGoals} Erledigt</span>
+              <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.learn_dailyGoals}</h3>
+              <span className="text-[10px] text-[var(--text-secondary)] font-bold">{completedGoals}/{totalGoals} {t.learn_completed}</span>
             </div>
             
             {/* Progress bar */}
@@ -215,9 +217,9 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
         {/* Right column: Learning History */}
         <div className="lg:col-span-6 flex flex-col">
           <div className="glass-card flex-1 p-6 border border-black/5 dark:border-white/5 rounded-[12px] bg-black/2 dark:bg-white/2 max-h-[350px] overflow-y-auto custom-scrollbar">
-            <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6">Lernhistorie</h3>
+            <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6">{t.learn_learningHistory}</h3>
             {stats.history.length === 0 ? (
-              <p className="text-xs text-[var(--text-muted)] text-center py-10">Noch keine Aktivitäten aufgezeichnet.</p>
+              <p className="text-xs text-[var(--text-muted)] text-center py-10">{t.learn_noActivity}</p>
             ) : (
               <div className="space-y-4">
                 {stats.history.map((hist) => (

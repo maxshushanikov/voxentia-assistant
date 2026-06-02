@@ -2,6 +2,7 @@ import { Download, Package } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ApiError, apiFetch } from '../api/client';
+import { useTranslation } from '../i18n/context';
 
 interface CatalogPlugin {
   id: string;
@@ -15,6 +16,7 @@ interface CatalogPlugin {
 }
 
 export default function MarketplaceView() {
+  const { t } = useTranslation();
   const [plugins, setPlugins] = useState<CatalogPlugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export default function MarketplaceView() {
       const data = await apiFetch<{ plugins: CatalogPlugin[] }>('/api/v1/marketplace/catalog');
       setPlugins(data.plugins);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Catalog load failed');
+      setError(e instanceof ApiError ? e.message : t.marketplace_catalog_load_failed);
     } finally {
       setLoading(false);
     }
@@ -46,12 +48,12 @@ export default function MarketplaceView() {
         { method: 'POST', body: JSON.stringify({ plugin_id: id }) },
       );
       setMessage(
-        (res.message || 'Installed') +
-          (res.restart_required ? ' — Backend-Neustart empfohlen.' : ''),
+        (res.message || t.marketplace_installed) +
+          (res.restart_required ? ` — ${t.marketplace_restartRecommended}` : ''),
       );
       await load();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Install failed');
+      setError(e instanceof ApiError ? e.message : t.marketplace_install_failed);
     }
   };
 
@@ -60,10 +62,10 @@ export default function MarketplaceView() {
       <div className="mb-8">
         <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2 flex items-center gap-3">
           <Package className="w-8 h-8 text-[var(--accent)]" />
-          Plugin Marketplace
+          {t.marketplace_title}
         </h1>
         <p className="text-[var(--text-secondary)] text-sm">
-          Katalog verfügbarer Plugins — Installation aktualisiert plugin_config.json
+          {t.marketplace_subtitle}
         </p>
       </div>
 
@@ -80,7 +82,7 @@ export default function MarketplaceView() {
 
       <div className="grid gap-4 max-w-3xl">
         {loading ? (
-          <p className="text-sm text-[var(--text-secondary)]">Laden…</p>
+          <p className="text-sm text-[var(--text-secondary)]">{t.marketplace_loading}</p>
         ) : (
           plugins.map((p) => (
             <div
@@ -91,13 +93,13 @@ export default function MarketplaceView() {
                 <h3 className="font-medium text-[var(--text-primary)]">{p.name}</h3>
                 <p className="text-xs text-[var(--text-secondary)] mt-1">
                   v{p.version} · {p.author}
-                  {p.builtin ? ' · Built-in' : ''}
+                  {p.builtin ? ` · ${t.marketplace_builtin}` : ''}
                 </p>
                 <p className="text-sm text-[var(--text-secondary)] mt-2">{p.description}</p>
               </div>
               {p.installed ? (
                 <span className="text-[10px] uppercase tracking-wider text-[var(--success)] shrink-0">
-                  Installiert
+                  {t.marketplace_installed}
                 </span>
               ) : p.installable ? (
                 <button
@@ -106,7 +108,7 @@ export default function MarketplaceView() {
                   className="shrink-0 flex items-center gap-1 px-3 py-1.5 btn-accent rounded text-xs font-bold"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Install
+                  {t.marketplace_install}
                 </button>
               ) : null}
             </div>

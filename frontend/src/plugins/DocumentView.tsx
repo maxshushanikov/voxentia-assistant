@@ -23,7 +23,7 @@ export default function DocumentView() {
       const data = await apiFetch<{ documents: DocumentSummary[] }>('/api/v1/documents');
       setDocuments(data.documents);
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'Failed to load documents';
+      const msg = e instanceof ApiError ? e.message : t.docs_loadFailed;
       setError(msg);
     } finally {
       setLoading(false);
@@ -37,7 +37,7 @@ export default function DocumentView() {
 
   const handleUpload = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setError('Only PDF files are supported.');
+      setError(t.docs_onlyPdf);
       return;
     }
     const form = new FormData();
@@ -47,7 +47,7 @@ export default function DocumentView() {
       await apiFetch('/api/v1/documents/upload', { method: 'POST', body: form });
       await loadDocuments();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Upload failed');
+      setError(e instanceof ApiError ? e.message : t.docs_uploadFailed);
     }
   };
 
@@ -59,7 +59,7 @@ export default function DocumentView() {
       });
       await loadDocuments();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Reindex failed');
+      setError(e instanceof ApiError ? e.message : t.docs_reindexFailed);
     }
   };
 
@@ -70,7 +70,7 @@ export default function DocumentView() {
       });
       await loadDocuments();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Delete failed');
+      setError(e instanceof ApiError ? e.message : t.docs_deleteFailed);
     }
   };
 
@@ -120,10 +120,10 @@ export default function DocumentView() {
 
       <div className="glass-card rounded-[8px] border border-black/5 dark:border-white/5 overflow-hidden">
         {loading ? (
-          <p className="p-6 text-[var(--text-secondary)] text-sm">Loading…</p>
+          <p className="p-6 text-[var(--text-secondary)] text-sm">{t.docs_loading}</p>
         ) : documents.length === 0 ? (
           <p className="p-6 text-[var(--text-secondary)] text-sm">
-            No indexed documents. Drop a PDF here or use Upload.
+            {t.docs_noIndexed}
           </p>
         ) : (
           <table className="w-full text-left border-collapse">
@@ -156,8 +156,8 @@ export default function DocumentView() {
                         type="button"
                         onClick={() => void handleReindex(doc.filename)}
                         className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-full hover:bg-[var(--accent)]/10"
-                        aria-label="Reindex"
-                        title="Reindex"
+                        aria-label={t.docs_reindex}
+                        title={t.docs_reindex}
                       >
                         <RefreshCw className="w-4 h-4" />
                       </button>
@@ -165,7 +165,7 @@ export default function DocumentView() {
                         type="button"
                         onClick={() => void handleDelete(doc.filename)}
                         className="p-2 text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors rounded-full hover:bg-[var(--danger)]/10"
-                        aria-label="Delete"
+                        aria-label={t.common_delete}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

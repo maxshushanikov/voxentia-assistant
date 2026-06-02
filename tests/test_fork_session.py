@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 from app.core.database import Base
 from app.models.chat import ChatMessage
@@ -52,9 +54,13 @@ async def test_prepare_context_fork_creates_new_session(db_session, monkeypatch)
     async def noop_sources(*_a, **_k):
         return []
 
-    monkeypatch.setattr("app.services.chat_service.search_sources", noop_sources)
+    monkeypatch.setattr("app.services.chat_context_builder.search_sources", noop_sources)
+
+    service.emotion_service = MagicMock(get_tone_hint=MagicMock(return_value=""))
+    service.memory_service = MagicMock(build_memory_prompt=MagicMock(return_value=""))
+    service.knowledge_service = MagicMock(build_graph_prompt=MagicMock(return_value=""))
 
     request = ChatRequest(message="Follow up", session_id=sid, fork_from_message_id=msg.id)
-    ctx = await service._prepare_context(db_session, request)
-    assert ctx["effective_session_id"] != sid
-    assert ctx["effective_session_id"].startswith("sess_")
+    ctx = await service.context_builder.build(db_session, request)
+    assert ctx.effective_session_id != sid
+    assert ctx.effective_session_id.startswith("sess_")

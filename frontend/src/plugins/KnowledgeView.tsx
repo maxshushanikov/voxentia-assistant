@@ -3,6 +3,7 @@ import { useCallback, useState, useEffect } from 'react';
 
 import { ApiError, apiFetch } from '../api/client';
 import { useAppStore } from '../store/appStore';
+import { useTranslation } from '../i18n/context';
 
 interface Edge {
   id: string;
@@ -13,6 +14,7 @@ interface Edge {
 }
 
 export default function KnowledgeView() {
+  const { t } = useTranslation();
   const sessionId = useAppStore((s) => s.sessionId);
   const [entity, setEntity] = useState('');
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -48,10 +50,10 @@ export default function KnowledgeView() {
       <div className="mb-8">
         <h1 className="text-3xl font-light text-[var(--text-primary)] mb-2 flex items-center gap-3">
           <Brain className="w-8 h-8 text-[var(--accent)]" />
-          Wissensgraph
+          {t.knowledge_title}
         </h1>
         <p className="text-[var(--text-secondary)] text-sm">
-          Persistente Subjekt–Relation–Objekt-Triplets aus deinen Gesprächen (Session: {sessionId})
+          {t.knowledge_subtitle} (Session: {sessionId})
         </p>
       </div>
 
@@ -59,7 +61,7 @@ export default function KnowledgeView() {
         <input
           value={entity}
           onChange={(e) => setEntity(e.target.value)}
-          placeholder="Entität suchen (z.B. Voxentia, Max…)"
+          placeholder={t.knowledge_search_placeholder}
           className="flex-1 px-3 py-2 rounded-[4px] border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 text-sm"
         />
         <button
@@ -69,7 +71,7 @@ export default function KnowledgeView() {
           className="px-4 py-2 btn-accent rounded-[4px] text-xs font-bold uppercase flex items-center gap-2"
         >
           <Search className="w-4 h-4" />
-          Laden
+          {t.knowledge_loadGraph}
         </button>
       </div>
 
@@ -87,26 +89,26 @@ export default function KnowledgeView() {
 
       <div className="glass-card rounded-[8px] border border-black/5 dark:border-white/5 overflow-hidden">
         {loading ? (
-          <p className="p-6 text-sm text-[var(--text-secondary)]">Laden…</p>
+          <p className="p-6 text-sm text-[var(--text-secondary)]">{t.knowledge_loading}</p>
         ) : edges.length === 0 ? (
           <p className="p-6 text-sm text-[var(--text-secondary)]">
-            Noch keine Kanten. Chatte mit Voxentia — Triplets werden automatisch extrahiert.
+            {t.knowledge_noEdges}
           </p>
         ) : (
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-black/5 dark:border-white/5 bg-black/2 dark:bg-white/2">
                 <th className="px-4 py-3 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">
-                  Subjekt
+                  {t.knowledge_subject}
                 </th>
                 <th className="px-4 py-3 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">
-                  Relation
+                  {t.knowledge_relation}
                 </th>
                 <th className="px-4 py-3 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">
-                  Objekt
+                  {t.knowledge_object}
                 </th>
                 <th className="px-4 py-3 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">
-                  Score
+                  {t.knowledge_score}
                 </th>
               </tr>
             </thead>

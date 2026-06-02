@@ -27,7 +27,7 @@ def test_tts_audio_path_traversal_rejected():
     from fastapi import HTTPException
 
     try:
-        asyncio.get_event_loop().run_until_complete(serve_audio("../secret.txt"))
+        asyncio.run(serve_audio("../secret.txt"))
         assert False, "Expected HTTPException"
     except HTTPException as e:
         assert e.status_code == 400
