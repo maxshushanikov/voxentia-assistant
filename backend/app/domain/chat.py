@@ -17,6 +17,7 @@ class ChatMessageRecord:
     id: Optional[int] = None
     parent_id: Optional[int] = None
     branch_id: str = "main"
+    feedback: Optional[str] = None
 
 
 @dataclass(frozen=True)

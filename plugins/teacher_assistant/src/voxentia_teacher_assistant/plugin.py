@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from voxentia.plugins.base import PluginContext, PluginMetadata, PluginResponse, VoxentiaPlugin
+from voxentia.plugins.base import PluginMetadata, PluginResponse, VoxentiaPlugin
 
 
 class TeacherAssistantPlugin(VoxentiaPlugin):
@@ -21,6 +21,8 @@ class TeacherAssistantPlugin(VoxentiaPlugin):
             description="KI-gestütztes Lernen: Lernkarten, Zusammenfassungen und Sprachtraining.",
             author="Voxentia Team",
             icon="school",
+            capabilities=["learn:flashcards", "learn:summary", "learn:quiz", "learn:language"],
+            triggers=["quiz", "flashcard", "lernkarte", "zusammenfassung", "summary", "language", "sprache", "lernen", "learn"],
             permissions=["llm_generate"],
             min_core_version="0.1.0",
             dependencies=[],

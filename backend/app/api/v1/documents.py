@@ -1,16 +1,21 @@
+import tempfile
 from pathlib import Path
 
 from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.schemas.documents import (
+    DocumentAnalysisResponse,
     DocumentListResponse,
     DocumentSearchResponse,
     DocumentSummary,
     DocumentUploadResponse,
 )
 from app.services import rag_service
+from app.services.document_service import DocumentService
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, HttpUrl
+
+analysis_service = DocumentService()
 
 router = APIRouter()
 
@@ -94,6 +99,81 @@ async def list_documents(request: Request):
     return DocumentListResponse(
         documents=[DocumentSummary(filename=d["filename"], chunks=d["chunks"]) for d in docs]
     )
+
+
+@router.get("/{filename}/summary", response_model=DocumentAnalysisResponse)
+@limiter.limit("10/minute")
+async def summarize_document(request: Request, filename: str):
+    filepath = rag_service.find_upload_path(filename)
+    if not filepath:
+        raise HTTPException(status_code=404, detail="Document not found")
+    try:
+        result = await analysis_service.summarize_document(filepath, filename)
+        return DocumentAnalysisResponse(
+            filename=result["filename"],
+            summary=result["summary"],
+            key_points=result.get("key_points", []),
+            metadata={"source": filename},
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to summarize document: {exc}")
+
+
+@router.post("/analyze", response_model=DocumentAnalysisResponse)
+@limiter.limit("10/minute")
+async def analyze_document(request: Request, file: UploadFile = File(...)):
+    if not file.filename or not file.filename.lower().endswith(SUPPORTED_EXTENSIONS):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "invalid_file_type",
+                "message": "Only PDF, DOCX, TXT, MD, JSON, and CSV files are supported.",
+                "details": {},
+            },
+        )
+
+    content = await file.read()
+    if len(content) > MAX_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "error_code": "file_too_large",
+                "message": f"File exceeds {MAX_BYTES} bytes.",
+                "details": {"max_bytes": MAX_BYTES},
+            },
+        )
+
+    original_name = Path(file.filename).name
+    if not original_name or original_name.startswith('.'):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "invalid_filename",
+                "message": "Invalid filename",
+                "details": {},
+            },
+        )
+
+    with tempfile.NamedTemporaryFile(suffix=Path(original_name).suffix, delete=False) as temp_file:
+        temp_file.write(content)
+        temp_name = temp_file.name
+
+    try:
+        result = await analysis_service.analyze_document(temp_name, original_name)
+        return DocumentAnalysisResponse(
+            filename=result["filename"],
+            summary=result["summary"],
+            key_points=result.get("key_points", []),
+            document_type=result.get("document_type"),
+            tables=result.get("tables"),
+            invoice_fields=result.get("invoice_fields"),
+            contract_summary=result.get("contract_summary"),
+            metadata={"source": "uploaded_document"},
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to analyze document: {exc}")
+    finally:
+        Path(temp_name).unlink(missing_ok=True)
 
 
 @router.delete("/{filename}")

@@ -58,7 +58,7 @@ def cleanup_stale_audio() -> int:
             stat = wav.stat()
             total_size += stat.st_size
             wav_files.append((stat.st_mtime, stat.st_size, wav))
-        
+
         if total_size > max_bytes:
             # Sort oldest first
             wav_files.sort(key=lambda x: x[0])

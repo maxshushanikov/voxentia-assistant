@@ -11,6 +11,10 @@ class Personality(str, Enum):
     PROFESSIONAL = "professional"
     FRIENDLY = "friendly"
     ACADEMIC = "academic"
+    DEVELOPER = "developer"
+    TEACHER = "teacher"
+    COACH = "coach"
+    THERAPIST = "therapist"
 
 
 class Speaker(str, Enum):

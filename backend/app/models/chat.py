@@ -24,6 +24,7 @@ class ChatMessage(Base):
     model = Column(String, nullable=True)
     parent_id = Column(Integer, ForeignKey("chat_messages.id"), nullable=True, index=True)
     branch_id = Column(String(64), index=True, nullable=False, default="main")
+    feedback = Column(String(16), nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
     def to_dict(self):
@@ -35,5 +36,6 @@ class ChatMessage(Base):
             "model": self.model,
             "parent_id": self.parent_id,
             "branch_id": self.branch_id,
+            "feedback": self.feedback,
             "timestamp": self.timestamp.isoformat(),
         }

@@ -1,4 +1,4 @@
-import { FileText, CheckCircle2, Circle, Search, Plus } from 'lucide-react';
+import { FileText, CheckCircle2, Circle, Search, Plus, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n/context';
 
@@ -6,6 +6,11 @@ interface Note {
   title: string;
   date: string;
   preview: string;
+}
+
+interface Task {
+  label: string;
+  done: boolean;
 }
 
 export default function NotesView() {
@@ -19,13 +24,41 @@ export default function NotesView() {
     ];
   });
 
+  const [query, setQuery] = useState('');
+
+  const [tasks, setTasks] = useState<Task[]>(() => [
+    { label: 'Finalize Voxentia branding', done: true },
+    { label: 'Test TTS integration', done: false },
+    { label: 'Update documentation', done: false },
+  ]);
+
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTaskLabel, setNewTaskLabel] = useState('');
+
   useEffect(() => {
     localStorage.setItem('voxentia-notes', JSON.stringify(notes));
   }, [notes]);
 
+  useEffect(() => {
+    localStorage.setItem('voxentia-tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
   const addNote = () => {
-    const title = prompt(t.common_newNote || "New Note");
+    const title = prompt(t.common_newNote || 'New Note');
     if (title) setNotes([{ title, date: new Date().toLocaleDateString(), preview: '...' }, ...notes]);
+  };
+
+  const filteredNotes = notes.filter((n) => n.title.toLowerCase().includes(query.toLowerCase()));
+
+  const toggleTask = (index: number) => {
+    setTasks((prev) => prev.map((t, i) => (i === index ? { ...t, done: !t.done } : t)));
+  };
+
+  const createTask = () => {
+    if (newTaskLabel.trim() === '') return;
+    setTasks((prev) => [{ label: newTaskLabel.trim(), done: false }, ...prev]);
+    setNewTaskLabel('');
+    setShowAddTask(false);
   };
 
   return (
@@ -40,6 +73,8 @@ export default function NotesView() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
             <input
               type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder={t.common_search}
               className="pl-10 pr-4 py-2 bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] text-xs focus:outline-none focus:border-[var(--accent)]/55 transition-all text-[var(--text-secondary)]"
             />
@@ -61,7 +96,7 @@ export default function NotesView() {
             {t.notes_recent}
           </h3>
           <div className="space-y-4">
-            {notes.map((note, i) => (
+            {filteredNotes.map((note, i) => (
               <div
                 key={i}
                 className="glass-card rounded-[8px] p-5 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/33 transition-all cursor-pointer group"
@@ -86,11 +121,12 @@ export default function NotesView() {
             {t.notes_tasks}
           </h3>
           <div className="space-y-3">
-            <TaskItem label="Finalize Voxentia branding" done />
-            <TaskItem label="Test TTS integration" done={false} />
-            <TaskItem label="Update documentation" done={false} />
+            {tasks.map((task, i) => (
+              <TaskItem key={i} label={task.label} done={task.done} onClick={() => toggleTask(i)} />
+            ))}
             <button
               type="button"
+              onClick={() => setShowAddTask(true)}
               className="w-full py-3 border border-dashed border-black/10 dark:border-white/10 rounded-[4px] text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-white/20 transition-all uppercase tracking-widest"
             >
               + {t.notes_addTask}
@@ -98,13 +134,29 @@ export default function NotesView() {
           </div>
         </section>
       </div>
+      {showAddTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowAddTask(false)} />
+          <div className="relative w-full max-w-md glass-card rounded-[8px] p-6 border border-black/10 dark:border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-[var(--text-primary)]">{t.notes_addTask}</h3>
+              <button onClick={() => setShowAddTask(false)} className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><X className="w-4 h-4" /></button>
+            </div>
+            <input value={newTaskLabel} onChange={(e) => setNewTaskLabel(e.target.value)} placeholder="Task title" className="w-full p-3 rounded border border-black/10 dark:border-white/10 mb-4" />
+            <div className="flex justify-end space-x-2">
+              <button onClick={() => setShowAddTask(false)} className="px-4 py-2 text-sm">{t.common_cancel}</button>
+              <button onClick={createTask} className="px-4 py-2 btn-accent text-sm">{t.common_create}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function TaskItem({ label, done }: { label: string; done: boolean }) {
+function TaskItem({ label, done, onClick }: { label: string; done: boolean; onClick?: () => void }) {
   return (
-    <div className="flex items-center p-4 glass-card rounded-[4px] border border-black/5 dark:border-white/5 group">
+    <div onClick={onClick} role="button" tabIndex={0} className={`flex items-center p-4 glass-card rounded-[4px] border border-black/5 dark:border-white/5 group ${onClick ? 'cursor-pointer' : ''}`}>
       {done ? (
         <CheckCircle2 className="w-4 h-4 text-[var(--success)] mr-3" />
       ) : (

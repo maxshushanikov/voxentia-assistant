@@ -169,6 +169,12 @@ class IntentDetector:
             available.extend(self.registry.all_intents())
         available = list(set(available))
 
+        if self.registry and not keyword_intent:
+            trigger_intent = self.registry.primary_intent_for_trigger(text)
+            if trigger_intent:
+                logger.info("Plugin trigger matched: %s", trigger_intent)
+                return trigger_intent, {}, 0.8, "trigger"
+
         # 2. Native Ollama Tool calling
         tools = [tool for tool in TOOLS_METADATA if tool["function"]["name"] in available]
         if tools:

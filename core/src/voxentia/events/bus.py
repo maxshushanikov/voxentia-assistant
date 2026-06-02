@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from collections import defaultdict
@@ -56,6 +55,24 @@ class EventBus:
                 await handler(payload)
             except Exception as e:
                 logger.exception("Event handler error for %s: %s", event_type, e)
+
+    async def emit(self, event_type: str, payload: dict[str, Any]) -> None:
+        """Alias for :meth:`publish` — preferred shorthand for plugins.
+
+        Usage::
+
+            await event_bus.emit("calendar.created", {"title": "Meeting"})
+        """
+        await self.publish(event_type, payload)
+
+    def on(self, event_type: str, handler: EventHandler) -> None:
+        """Alias for :meth:`subscribe` — preferred shorthand for plugins.
+
+        Usage::
+
+            event_bus.on("calendar.created", my_handler)
+        """
+        self.subscribe(event_type, handler)
 
     async def ensure_connected(self) -> bool:
         """Verify Redis connectivity when configured."""

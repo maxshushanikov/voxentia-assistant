@@ -341,6 +341,7 @@ export function useAppController() {
                             ...m,
                             content: data.text,
                             streaming: false,
+                            dbId: (data as { message_id?: number }).message_id,
                             ...(ragSources?.length ? { ragSources } : {}),
                           }
                         : m,
@@ -392,6 +393,7 @@ export function useAppController() {
           role: 'assistant',
           content: data.text,
           id: (Date.now() + 1).toString(),
+          dbId: data.message_id,
           timestamp: new Date().toISOString(),
           ...(data.rag_sources?.length ? { ragSources: data.rag_sources } : {}),
           ...(data.intent_confidence != null
@@ -533,6 +535,7 @@ export function useAppController() {
         content: m.content,
         id: `hist-${sid}-${index}`,
         dbId: m.id,
+        feedback: m.feedback as Message['feedback'],
         timestamp: m.timestamp,
         model: m.model,
       }));
@@ -558,6 +561,10 @@ export function useAppController() {
 
   const handleEditMessage = (_id: string, newText: string) => {
     setInputText(newText);
+  };
+
+  const handleDeleteMessage = (id: string) => {
+    setMessages((prev) => prev.filter((message) => message.id !== id));
   };
   
   const handleRegenerate = async (id: string) => {
@@ -648,5 +655,6 @@ export function useAppController() {
     handleEditMessage,
     handleRegenerate,
     openPlugin,
+    handleDeleteMessage,
   };
 }

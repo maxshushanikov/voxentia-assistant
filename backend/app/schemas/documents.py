@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel
 
@@ -20,3 +20,14 @@ class DocumentUploadResponse(BaseModel):
 
 class DocumentSearchResponse(BaseModel):
     context: str
+
+
+class DocumentAnalysisResponse(BaseModel):
+    filename: str
+    summary: str
+    key_points: List[str]
+    document_type: Optional[str] = None
+    tables: Optional[List[List[str]]] = None
+    invoice_fields: Optional[dict[str, str]] = None
+    contract_summary: Optional[str] = None
+    metadata: Optional[dict[str, Any]] = None

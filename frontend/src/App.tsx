@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Avatar from './components/Avatar';
 import ChatArea from './components/ChatArea';
 import ChatInput from './components/ChatInput';
@@ -9,11 +9,14 @@ import ShortcutsHelp from './components/ShortcutsHelp';
 import SettingsView from './components/SettingsView';
 import Sidebar from './components/Sidebar';
 import ViewTransition from './components/ViewTransition';
+import PluginUnavailable from './components/PluginUnavailable';
 import { useAppController } from './hooks/useAppController';
 import { useShortcuts } from './hooks/useShortcuts';
-import { plugins } from './plugins/registry';
+import { listPlugins, type PluginListItem } from './api/chat';
+import { getPluginDefinition } from './plugins/registry';
 import { I18nProvider } from './i18n/context';
 import { speakerGenderMap } from './types';
+
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,8 +56,26 @@ function App() {
     handleLoadSession,
     handleEditMessage,
     handleRegenerate,
+    handleDeleteMessage,
     openPlugin,
   } = useAppController();
+
+  const [pluginMetadata, setPluginMetadata] = useState<Record<string, PluginListItem>>({});
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const data = await listPlugins();
+        const metadata = data.plugins.reduce<Record<string, PluginListItem>>((acc, plugin) => {
+          acc[plugin.id] = plugin;
+          return acc;
+        }, {});
+        setPluginMetadata(metadata);
+      } catch (error) {
+        console.warn('Failed to load plugin metadata', error);
+      }
+    })();
+  }, []);
 
   useShortcuts();
 
@@ -72,8 +93,12 @@ function App() {
       );
     }
     if (activePlugin) {
-      const plugin = plugins.find((p) => p.id === activePlugin);
+      const plugin = getPluginDefinition(activePlugin);
+      const metadata = pluginMetadata[activePlugin];
       if (!plugin) return null;
+      if (metadata?.enabled === false) {
+        return <PluginUnavailable />;
+      }
       const PluginComponent = plugin.component;
       return <PluginComponent />;
     }
@@ -86,11 +111,13 @@ function App() {
       );
     }
     return <ChatArea 
+      sessionId={sessionId}
       messages={messages} 
       isThinking={isThinking} 
       onTileClick={setInputText} 
       onEditMessage={handleEditMessage}
       onRegenerate={handleRegenerate}
+      onDeleteMessage={handleDeleteMessage}
     />;
   };
 
@@ -155,17 +182,34 @@ function App() {
             </section>
 
           {showAvatar && (
-            <section className="hidden lg:flex w-[48%] shrink-0 relative bg-[var(--bg-tertiary)]/20 border-l border-black/5 dark:border-white/5 min-h-0 h-full animate-fade-in">
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <Avatar
-                  isSpeaking={isSpeaking}
-                  isListening={isRecording}
-                  isThinking={isThinking}
-                  mouthAlpha={mouthAlpha}
-                  gender={speakerGenderMap[speaker]}
-                  emotion={avatarEmotion}
-                  avatarSource={avatarSource}
-                />
+            <section className="hidden lg:flex w-[48%] shrink-0 relative min-h-0 h-full animate-fade-in">
+              <div 
+                className="glass-card absolute inset-4 overflow-hidden transition-all duration-500"
+                style={{ 
+                  boxShadow: `0 30px 100px -20px ${
+                    personality === 'friendly' ? 'rgba(16, 185, 129, 0.35)' :
+                    personality === 'teacher' ? 'rgba(16, 185, 129, 0.35)' :
+                    personality === 'academic' ? 'rgba(59, 130, 246, 0.35)' :
+                    personality === 'developer' ? 'rgba(245, 158, 11, 0.35)' :
+                    personality === 'coach' ? 'rgba(236, 72, 153, 0.35)' :
+                    personality === 'therapist' ? 'rgba(139, 92, 246, 0.35)' :
+                    'rgba(41, 121, 255, 0.35)' // professional
+                  }` 
+                }}
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),transparent_45%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent)]" />
+                <div className="relative w-full h-full">
+                  <Avatar
+                    isSpeaking={isSpeaking}
+                    isListening={isRecording}
+                    isThinking={isThinking}
+                    mouthAlpha={mouthAlpha}
+                    gender={speakerGenderMap[speaker]}
+                    emotion={avatarEmotion}
+                    avatarSource={avatarSource}
+                  />
+                </div>
               </div>
             </section>
           )}

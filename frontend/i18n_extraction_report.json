@@ -1,0 +1,247 @@
+{
+  "App.tsx": [
+    "Plugin unavailable",
+    "The selected plugin is currently disabled on the backend. Enable it in the plugin management settings or open another plugin."
+  ],
+  "components\\Avatar.tsx": [
+    "Interaktiver 3D-Avatar Sprachassistent",
+    "Moderner 2D-Avatar Sprachassistent"
+  ],
+  "components\\ChatArea.tsx": [
+    ") : (",
+    "0 && (",
+    "Antwort löschen",
+    "Antwort neu generieren",
+    "Copy message",
+    "Edit message",
+    "Ich bin mir bei der Interpretation unsicher — meintest du das so?",
+    "Nachricht löschen",
+    "onTileClick?.((t as unknown as Record"
+  ],
+  "components\\ChatInput.tsx": [
+    ") : (",
+    "Markdown Preview Active",
+    "Nothing to preview yet. Start typing below..."
+  ],
+  "components\\Dashboard.tsx": [
+    "0 && (",
+    "AI services & chat ready",
+    "Ask anything — from summaries to planning and code help.",
+    "Attach PDFs to let Voxentia answer from your own content.",
+    "Explore plugins",
+    "Fast access to your workflow tools",
+    "Getting started",
+    "Messages available to continue",
+    "New chat",
+    "Open a plugin from the sidebar for specialized workflows.",
+    "Print manager",
+    "Start a new chat, ask your first question, or explore the sidebar plugins to get the most from Voxentia.",
+    "Upload docs",
+    "Welcome back"
+  ],
+  "components\\ErrorBoundary.tsx": [
+    "Application Error",
+    "Reload Application",
+    "Voxentia Assistant encountered an unexpected error while rendering this view."
+  ],
+  "components\\ExportMenu.tsx": [
+    "Drucken (Browser)",
+    "Export chat"
+  ],
+  "components\\Header.tsx": [
+    "Command Bar (Ctrl+K)",
+    "Ctrl+K",
+    "Premium AI workspace",
+    "Wähle eine Persona"
+  ],
+  "components\\ModelSelect.tsx": [
+    "Compare Models side-by-side",
+    "LLM model A",
+    "LLM model B",
+    "Modelle nicht erreichbar",
+    "⚠ Offline"
+  ],
+  "components\\SettingsView.tsx": [
+    "3D Avatar Settings",
+    "Adjust your assistant's live interactive GLB 3D model.",
+    "Configure your assistant's identity, language, and core style.",
+    "Drag & drop or click to upload your custom 3D model",
+    "GLB format, max 30MB",
+    "Identity & Personality",
+    "Live GLB Preview",
+    "Manage playback voices, speed rates, volumes, and API settings.",
+    "Playback Details",
+    "Speech Rate",
+    "Speech Volume",
+    "Upload Custom Avatar (.glb)",
+    "Uploading...",
+    "Voice & Speech Settings",
+    "✓ Upload successful!"
+  ],
+  "components\\ShortcutsHelp.tsx": [
+    "Tastenkürzel"
+  ],
+  "components\\Sidebar.tsx": [
+    ") : (",
+    ") : plugin.badge ? (",
+    "0 && showAllHistory && (",
+    "Chat Workspace",
+    "Clear All",
+    "Pro Model",
+    "SIDEBAR_HISTORY_PREVIEW_LIMIT && ("
+  ],
+  "components\\CommandBar\\CommandBar.tsx": [
+    "Command palette"
+  ],
+  "plugins\\DocumentView.tsx": [
+    ") : (",
+    ") : documents.length === 0 ? (",
+    "Loading…",
+    "No indexed documents. Drop a PDF here or use Upload."
+  ],
+  "plugins\\JobView.tsx": [
+    "\"Ihre Antworten waren hervorragend strukturiert und überaus präzise. Fachliche Kenntnisse über Web-Architekturen wurden schlüssig dargestellt. Versuchen Sie beim nächsten Gespräch, noch gezielter auf die Projektmethodiken der Stellenausschreibung einzugehen.\"",
+    "&lt; Training beenden",
+    "&lt; Zurück zum Dashboard",
+    ") : (",
+    "87%",
+    "AI-Recruiter Simulation",
+    "Alle Portale",
+    "Antwort eingeben...",
+    "Dein Lebenslauf wurde erfolgreich analysiert. Ab jetzt wird dir bei jeder Stellensuche dein persönlicher Übereinstimmungswert angezeigt.",
+    "Durchsuche mehrere Jobportale gleichzeitig und erhalte deinen individuellen Matching-Score.",
+    "Empfohlenes Training",
+    "Generiertes Anschreiben",
+    "Gespräch",
+    "Gespräch beginnen",
+    "HR & Fachgespräch",
+    "Interview üben",
+    "Job Coach",
+    "Jobs suchen",
+    "Lade Tracker...",
+    "Lade deinen Lebenslauf hoch, um personalisierte Übereinstimmungsanalysen zu aktivieren.",
+    "Lebenslauf hochladen",
+    "Optimiere deine Bewerbungen, finde passende Stellenangebote und trainiere Interviews.",
+    "Organisiere deine offenen Stellen in den verschiedenen Stadien des Bewerbungsprozesses.",
+    "Powered by Voxentia AI",
+    "Profil erfolgreich erfasst!",
+    "Scrape Jobbörsen...",
+    "Simulation starten",
+    "Suche nach Stellenanzeigen, um Ergebnisse anzuzeigen.",
+    "Training beenden",
+    "Vorstellungsgespräch läuft",
+    "Voxentia analysiert deinen Lebenslauf (PDF oder TXT) und berechnet bei der Jobsuche automatisch deinen individuellen **Matching-Score** per Embedding-Vektorvergleich.",
+    "Wähle ein Stellenangebot aus, um Details anzuzeigen und dein Anschreiben zu generieren.",
+    "Zum Dashboard",
+    "ca. 5 Minuten",
+    "z.B. Berlin, Remote...",
+    "z.B. React Entwickler, AI Engineer..."
+  ],
+  "plugins\\KnowledgeView.tsx": [
+    ") : (",
+    ") : edges.length === 0 ? (",
+    "Entität suchen (z.B. Voxentia, Max…)",
+    "Laden…",
+    "Noch keine Kanten. Chatte mit Voxentia — Triplets werden automatisch extrahiert."
+  ],
+  "plugins\\LearnView.tsx": [
+    "&lt; Schließen",
+    "&lt; Zurück zum Dashboard",
+    ") : (",
+    ") : plans.length === 0 ? (",
+    "0 && !quizFinished && (",
+    "Aktive Lernpläne",
+    "Aus Thema generieren",
+    "Bereite Quizfragen vor...",
+    "Dein Score",
+    "Deine Karteikarten",
+    "Denke...",
+    "Die Kunst der einfachen Erklärung. Perfekt für komplexe Fachbegriffe.",
+    "Du hast noch keinen Lernplan erstellt. Beginne links ein neues Thema!",
+    "Einfache Erklärung",
+    "Erklären!",
+    "Erstelle interaktive Karteikarten durch PDF-Upload oder Textthemen.",
+    "Explain Like I'm 5",
+    "Explain like I'm 5 (ELI5)",
+    "Generiere...",
+    "Glückwunsch, du hast das Quiz erfolgreich beendet.",
+    "Klicken zum Wenden",
+    "Lade Pläne...",
+    "Lade Statistiken...",
+    "Lass die KI einen maßgeschneiderten modularen Syllabus für dich erstellen.",
+    "Learning Dashboard",
+    "Lernkarten (Flashcards)",
+    "Modul-Quiz &gt;",
+    "Neues Quiz starten",
+    "Neues Thema starten",
+    "Noch keine Aktivitäten aufgezeichnet.",
+    "Noch keine Karteikartendecks vorhanden. Erstelle rechts dein erstes Deck!",
+    "PDF hochladen",
+    "Plan erstellen",
+    "Powered by Voxentia AI",
+    "Quiz abgeschlossen!",
+    "Quiz starten",
+    "Rückseite",
+    "Teste dein Wissen und erhalte detailliertes Feedback von Voxentia.",
+    "Unser AI-Lehrer generiert maßgeschneiderte Multiple-Choice-Fragen.",
+    "Verfolge deine Ziele, absolviere Quizzes und organisiere deinen Lernfortschritt.",
+    "Voxentia extrahiert den Text aus deinem PDF und generiert maßgeschneiderte Karteikarten.",
+    "Welches Konzept soll einfach erklärt werden? (z.B. Blockchains, Relativitätstheorie...)",
+    "Wissensthema eingeben",
+    "z.B. Git-Befehle, React Context...",
+    "z.B. Quantum Computing, React 19...",
+    "z.B. Scrum Grundlagen, HSL Farben..."
+  ],
+  "plugins\\MarketplaceView.tsx": [
+    ") : p.installable ? (",
+    "Katalog verfügbarer Plugins — Installation aktualisiert plugin_config.json",
+    "Laden…",
+    "Plugin Marketplace"
+  ],
+  "plugins\\NotesView.tsx": [
+    ") : (",
+    "Task title"
+  ],
+  "plugins\\PrintView.tsx": [
+    "' + ((t as unknown as Record",
+    ") : (",
+    ") : jobs.length === 0 ? (",
+    ").print_default_html ?? 'Generate printable documents from HTML content.') + '",
+    "Loading jobs…",
+    "No print jobs yet. Create one above.",
+    "Print queue",
+    "Recent jobs and download links for completed PDFs.",
+    "Voxentia PDF"
+  ],
+  "plugins\\ProjectPlanningView.tsx": [
+    "On Track"
+  ],
+  "plugins\\VisionView.tsx": [
+    "Analyse erfolgreich",
+    "Ausführliche Beschreibung",
+    "Bereit zur Analyse",
+    "Bild hochladen",
+    "Echtzeit-Webcam-Analyse, Handschriften-Entzifferung und intelligente Objekterkennung.",
+    "Erkannte Objekte",
+    "Erkenne Strukturen, filtere Textelemente und vergleiche Objekte mit Modellen.",
+    "Extrahierter Text / OCR",
+    "Foto aufnehmen",
+    "Foto hochladen",
+    "Kamera ausrichten",
+    "Kamera neu starten",
+    "Keine Webcam erkannt",
+    "Lese Bildinformationen...",
+    "Mache ein Foto oder lade ein Bild hoch, um das OCR- und Erkennungssystem zu starten.",
+    "Scanne Bild...",
+    "Schließe eine Webcam an oder lade ein Foto hoch, um den Vision-Modus zu nutzen.",
+    "Text auslesen (OCR)",
+    "Voxentia Cognitive Service",
+    "„Was sehe ich gerade?“"
+  ],
+  "hooks\\useShortcuts.ts": [
+    "= '1' && e.key"
+  ],
+  "i18n\\index.ts": [
+    ", U extends Record"
+  ]
+}

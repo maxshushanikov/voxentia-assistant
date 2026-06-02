@@ -1,5 +1,7 @@
+from typing import Optional
+
 from pydantic import BaseModel
-from typing import Optional, List
+
 
 class JobPosting(BaseModel):
     id: str

@@ -49,7 +49,7 @@ export default function CalendarView() {
   // Canonical "current" date used for navigation
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
-  const [events] = useState<CalendarEvent[]>([
+  const [events, setEvents] = useState<CalendarEvent[]>(() => [
     { id: '1', title: 'Strategy Meeting', date: toISO(new Date()), time: '10:00 AM', location: 'Meeting Room A', description: 'Quarterly strategy planning.', color: 'var(--accent)' },
     { id: '2', title: 'Design Review', date: toISO(new Date()), time: '02:30 PM', location: 'Virtual', description: 'Reviewing the new avatar models.', color: '#f43f5e' },
     { id: '3', title: 'Workshop', date: toISO(new Date(new Date().getTime() - 2*86400000)), time: '11:00 AM', location: 'Slack', description: 'Team building workshop.', color: '#10b981' }
@@ -118,6 +118,20 @@ export default function CalendarView() {
     e.stopPropagation();
     setSelectedEvent(event);
     setIsModalOpen(true);
+  };
+
+  const saveEvent = (ev: CalendarEvent) => {
+    if (events.find((e) => e.id === ev.id)) {
+      setEvents((prev) => prev.map((e) => (e.id === ev.id ? ev : e)));
+    } else {
+      setEvents((prev) => [ev, ...prev]);
+    }
+  };
+
+  const deleteEvent = (id: string) => {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+    setIsModalOpen(false);
+    setSelectedEvent(null);
   };
 
   const today = new Date();
@@ -355,20 +369,40 @@ export default function CalendarView() {
           event={selectedEvent}
           onClose={() => { setIsModalOpen(false); setSelectedEvent(null); }}
           defaultDate={toISO(currentDate)}
+          onSave={saveEvent}
+          onDelete={deleteEvent}
         />
       )}
     </div>
   );
 }
 
-function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | null, onClose: () => void, defaultDate: string }) {
+function EventModal({ event, onClose, defaultDate, onSave, onDelete }: { event: CalendarEvent | null, onClose: () => void, defaultDate: string, onSave: (e: CalendarEvent) => void, onDelete: (id: string) => void }) {
   const { t } = useTranslation();
+
+  const id = event?.id || `evt_${Date.now().toString(36)}`;
+  const [title, setTitle] = useState(event?.title || '');
+  const [date, setDate] = useState(event?.date || defaultDate);
+  const [time, setTime] = useState(event?.time || '10:00');
+  const [location, setLocation] = useState(event?.location || '');
+  const [description, setDescription] = useState(event?.description || '');
+
+  const save = () => {
+    onSave({ id, title: title || 'Untitled', date, time, location, description, color: event?.color || 'var(--accent)' });
+    onClose();
+  };
+
+  const remove = () => {
+    if (!event) return;
+    onDelete(event.id);
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md glass-card rounded-[12px] border border-black/10 dark:border-black/10 dark:border-white/10 shadow-2xl overflow-hidden">
         <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/2 dark:bg-white/2">
-          <h3 className="text-lg font-medium text-[var(--text-primary)]">{event ? '{t.cal_eventDetails}' : '{t.cal_createEvent}'}</h3>
+          <h3 className="text-lg font-medium text-[var(--text-primary)]">{event ? t.cal_eventDetails : t.cal_createEvent}</h3>
           <button onClick={onClose} className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-5">
@@ -376,7 +410,8 @@ function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | nu
             <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_eventTitle}</label>
             <input
               type="text"
-              defaultValue={event?.title || ''}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               placeholder={t.cal_eventTitlePh}
               className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all"
               autoFocus
@@ -385,33 +420,40 @@ function EventModal({ event, onClose, defaultDate }: { event: CalendarEvent | nu
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.common_date}</label>
-              <input type="date" defaultValue={event?.date || defaultDate} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_time}</label>
-              <input type="time" defaultValue={event?.time || '10:00'} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
+              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all [color-scheme:light] dark:[color-scheme:dark]" />
             </div>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_location}</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
-              <input type="text" defaultValue={event?.location || ''} placeholder={t.cal_locationPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all" />
+              <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t.cal_locationPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all" />
             </div>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2">{t.cal_description}</label>
             <div className="relative">
               <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-[var(--text-secondary)]" />
-              <textarea defaultValue={event?.description || ''} placeholder={t.cal_descriptionPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all h-24 resize-none" />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t.cal_descriptionPh} className="w-full bg-black/10 dark:bg-black/5 dark:bg-white/5 border border-black/10 dark:border-black/10 dark:border-white/10 rounded-[4px] p-3 pl-10 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/55 transition-all h-24 resize-none" />
             </div>
           </div>
         </div>
-        <div className="p-6 bg-black/2 dark:bg-white/2 border-t border-black/5 dark:border-white/5 flex justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] uppercase tracking-widest">{t.common_cancel}</button>
-          <button className="px-6 py-2 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent)]/20 uppercase tracking-widest">
-            {event ? t.common_update : t.common_create}
-          </button>
+        <div className="p-6 bg-black/2 dark:bg-white/2 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
+          <div>
+            {event && (
+              <button onClick={remove} className="px-4 py-2 text-xs font-bold text-[var(--danger)] border border-[var(--danger)]/20 rounded">{t.common_delete}</button>
+            )}
+          </div>
+          <div className="flex justify-end space-x-3">
+            <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] uppercase tracking-widest">{t.common_cancel}</button>
+            <button onClick={save} className="px-6 py-2 btn-accent rounded-[4px] text-xs font-bold hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent)]/20 uppercase tracking-widest">
+              {event ? t.common_update : t.common_create}
+            </button>
+          </div>
         </div>
       </div>
     </div>

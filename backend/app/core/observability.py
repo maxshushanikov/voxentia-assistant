@@ -8,8 +8,6 @@ from typing import Callable
 
 from app.core.config import settings
 from app.core.middleware import get_request_id
-from starlette.requests import Request
-from starlette.responses import Response
 
 logger = logging.getLogger("voxentia.api")
 
@@ -24,7 +22,7 @@ def _init_prometheus():
     if _registry is not None:
         return
     try:
-        from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+        from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
         _registry = True
         _request_count = Counter(

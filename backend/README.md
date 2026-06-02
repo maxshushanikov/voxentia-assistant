@@ -31,9 +31,13 @@ backend/app/
 ├── models/chat.py          # ChatMessage ORM
 ├── schemas/                # Pydantic + enums
 └── services/
-    ├── chat_service.py     # Orchestrator + DB + TTS trigger
-    ├── voice_service.py    # TTS/STT proxies
-    └── rag_service.py      # Chroma + PDF
+    ├── chat_service.py             # Facade: initialize + request lifecycle
+    ├── chat_context_builder.py     # Typed ProcessingContext construction
+    ├── chat_orchestration_service.py # Pipeline delegation + response routing
+    ├── chat_persistence_service.py # DB writes/history/sessions
+    ├── chat_stream_service.py      # SSE streaming path
+    ├── voice_service.py            # Audio strategy backends (TTS/STT)
+    └── rag_service.py              # Chroma + PDF
 ```
 
 ## Session API
@@ -58,6 +62,14 @@ python backend/app/main.py
 ```
 
 API: http://localhost:8000
+
+## Environment and security notes
+
+- `APP_ENV=production` activates strict startup validation for CORS.
+- In production, `ALLOWED_ORIGINS` must not contain local development origins
+  (`localhost` / `127.0.0.1`), otherwise startup fails fast.
+- Keep real secrets only in local runtime `.env`; commit placeholders in
+  `.env.example` only.
 
 ## Tests
 

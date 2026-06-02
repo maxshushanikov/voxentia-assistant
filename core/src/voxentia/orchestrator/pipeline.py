@@ -26,13 +26,22 @@ class PipelineContext:
     intent_source: str = "unknown"  # keyword | tool_call | llm | fallback
     entities: Dict[str, Any] = field(default_factory=dict)
     plugin_data: Optional[Dict[str, Any]] = None
+    memory_hint: str = ""
+    knowledge_hint: str = ""
+    session_id: str = ""
     history: Optional[List[Dict[str, str]]] = None
 
 
 class OrchestratorPipeline:
-    def __init__(self, registry: PluginRegistry, llm: BaseLLMClient) -> None:
+    def __init__(
+        self,
+        registry: PluginRegistry,
+        llm: BaseLLMClient,
+        ai_core: Optional[Any] = None,
+    ) -> None:
         self.registry = registry
         self.llm = llm
+        self.ai_core = ai_core
         self.intent_detector = IntentDetector(llm, registry)
         self._pre_hooks: list = []
         self._post_hooks: list = []
@@ -78,7 +87,7 @@ class OrchestratorPipeline:
     async def resolve_model(self, ctx: PipelineContext) -> PipelineContext:
         from voxentia.config.settings import settings
 
-        if not getattr(settings, "ENABLE_MODEL_ROUTING", True):
+        if not settings.ENABLE_MODEL_ROUTING:
             return ctx
         from voxentia.orchestrator.model_router import ModelRouter
 
@@ -89,6 +98,13 @@ class OrchestratorPipeline:
         await router.refresh_available(settings.OLLAMA_TIMEOUT)
         tokens = max(1, len(ctx.message.split()))
         ctx.model = router.resolve(ctx.intent, tokens, ctx.model)
+        return ctx
+
+    def enrich_memory(self, ctx: PipelineContext) -> PipelineContext:
+        if ctx.memory_hint:
+            ctx.system_prompt = f"{ctx.system_prompt}\n\n{ctx.memory_hint}"
+        if ctx.knowledge_hint:
+            ctx.system_prompt = f"{ctx.system_prompt}\n\n{ctx.knowledge_hint}"
         return ctx
 
     async def plugin_pre_llm(self, ctx: PipelineContext) -> PipelineContext:
@@ -104,9 +120,35 @@ class OrchestratorPipeline:
             logger.warning("Webhooks skipped in local_only processing mode")
             webhooks = []
         if webhooks:
+            import ipaddress
+            import socket
+            from urllib.parse import urlparse
+
             import httpx
+
+            def _is_safe_url(u: str) -> bool:
+                try:
+                    parsed = urlparse(u)
+                    if parsed.scheme not in ("http", "https"):
+                        return False
+                    host = parsed.hostname
+                    if not host:
+                        return False
+                    addr_info = socket.getaddrinfo(host, parsed.port or (80 if parsed.scheme == "http" else 443))
+                    ips = [info[4][0] for info in addr_info]
+                    for ip in ips:
+                        ip_obj = ipaddress.ip_address(ip)
+                        if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local or ip_obj.is_multicast or ip_obj.is_reserved:
+                            return False
+                    return True
+                except Exception:
+                    return False
+
             async with httpx.AsyncClient() as client:
                 for url in webhooks:
+                    if not _is_safe_url(url):
+                        logger.warning("Skipping webhook with unsafe or unresolvable URL: %s", url)
+                        continue
                     try:
                         resp = await client.post(
                             url,
@@ -114,9 +156,9 @@ class OrchestratorPipeline:
                                 "message": ctx.message,
                                 "entities": ctx.entities,
                                 "intent": ctx.intent,
-                                "language": ctx.language
+                                "language": ctx.language,
                             },
-                            timeout=5.0
+                            timeout=5.0,
                         )
                         if resp.status_code == 200:
                             data = resp.json()
@@ -142,18 +184,24 @@ class OrchestratorPipeline:
                 intent="greeting",
             )
 
-        plugin = await self.registry.get_plugin_for_intent(ctx.intent)
+        message = ctx.message or ctx.raw_message
+        plugin = await self.registry.get_plugin_for_intent(ctx.intent, message)
         if plugin:
             try:
-                res = await plugin.on_message(ctx.intent, ctx.entities)
-                plugin_data = dict(res.data or {})
-                plugin_data["intent_confidence"] = ctx.intent_confidence
-                plugin_data["intent_source"] = ctx.intent_source
-                return VoxentiaResponse(
-                    text=res.text,
-                    plugin_data=plugin_data,
-                    intent=ctx.intent,
-                )
+                from voxentia.config.settings import settings
+
+                timeout_sec = settings.PLUGIN_TIMEOUT
+                # Use the registry's timeout wrapper to run plugin code with
+                # an enforced timeout and isolated error handling.
+                async with self.registry._execute_with_timeout(plugin.__class__.__name__, plugin.on_message(ctx.intent, ctx.entities), timeout_sec=timeout_sec) as res:
+                    plugin_data = dict(res.data or {})
+                    plugin_data["intent_confidence"] = ctx.intent_confidence
+                    plugin_data["intent_source"] = ctx.intent_source
+                    return VoxentiaResponse(
+                        text=res.text,
+                        plugin_data=plugin_data,
+                        intent=ctx.intent,
+                    )
             except Exception as e:
                 logger.exception("Plugin error for intent %s: %s", ctx.intent, e)
                 return await self.llm_fallback(ctx)
@@ -161,13 +209,22 @@ class OrchestratorPipeline:
 
     async def llm_fallback(self, ctx: PipelineContext) -> VoxentiaResponse:
         try:
-            text = await self.llm.generate(
-                ctx.message,
-                model=ctx.model,
-                system=ctx.system_prompt or None,
-                temperature=ctx.temperature,
-                history=ctx.history,
-            )
+            if self.ai_core is not None:
+                text = await self.ai_core.generate(
+                    ctx.message,
+                    model=ctx.model,
+                    system=ctx.system_prompt or None,
+                    temperature=ctx.temperature,
+                    history=ctx.history,
+                )
+            else:
+                text = await self.llm.generate(
+                    ctx.message,
+                    model=ctx.model,
+                    system=ctx.system_prompt or None,
+                    temperature=ctx.temperature,
+                    history=ctx.history,
+                )
         except Exception as e:
             logger.error("LLM fallback failed: %s", e)
             text = "I'm sorry, I could not reach the language model right now."
@@ -187,6 +244,7 @@ class OrchestratorPipeline:
         ctx = self.enrich_rag(ctx)
         ctx = await self.detect_intent(ctx)
         ctx = await self.resolve_model(ctx)
+        ctx = self.enrich_memory(ctx)
         ctx = await self.plugin_pre_llm(ctx)
 
         plugin_response = await self.route_plugin(ctx)

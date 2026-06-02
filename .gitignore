@@ -42,8 +42,10 @@ frontend/dist/
 
 # Environment variables
 .env
+*.env
 .env.local
 .env.*
+!.env.example
 
 # Runtime data & caches
 data/
@@ -53,6 +55,9 @@ ollama_data/**
 !ollama_data/README.md
 **/id_ed25519
 **/id_ed25519.pub
+**/id_rsa
+ollama_data/id_ed25519
+ollama_data/*.pub
 **/model-recommendations.json
 *.db
 *.sqlite3

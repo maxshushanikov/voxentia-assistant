@@ -34,6 +34,7 @@ export interface ChatResponseBody {
   intent_source?: string | null;
   plugin_data?: unknown;
   rag_sources?: RagSourceBody[];
+  message_id?: number;
 }
 
 export interface TranscribeResponseBody {
@@ -48,6 +49,7 @@ export interface HistoryMessage {
   model?: string;
   parent_id?: number | null;
   branch_id?: string;
+  feedback?: 'like' | 'dislike';
 }
 
 export interface ForkSessionResponse {

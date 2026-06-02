@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from .config import settings
@@ -10,12 +10,6 @@ logger = logging.getLogger("voxentia.db")
 Base = declarative_base()
 
 _SCHEMA_INIT_LOCK_ID = 73458291
-
-_CHAT_MESSAGE_COLUMNS: tuple[tuple[str, str], ...] = (
-    ("model", "VARCHAR"),
-    ("parent_id", "INTEGER"),
-    ("branch_id", "VARCHAR(64) DEFAULT 'main'"),
-)
 
 connect_args = {}
 if settings.DB_PATH.startswith("sqlite"):
@@ -49,46 +43,11 @@ def _is_postgres() -> bool:
     return engine.dialect.name == "postgresql"
 
 
-def _column_exists(conn, table: str, column: str) -> bool:
-    if _is_postgres():
-        row = conn.execute(
-            text(
-                "SELECT 1 FROM information_schema.columns "
-                "WHERE table_schema = 'public' AND table_name = :table "
-                "AND column_name = :column"
-            ),
-            {"table": table, "column": column},
-        ).fetchone()
-        return row is not None
-
-    insp = inspect(conn)
-    return column in {col["name"] for col in insp.get_columns(table)}
-
-
-def _apply_chat_message_migrations(conn) -> None:
-    table = "chat_messages"
-    for column, col_type in _CHAT_MESSAGE_COLUMNS:
-        if _column_exists(conn, table, column):
-            continue
-        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
-
-    if not _column_exists(conn, "user_memory", "user_id"):
-        conn.execute(text("ALTER TABLE user_memory ADD COLUMN user_id VARCHAR(128)"))
-        if _is_postgres():
-            conn.execute(
-                text(
-                    "CREATE INDEX IF NOT EXISTS ix_user_memory_user_id "
-                    "ON user_memory (user_id)"
-                )
-            )
-
-
 def _init_db_postgres() -> None:
     with engine.connect() as conn:
         conn.execute(text("SELECT pg_advisory_lock(:lock_id)"), {"lock_id": _SCHEMA_INIT_LOCK_ID})
         try:
             Base.metadata.create_all(bind=conn)
-            _apply_chat_message_migrations(conn)
             conn.commit()
         finally:
             conn.execute(
@@ -98,21 +57,50 @@ def _init_db_postgres() -> None:
             conn.commit()
 
 
+def _apply_sqlite_column_migrations(conn) -> None:
+    migrations = {
+        "notes": [
+            "tags TEXT",
+            "summary TEXT",
+        ],
+        "tasks": [
+            "priority TEXT NOT NULL DEFAULT 'medium'",
+            "tags TEXT",
+        ],
+    }
+    for table_name, columns in migrations.items():
+        existing = [row[1] for row in conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()]
+        for column_def in columns:
+            column_name = column_def.split()[0]
+            if column_name not in existing:
+                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_def}"))
+
+
 def _init_db_sqlite() -> None:
     Base.metadata.create_all(bind=engine)
     with engine.connect() as conn:
+        _apply_sqlite_column_migrations(conn)
         conn.execute(text("PRAGMA journal_mode=WAL"))
-        _apply_chat_message_migrations(conn)
         conn.commit()
 
 
 def init_db():
     from app.models.chat import ChatMessage  # noqa: F401
     from app.models.experiment import ExperimentEvent  # noqa: F401
+    from app.models.job_tracker import JobApplication  # noqa: F401
     from app.models.knowledge import KnowledgeEdge  # noqa: F401
+    from app.models.learn import (  # noqa: F401
+        DailyGoal,
+        FlashcardDeck,
+        LearningHistory,
+        LearningPlan,
+    )
     from app.models.memory import UserMemory  # noqa: F401
+    from app.models.note import Note  # noqa: F401
+    from app.models.print_job import PrintJob  # noqa: F401
     from app.models.sentiment import SentimentRecord  # noqa: F401
     from app.models.session import ChatSessionMeta  # noqa: F401
+    from app.models.task import Task  # noqa: F401
 
     if _is_postgres():
         _init_db_postgres()

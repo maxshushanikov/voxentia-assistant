@@ -233,7 +233,8 @@ function Avatar({
   const animUrl = gender === 'feminine' ? FEMININE_IDLE : MASCULINE_IDLE;
   const fitMargin = gender === 'masculine' ? 1.5 : 1.35;
   const cameraY = gender === 'masculine' ? 0.08 : 0.05;
-  const fitKey = `${modelUrl}|${animUrl}`;
+  const emotionZoom = emotion === 'happy' ? 4.0 : emotion === 'sad' ? 4.4 : emotion === 'thinking' ? 4.2 : 4.1;
+  const fitKey = `${modelUrl}|${animUrl}|${emotion}`;
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false);
 
@@ -311,6 +312,9 @@ function Avatar({
     );
   }
 
+  const ambientIntensity = emotion === 'happy' ? 1.9 : emotion === 'sad' ? 1.1 : emotion === 'thinking' ? 1.4 : 1.5;
+  const spotlightColor = emotion === 'happy' ? '#8dd9ff' : emotion === 'sad' ? '#a49bff' : emotion === 'thinking' ? '#ffd97b' : '#a5f3fc';
+
   return (
     <div 
       className="w-full h-full relative overflow-hidden"
@@ -329,16 +333,16 @@ function Avatar({
 
       <Canvas
         frameloop={isSpeaking ? "always" : "demand"}
-        camera={{ position: [0, 0.15, 4.2], fov: 42, near: 0.1, far: 100 }}
+        camera={{ position: [0, 0.15, emotionZoom], fov: 42, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
         className="w-full h-full"
         style={{ touchAction: 'none' }}
         resize={{ debounce: 0, scroll: false }}
       >
-        <ambientLight intensity={1.4} />
-        <spotLight position={[5, 10, 5]} angle={0.15} penumbra={1} intensity={2} castShadow />
-        <directionalLight position={[2, 4, 5]} intensity={1.5} />
-        <directionalLight position={[-2, 3, -3]} intensity={0.5} color="#7777bb" />
+        <ambientLight intensity={ambientIntensity} />
+        <spotLight position={[5, 10, 5]} angle={0.16} penumbra={1} intensity={2.2} castShadow color={spotlightColor} />
+        <directionalLight position={[2, 4, 5]} intensity={1.5} color={spotlightColor} />
+        <directionalLight position={[-2, 3, -3]} intensity={0.55} color="#7777bb" />
 
         <React.Suspense fallback={null}>
           <Bounds fit clip margin={fitMargin} maxDuration={0}>
@@ -368,6 +372,21 @@ function Avatar({
           dampingFactor={0.05}
         />
       </Canvas>
+
+      {isSpeaking && (
+        <div className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2 flex items-end gap-2 opacity-95">
+          {[1, 2, 3, 4, 5].map((index) => (
+            <span
+              key={index}
+              className="block w-1.5 rounded-full bg-[var(--accent)] animate-tts-wave"
+              style={{
+                height: `${20 + index * 8}px`,
+                animationDelay: `${index * 80}ms`,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
