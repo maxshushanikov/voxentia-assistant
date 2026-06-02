@@ -254,7 +254,7 @@ export default function Sidebar({
   }, [pluginOrder]);
 
   const toolsGroup = useMemo(() => {
-    return pluginOrder.filter((p) => ['calendar', 'docs', 'notes'].includes(p.id));
+    return pluginOrder.filter((p) => ['calendar', 'docs', 'notes', 'print'].includes(p.id));
   }, [pluginOrder]);
 
   const marketplacePlugin = useMemo(() => {
@@ -392,7 +392,7 @@ export default function Sidebar({
               </div>
               <SidebarButton
                 icon={<MessageSquare className="w-4 h-4" />}
-                label="Active Chat Session"
+                label={t.title_chat}
                 active={activePlugin === null}
                 onClick={() => setActivePlugin(null)}
               />
@@ -516,7 +516,7 @@ export default function Sidebar({
                         <span className={cn('mr-3', isActivePlugin ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]')}>
                           {plugin.icon}
                         </span>
-                        <span className="uppercase tracking-[0.1em] text-[10px] truncate">
+                          <span className="uppercase tracking-[0.1em] text-[10px] truncate max-w-full">
                           {(t[plugin.nameKey as keyof typeof t] as string) || plugin.id}
                         </span>
                       </button>

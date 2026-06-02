@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -8,6 +8,8 @@ class TaskRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=128)
     description: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(pending|completed|cancelled|archived)$")
+    priority: Optional[str] = Field("medium", pattern="^(low|medium|high|critical)$")
+    tags: Optional[List[str]] = None
     due_date: Optional[datetime] = None
 
 
@@ -16,6 +18,8 @@ class TaskResponse(BaseModel):
     title: str
     description: Optional[str]
     status: str
+    priority: str
+    tags: Optional[List[str]] = None
     due_date: Optional[datetime]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
@@ -25,7 +29,15 @@ class TaskUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=128)
     description: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(pending|completed|cancelled|archived)$")
+    priority: Optional[str] = Field(None, pattern="^(low|medium|high|critical)$")
+    tags: Optional[List[str]] = None
     due_date: Optional[datetime] = None
+
+
+class TaskAutoCreateRequest(BaseModel):
+    text: str = Field(..., min_length=20)
+    priority: Optional[str] = Field("medium", pattern="^(low|medium|high|critical)$")
+    tags: Optional[List[str]] = None
 
 
 class TaskListResponse(BaseModel):

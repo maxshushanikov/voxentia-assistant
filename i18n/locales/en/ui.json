@@ -35,6 +35,23 @@
   "pers_academic": "Tutor",
   "plugin_calendar_title": "Calendar",
   "plugin_jobs_title": "Job Search",
+  "plugin_print": "Print Manager",
+  "plugin_print_sub": "Create PDFs from HTML and manage queued print jobs.",
+  "print_default_html": "Generate printable documents from HTML content.",
+  "print_generating": "Generating PDF...",
+  "print_download_started": "PDF download started.",
+  "print_refresh": "Refresh jobs",
+  "print_enqueuing": "Enqueuing print job...",
+  "print_enqueued": "Print job enqueued successfully.",
+  "print_downloading": "Downloading {title}...",
+  "print_downloaded": "Downloaded {title}.",
+  "print_download_button": "Download PDF",
+  "print_queue_button": "Queue print job",
+  "print_html_content": "HTML Content",
+  "error_enter_html": "Please enter HTML content.",
+  "error_generate_pdf": "Failed to generate PDF",
+  "error_download_failed": "Download failed",
+  "error_enqueue_failed": "Failed to enqueue print job",
   "newChat": "New Chat",
   "noHistory": "No chats yet.",
   "showAllHistory": "Show all",
@@ -85,5 +102,9 @@
   "common_search": "Search...",
   "common_shortcutHint": "Enter to send, Shift+Enter for newline",
   "common_like": "Helpful",
-  "common_dislike": "Needs improvement"
+  "common_dislike": "Needs improvement",
+  "app": {
+    "plugin_unavailable_title": "Plugin unavailable",
+    "plugin_unavailable_desc": "The selected plugin is currently disabled on the backend. Enable it in the plugin management settings or open another plugin."
+  }
 }

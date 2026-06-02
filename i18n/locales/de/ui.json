@@ -35,6 +35,23 @@
   "pers_academic": "Tutor",
   "plugin_calendar_title": "Kalender",
   "plugin_jobs_title": "Job Suche",
+  "plugin_print": "Druckmanager",
+  "plugin_print_sub": "Erstelle PDFs aus HTML und verwalte die Druckwarteschlange.",
+  "print_default_html": "Erzeuge druckbare Dokumente aus HTML-Inhalt.",
+  "print_generating": "PDF wird erzeugt...",
+  "print_download_started": "PDF-Download gestartet.",
+  "print_refresh": "Jobs aktualisieren",
+  "print_enqueuing": "Druckauftrag wird in die Warteschlange gestellt...",
+  "print_enqueued": "Druckauftrag erfolgreich in die Warteschlange gestellt.",
+  "print_downloading": "Lade {title} herunter...",
+  "print_downloaded": "{title} heruntergeladen.",
+  "print_download_button": "PDF herunterladen",
+  "print_queue_button": "Druckauftrag einreihen",
+  "print_html_content": "HTML-Inhalt",
+  "error_enter_html": "Bitte HTML-Inhalt eingeben.",
+  "error_generate_pdf": "PDF konnte nicht erzeugt werden",
+  "error_download_failed": "Download fehlgeschlagen",
+  "error_enqueue_failed": "Druckauftrag konnte nicht eingereiht werden",
   "newChat": "Neuer Chat",
   "noHistory": "Noch keine Chats.",
   "showAllHistory": "Alle anzeigen",
@@ -85,5 +102,9 @@
   "common_search": "Suche...",
   "common_shortcutHint": "Enter zum Senden, Shift+Enter für neue Zeile",
   "common_like": "Hilfreich",
-  "common_dislike": "Verbesserungswürdig"
+  "common_dislike": "Verbesserungswürdig",
+  "app": {
+    "plugin_unavailable_title": "Plugin nicht verfügbar",
+    "plugin_unavailable_desc": "Das ausgewählte Plugin ist auf dem Backend deaktiviert. Aktiviere es in den Plugin-Einstellungen oder öffne ein anderes Plugin."
+  }
 }

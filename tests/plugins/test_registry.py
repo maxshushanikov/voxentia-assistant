@@ -1,5 +1,4 @@
 import pytest
-
 from voxentia.plugins.registry import PluginRegistry
 
 

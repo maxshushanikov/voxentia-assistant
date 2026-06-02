@@ -1,7 +1,7 @@
-from datetime import datetime
 import json
+
 from app.core.database import Base
-from sqlalchemy import Column, DateTime, Integer, String, Text, Boolean
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.sql import func
 
 

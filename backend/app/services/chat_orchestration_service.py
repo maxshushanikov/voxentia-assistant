@@ -3,8 +3,8 @@ from __future__ import annotations
 from app.domain.processing import ProcessingContext
 from app.schemas.chat import ChatRequest
 from app.services.voice_service import generate_tts_audio
-from voxentia.orchestrator.response_formatter import VoxentiaResponse
 from voxentia.orchestrator.pipeline import PipelineContext
+from voxentia.orchestrator.response_formatter import VoxentiaResponse
 
 
 class ChatOrchestrationService:

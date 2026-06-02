@@ -8,6 +8,7 @@ import {
   Package,
   Target,
   Eye,
+  Printer,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 
@@ -15,6 +16,7 @@ import CalendarView from './CalendarView';
 import LearnView from './LearnView';
 import JobView from './JobView';
 import DocumentView from './DocumentView';
+import PrintView from './PrintView';
 import NotesView from './NotesView';
 import ProjectPlanningView from './ProjectPlanningView';
 import KnowledgeView from './KnowledgeView';
@@ -92,6 +94,13 @@ export const plugins: PluginDefinition[] = [
     nameKey: 'knowledge',
     icon: <Brain className="w-4 h-4" />,
     component: KnowledgeView,
+    badge: 'New',
+  },
+  {
+    id: 'print',
+    nameKey: 'print',
+    icon: <Printer className="w-4 h-4" />,
+    component: PrintView,
     badge: 'New',
   },
   {

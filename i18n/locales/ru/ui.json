@@ -35,6 +35,23 @@
   "pers_academic": "Тьютор",
   "plugin_calendar_title": "Календарь",
   "plugin_jobs_title": "Поиск работы",
+  "plugin_print": "Менеджер печати",
+  "plugin_print_sub": "Создавайте PDF из HTML и управляйте очередью печати.",
+  "print_default_html": "Создайте распечатываемые документы из HTML-контента.",
+  "print_generating": "Генерация PDF...",
+  "print_download_started": "Загрузка PDF началась.",
+  "print_refresh": "Обновить задания",
+  "print_enqueuing": "Добавление задания в очередь печати...",
+  "print_enqueued": "Задание на печать успешно добавлено в очередь.",
+  "print_downloading": "Загрузка {title}...",
+  "print_downloaded": "{title} загружен.",
+  "print_download_button": "Скачать PDF",
+  "print_queue_button": "Добавить в очередь печати",
+  "print_html_content": "HTML содержимое",
+  "error_enter_html": "Пожалуйста, введите содержимое HTML.",
+  "error_generate_pdf": "Не удалось создать PDF",
+  "error_download_failed": "Ошибка загрузки",
+  "error_enqueue_failed": "Не удалось добавить задание в очередь печати",
   "newChat": "Новый чат",
   "noHistory": "Чатов пока нет.",
   "showAllHistory": "Показать все",
@@ -85,5 +102,9 @@
   "common_search": "Поиск...",
   "common_shortcutHint": "Enter — отправить, Shift+Enter — новая строка",
   "common_like": "Полезно",
-  "common_dislike": "Нужно улучшить"
+  "common_dislike": "Нужно улучшить",
+  "app": {
+    "plugin_unavailable_title": "Плагин недоступен",
+    "plugin_unavailable_desc": "Выбранный плагин отключён на сервере. Включите его в настройках плагинов или откройте другой плагин."
+  }
 }

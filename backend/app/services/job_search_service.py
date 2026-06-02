@@ -2,8 +2,9 @@ import logging
 import math
 import random
 from typing import List, Optional
-from app.schemas.jobs import JobListing
+
 from app.core.config import settings
+from app.schemas.jobs import JobListing
 from voxentia.services.llm_client import OllamaClient
 
 logger = logging.getLogger(__name__)
@@ -55,12 +56,12 @@ class JobSearchService:
         """Dynamically generates highly realistic, premium job listings based on the user's search query."""
         companies = ["TechFlow AG", "CyberDyne Systems", "InnoWave Solutions", "ByteCraft GmbH", "DeepNexus AI", "Voxentia Labs"]
         locations = ["Berlin, Germany", "Munich, Germany", "Hamburg, Germany", "Remote (EU)", "Frankfurt, Germany", "Vienna, Austria"]
-        
+
         q = query.strip().capitalize() or "Software Engineer"
         loc = location or random.choice(locations)
-        
+
         results = []
-        
+
         # Add basic matching listings
         for i in range(1, 5):
             comp = random.choice(companies)
@@ -79,7 +80,7 @@ class JobSearchService:
     def search_jobs(self, query: str, location: str | None = None, portal: str = "All", limit: int = 10) -> List[JobListing]:
         query_lower = query.strip().lower()
         location_lower = (location or "").strip().lower()
-        
+
         # Start with base jobs or dynamically generate jobs to simulate live scraping
         source_jobs = list(self.base_jobs)
         if query_lower:
@@ -95,7 +96,7 @@ class JobSearchService:
             if location_lower and location_lower not in job.location.lower():
                 continue
             results.append(job)
-            
+
         # Deduplicate
         seen = set()
         deduped = []
@@ -103,22 +104,22 @@ class JobSearchService:
             if job.id not in seen:
                 seen.add(job.id)
                 deduped.append(job)
-                
+
         return deduped[:limit]
 
     async def calculate_matching_score(self, cv_text: str, job: JobListing) -> int:
         """Calculates CV-to-job matching score. Tries to use Ollama embeddings, falls back to token Jaccard."""
         if not cv_text:
             return 0
-            
+
         job_text = f"{job.title} {job.summary} {job.location}"
-        
+
         # Embedding vector similarity
         try:
             from app.services.rag_service import get_embedding
             cv_emb = await get_embedding(cv_text[:1000])
             job_emb = await get_embedding(job_text[:1000])
-            
+
             if cv_emb and job_emb:
                 dot = sum(a * b for a, b in zip(cv_emb, job_emb))
                 m1 = math.sqrt(sum(a * a for a in cv_emb))
@@ -130,11 +131,80 @@ class JobSearchService:
                     return min(98, max(45, score))
         except Exception as e:
             logger.warning("Embedding matching failed, falling back to Jaccard: %s", e)
-            
+
         # Fallback to Jaccard overlap
         jaccard = text_jaccard_similarity(cv_text, job_text)
         score = int(45 + (jaccard * 100 * 2.5))
         return min(98, max(40, score))
+
+    async def analyze_cv(self, cv_text: str) -> dict[str, object]:
+        prompt = (
+            "Analysiere folgenden Lebenslauf und gib eine kurze, strukturierte Rückmeldung in JSON-Form. "
+            "Erstelle die Schlüsselbereiche 'summary', 'strengths', 'areas_for_improvement' und 'advice'. "
+            "Antworte nur mit gültigem JSON ohne zusätzliche Erklärungen.\n\n"
+            f"Lebenslauf:\n{cv_text[:3000]}"
+        )
+        try:
+            response = await self.llm.generate_json(prompt, temperature=0.35)
+            if isinstance(response, dict):
+                return {
+                    "summary": str(response.get("summary", "Keine aussagekräftige Analyse möglich.")).strip(),
+                    "strengths": [str(item).strip() for item in response.get("strengths", []) if str(item).strip()],
+                    "areas_for_improvement": [str(item).strip() for item in response.get("areas_for_improvement", []) if str(item).strip()],
+                    "advice": str(response.get("advice", "Nutzen Sie die Stärken gezielt für die nächste Bewerbung.")).strip(),
+                }
+        except Exception as e:
+            logger.warning("LLM CV analysis failed: %s", e)
+
+        return {
+            "summary": "Der Lebenslauf enthält relevante Erfahrungen und Qualifikationen.",
+            "strengths": ["Berufserfahrung", "Technische Fertigkeiten", "Projektarbeit"],
+            "areas_for_improvement": ["Konkretere Erfolge nennen", "Formatierung vereinfachen", "Soft Skills hervorheben"],
+            "advice": "Betonen Sie Ihre wichtigsten Erfolge und passen Sie den Lebenslauf an das zukünftige Stellenprofil an.",
+        }
+
+    async def simulate_interview(
+        self,
+        job: JobListing,
+        cv_text: Optional[str] = None,
+        rounds: int = 3,
+    ) -> List[dict[str, str]]:
+        prompt = (
+            f"Du bist ein deutscher Karriere-Coach und simulierst ein Interview für die Stelle:\n"
+            f"Titel: {job.title}\nFirma: {job.company}\nBeschreibung: {job.summary}\n"
+        )
+        if cv_text:
+            prompt += f"Der Kandidat hat folgenden Lebenslauf:\n{cv_text[:3000]}\n"
+        prompt += (
+            f"Erstelle {rounds} typische Interviewfragen mit jeweils einer idealen Antwort und kurzen Tipps. "
+            "Gib AUSSCHLIESSLICH ein valides JSON-Array zurück mit Objekten, die 'question', 'model_answer' und 'tips' enthalten."
+        )
+        try:
+            result = await self.llm.generate_json(prompt, temperature=0.4)
+            if isinstance(result, list) and len(result) > 0:
+                questions = []
+                for item in result[:rounds]:
+                    questions.append({
+                        "question": str(item.get("question", "Frage nicht verfügbar")).strip(),
+                        "model_answer": str(item.get("model_answer", "Antwort nicht verfügbar")).strip(),
+                        "tips": str(item.get("tips", "" )).strip(),
+                    })
+                return questions
+        except Exception as e:
+            logger.warning("LLM interview simulation failed: %s", e)
+
+        return [
+            {
+                "question": "Warum sollten wir Sie für diese Position einstellen?",
+                "model_answer": "Ich bringe die passende Mischung aus Fachwissen, Praxiserfahrung und Teamorientierung mit, um diese Rolle sofort wertvoll zu besetzen.",
+                "tips": "Nennen Sie konkrete Beispiele aus vergangenen Projekten.",
+            },
+            {
+                "question": "Wie gehen Sie mit herausfordernden Projektanforderungen um?",
+                "model_answer": "Ich analysiere zuerst die Anforderungen, priorisiere Aufgaben und halte das Team transparent über Fortschritte und Risiken informiert.",
+                "tips": "Zeigen Sie Struktur und Kommunikationsstärke.",
+            },
+        ][:rounds]
 
     async def generate_cover_letter(self, cv_text: str, job: JobListing) -> str:
         """Generates a professional, formal cover letter (Anschreiben) tailored to the CV and Job Details."""
@@ -155,7 +225,7 @@ class JobSearchService:
                 return letter.strip()
         except Exception as e:
             logger.error("LLM Cover Letter generation failed: %s", e)
-            
+
         # Hard fallback
         return (
             f"Sehr geehrte Damen und Herren,\n\n"

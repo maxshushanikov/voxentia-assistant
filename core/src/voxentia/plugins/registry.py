@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from voxentia.plugins.base import PluginResponse, VoxentiaPlugin
 from voxentia.utils.logging import logger

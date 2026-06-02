@@ -1,4 +1,4 @@
-import { Activity, Compass, MessageSquare, Sparkles, Zap } from 'lucide-react';
+import { Activity, Compass, MessageSquare, Sparkles, Zap, Printer } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { apiFetch } from '../api/client';
@@ -89,7 +89,7 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
                 {(t as unknown as Record<string, string>).dashboard_subtitle ?? 'Your control center for AI chat, knowledge work and productivity flows.'}
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="rounded-[24px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] p-4">
                 <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-secondary)]">Sessions</p>
                 <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{messages.length}</p>
@@ -143,6 +143,21 @@ export default function Dashboard({ onContinueSession, onOpenPlugin }: Dashboard
                 <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">Upload docs</p>
               </div>
               <p className="text-sm text-[var(--text-primary)] leading-6">Attach PDFs to let Voxentia answer from your own content.</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenPlugin('print')}
+              className="glass-card rounded-[24px] border border-[rgba(255,255,255,0.08)] p-5 transition-all duration-200 hover:border-[var(--accent)]/40 hover:shadow-[0_28px_120px_-76px_rgba(56,189,248,0.45)] text-left"
+              aria-label="Print manager"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[rgba(56,189,248,0.16)] text-[var(--accent)]">
+                  <Printer className="w-4 h-4" />
+                </div>
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[var(--text-secondary)]">{t.plugin_print}</p>
+              </div>
+              <p className="text-sm text-[var(--text-primary)] leading-6">{(t as unknown as Record<string,string>).plugin_print_sub ?? 'Create PDFs and manage print jobs.'}</p>
             </button>
 
             <button

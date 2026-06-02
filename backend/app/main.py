@@ -102,6 +102,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Ensure the database schema is available even when the app is used directly in tests
+init_db()
+
 setup_tracing(app)
 
 app.state.limiter = limiter
@@ -146,6 +149,9 @@ app.include_router(
 )
 app.include_router(
     print_router, prefix="/api/v1/print", tags=["Print"], dependencies=_auth
+)
+app.include_router(
+    vision_router, prefix="/api/v1/vision", tags=["Vision"], dependencies=_auth
 )
 app.include_router(
     plugin_router, prefix="/api/v1/plugins", tags=["Plugins"], dependencies=_auth

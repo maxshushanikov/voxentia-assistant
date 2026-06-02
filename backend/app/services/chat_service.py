@@ -13,13 +13,13 @@ from app.domain.chat import ChatMessageRecord, ChatSession
 from app.domain.processing import ChatResult
 from app.models.session import ChatSessionMeta
 from app.schemas.chat import ChatRequest
-from app.services.emotion_service import EmotionService
-from app.services.knowledge_service import KnowledgeService
-from app.services.memory_service import MemoryService
 from app.services.chat_context_builder import ChatContextBuilder
 from app.services.chat_orchestration_service import ChatOrchestrationService
 from app.services.chat_persistence_service import ChatPersistenceService
 from app.services.chat_stream_service import ChatStreamService
+from app.services.emotion_service import EmotionService
+from app.services.knowledge_service import KnowledgeService
+from app.services.memory_service import MemoryService
 from sqlalchemy.orm import Session
 from voxentia.capabilities.registry import CapabilityRegistry
 from voxentia.events.bus import create_event_bus
@@ -27,8 +27,8 @@ from voxentia.orchestrator.model_router import ModelRouter
 from voxentia.orchestrator.router import Orchestrator
 from voxentia.plugins.base import PluginContext
 from voxentia.plugins.registry import PluginRegistry
-from voxentia.services.llm_client import OllamaClient
 from voxentia.services.ai_core import AICore
+from voxentia.services.llm_client import OllamaClient
 
 logger = logging.getLogger("voxentia.api")
 

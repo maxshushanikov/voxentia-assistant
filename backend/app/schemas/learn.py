@@ -1,5 +1,6 @@
 from typing import Any, List, Optional
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 
 class LearningPlanCreate(BaseModel):
@@ -47,6 +48,32 @@ class QuizVerifyResponse(BaseModel):
     explanation: str
 
 
+class ExamRequest(BaseModel):
+    topic: str
+    difficulty: Optional[str] = Field("medium", pattern="^(easy|medium|hard)$")
+
+
+class ExamQuestion(BaseModel):
+    question: str
+    answer: str
+    explanation: Optional[str] = None
+
+
+class ExamResponse(BaseModel):
+    questions: List[ExamQuestion]
+
+
+class SpeakingExerciseRequest(BaseModel):
+    topic: str
+    language: Optional[str] = Field("Deutsch", max_length=32)
+    level: Optional[str] = Field("intermediate", pattern="^(beginner|intermediate|advanced)$")
+
+
+class SpeakingExerciseResponse(BaseModel):
+    prompt: str
+    practice_text: str
+
+
 class FlashcardItem(BaseModel):
     front: str
     back: str
@@ -56,6 +83,17 @@ class FlashcardResponse(BaseModel):
     id: int
     topic: str
     cards: List[FlashcardItem]
+
+
+class VocabularyItem(BaseModel):
+    term: str
+    definition: str
+    example: Optional[str] = None
+
+
+class VocabularyResponse(BaseModel):
+    topic: str
+    words: List[VocabularyItem]
 
 
 class DailyGoalCreate(BaseModel):

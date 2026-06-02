@@ -1,9 +1,14 @@
 from typing import Optional
 
 from app.core.database import get_db
-from app.schemas.tasks import TaskListResponse, TaskRequest, TaskResponse, TaskUpdateRequest
+from app.schemas.tasks import (
+    TaskAutoCreateRequest,
+    TaskListResponse,
+    TaskRequest,
+    TaskResponse,
+    TaskUpdateRequest,
+)
 from app.services.task_service import TaskService
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -13,11 +18,13 @@ service = TaskService()
 @router.get("/", response_model=TaskListResponse)
 async def list_tasks(
     status: Optional[str] = Query(None, pattern="^(pending|completed|cancelled|archived)$"),
+    priority: Optional[str] = Query(None, pattern="^(low|medium|high|critical)$"),
+    tag: Optional[str] = Query(None, max_length=64),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    tasks = service.list_tasks(db, status=status, limit=limit, offset=offset)
+    tasks = service.list_tasks(db, status=status, priority=priority, tag=tag, limit=limit, offset=offset)
     return {"tasks": [task.to_dict() for task in tasks]}
 
 @router.post("/", response_model=TaskResponse)
@@ -27,9 +34,21 @@ async def create_task(request: TaskRequest, db: Session = Depends(get_db)):
         title=request.title,
         description=request.description,
         status=request.status or "pending",
+        priority=request.priority or "medium",
+        tags=request.tags,
         due_date=request.due_date,
     )
     return task.to_dict()
+
+@router.post("/from-text", response_model=TaskListResponse)
+async def create_tasks_from_text(request: TaskAutoCreateRequest, db: Session = Depends(get_db)):
+    tasks = await service.create_tasks_from_text(
+        db,
+        text=request.text,
+        priority=request.priority or "medium",
+        tags=request.tags,
+    )
+    return {"tasks": [task.to_dict() for task in tasks]}
 
 @router.put("/{task_id}", response_model=TaskResponse)
 async def update_task(task_id: int, request: TaskUpdateRequest, db: Session = Depends(get_db)):
@@ -39,6 +58,8 @@ async def update_task(task_id: int, request: TaskUpdateRequest, db: Session = De
         title=request.title,
         description=request.description,
         status=request.status,
+        priority=request.priority,
+        tags=request.tags,
         due_date=request.due_date,
     )
     if not task:

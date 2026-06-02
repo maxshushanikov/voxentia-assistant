@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
-from app.domain.processing import ChatResult
 from app.core.deps import get_chat_service
+from app.domain.processing import ChatResult
 from app.main import app
 from fastapi.testclient import TestClient
 

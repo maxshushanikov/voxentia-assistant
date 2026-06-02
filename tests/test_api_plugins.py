@@ -1,7 +1,6 @@
+from app.api.v1 import plugins as plugins_router_module
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from app.api.v1 import plugins as plugins_router_module
 
 app = FastAPI()
 app.include_router(plugins_router_module.router, prefix="/api/v1/plugins")

@@ -37,6 +37,7 @@ class VoxentiaSettings(BaseSettings):
 
     OLLAMA_URL: str = "http://localhost:11434"
     DEFAULT_MODEL: str = "phi3"
+    VISION_MODEL: str = "phi-3-vision"
     OLLAMA_TIMEOUT: float = 60.0
     TTS_URL: str = "http://localhost:5002"
     TTS_TIMEOUT: float = 120.0

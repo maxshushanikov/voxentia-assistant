@@ -55,7 +55,8 @@ class JobAssistantPlugin(VoxentiaPlugin):
         jobs = await self.adapter.search(query, location)
 
         text = f"I found {len(jobs)} positions for '{query}' in {location}."
-        if lang == "de": text = f"Ich habe {len(jobs)} Stellen für '{query}' in {location} gefunden."
+        if lang == "de":
+            text = f"Ich habe {len(jobs)} Stellen für '{query}' in {location} gefunden."
 
         return PluginResponse(text=text, data={"jobs": [j.dict() for j in jobs]})
 

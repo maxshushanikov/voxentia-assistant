@@ -2,23 +2,29 @@ import io
 import json
 import logging
 from typing import List
+
 from app.core.database import get_db
 from app.models.learn import DailyGoal, FlashcardDeck, LearningHistory, LearningPlan
 from app.schemas.learn import (
     DailyGoalCreate,
     DailyGoalResponse,
+    ExamRequest,
+    ExamResponse,
     FlashcardResponse,
-    LearnStatsResponse,
     LearningPlanCreate,
     LearningPlanResponse,
+    LearnStatsResponse,
     ModuleProgressUpdate,
     QuizRequest,
     QuizResponse,
     QuizVerifyRequest,
     QuizVerifyResponse,
+    SpeakingExerciseRequest,
+    SpeakingExerciseResponse,
+    VocabularyResponse,
 )
 from app.services.learn_service import LearnService
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pypdf import PdfReader
 from sqlalchemy.orm import Session
 
@@ -37,7 +43,7 @@ async def create_learning_plan(request: LearningPlanCreate, db: Session = Depend
             progress=0,
         )
         db.add(plan)
-        
+
         # Log to history
         history = LearningHistory(
             action_type="plan_created",
@@ -45,7 +51,7 @@ async def create_learning_plan(request: LearningPlanCreate, db: Session = Depend
             score_details="Lernplan erfolgreich generiert",
         )
         db.add(history)
-        
+
         db.commit()
         db.refresh(plan)
         return plan.to_dict()
@@ -68,13 +74,13 @@ async def update_module_progress(
     plan = db.query(LearningPlan).filter(LearningPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Learning plan not found")
-    
+
     try:
         modules = request.modules
         completed_count = sum(1 for m in modules if m.get("completed", False))
         total_count = len(modules)
         progress = int((completed_count / total_count) * 100) if total_count > 0 else 0
-        
+
         plan.modules = json.dumps(modules)
         plan.progress = progress
         db.commit()
@@ -94,10 +100,10 @@ async def generate_quiz(request: QuizRequest):
 @router.post("/quiz/verify", response_model=QuizVerifyResponse)
 async def verify_quiz_answer(request: QuizVerifyRequest, db: Session = Depends(get_db)):
     is_correct = request.user_answer.strip().lower() == request.correct_answer.strip().lower()
-    
+
     # Optional feedback generation prompt
-    explanation = f"Das ist korrekt!" if is_correct else f"Leider nicht ganz. Die richtige Antwort ist: {request.correct_answer}."
-    
+    explanation = "Das ist korrekt!" if is_correct else f"Leider nicht ganz. Die richtige Antwort ist: {request.correct_answer}."
+
     # Log to history
     try:
         history = LearningHistory(
@@ -114,29 +120,45 @@ async def verify_quiz_answer(request: QuizVerifyRequest, db: Session = Depends(g
     return {"correct": is_correct, "explanation": explanation}
 
 
+@router.post("/exam", response_model=ExamResponse)
+async def generate_exam(request: ExamRequest):
+    questions = await service.generate_exam(request.topic, request.difficulty or "medium")
+    return {"questions": questions}
+
+
+@router.post("/speaking-exercise", response_model=SpeakingExerciseResponse)
+async def generate_speaking_exercise(request: SpeakingExerciseRequest):
+    prompt_text = await service.generate_speaking_exercise(
+        request.topic,
+        language=request.language or "Deutsch",
+        level=request.level or "intermediate",
+    )
+    return {"prompt": f"Sprechübung zu '{request.topic}' ({request.level or 'intermediate'})", "practice_text": prompt_text}
+
+
 @router.post("/flashcards/pdf", response_model=FlashcardResponse)
 async def generate_flashcards_from_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF file uploads are supported.")
-    
+
     try:
         file_bytes = await file.read()
         reader = PdfReader(io.BytesIO(file_bytes))
         text = ""
         for page in reader.pages[:10]:  # Limit to first 10 pages for speed/safety
             text += page.extract_text() or ""
-            
+
         if len(text.strip()) < 50:
             raise ValueError("No extractable text found in PDF.")
 
         cards = await service.generate_flashcards_from_text(text)
-        
+
         deck = FlashcardDeck(
             topic=file.filename[:64],
             cards=json.dumps(cards),
         )
         db.add(deck)
-        
+
         # Log to history
         history = LearningHistory(
             action_type="deck_created",
@@ -144,7 +166,7 @@ async def generate_flashcards_from_pdf(file: UploadFile = File(...), db: Session
             score_details=f"{len(cards)} Karteikarten aus PDF extrahiert",
         )
         db.add(history)
-        
+
         db.commit()
         db.refresh(deck)
         return deck.to_dict()
@@ -163,7 +185,7 @@ async def generate_flashcards_by_topic(topic: str, db: Session = Depends(get_db)
             cards=json.dumps(cards),
         )
         db.add(deck)
-        
+
         # Log to history
         history = LearningHistory(
             action_type="deck_created",
@@ -171,13 +193,23 @@ async def generate_flashcards_by_topic(topic: str, db: Session = Depends(get_db)
             score_details=f"{len(cards)} Karteikarten generiert",
         )
         db.add(history)
-        
+
         db.commit()
         db.refresh(deck)
         return deck.to_dict()
     except Exception as e:
         db.rollback()
         logger.error("Failed to generate cards: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/vocab-trainer", response_model=VocabularyResponse)
+async def generate_vocab_trainer(topic: str, level: str = "intermediate"):
+    try:
+        words = await service.generate_vocab_trainer(topic, level)
+        return {"topic": topic, "words": words}
+    except Exception as e:
+        logger.error("Failed to generate vocabulary trainer: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -191,7 +223,7 @@ async def list_flashcard_decks(db: Session = Depends(get_db)):
 async def get_learning_stats(db: Session = Depends(get_db)):
     goals = db.query(DailyGoal).all()
     history = db.query(LearningHistory).order_by(LearningHistory.timestamp.desc()).limit(15).all()
-    
+
     # Calculate simple stats
     completed_plans = db.query(LearningPlan).filter(LearningPlan.progress == 100).count()
     total_quizzes = db.query(LearningHistory).filter(LearningHistory.action_type == "quiz_taken").count()
@@ -199,7 +231,7 @@ async def get_learning_stats(db: Session = Depends(get_db)):
         LearningHistory.action_type == "quiz_taken",
         LearningHistory.score_details == "Richtig"
     ).count()
-    
+
     accuracy = "100%"
     if total_quizzes > 0:
         accuracy = f"{int((correct_quizzes / total_quizzes) * 100)}%"
@@ -213,10 +245,10 @@ async def get_learning_stats(db: Session = Depends(get_db)):
             total_completed_modules += sum(1 for m in mods if m.get("completed", False))
         except Exception:
             pass
-            
+
     words_learned = 250 + (total_completed_modules * 120)
     simulations = total_quizzes + completed_plans
-    
+
     # Initialize some default goals if empty
     if len(goals) == 0:
         default_goals = [

@@ -1,6 +1,6 @@
-import json
 import logging
-from typing import Any, List
+from typing import List
+
 from app.core.config import settings
 from voxentia.services.llm_client import OllamaClient
 
@@ -43,14 +43,14 @@ class LearnService:
                 return plan
         except Exception as e:
             logger.error("Failed to generate learning plan with LLM: %s", e)
-        
+
         # Safe fallback
         return [
             {"id": 1, "title": f"Einführung in {topic}", "description": "Die wichtigsten Grundlagen und Kernkonzepte zum Einstieg.", "completed": False},
             {"id": 2, "title": f"Fortgeschrittene Konzepte von {topic}", "description": "Tieferes Verständnis der Kernarchitektur und wichtiger Prinzipien.", "completed": False},
-            {"id": 3, "title": f"Praktische Anwendung & Übungen", "description": "Hands-on Beispiele und Übungsprojekte zum Mitmachen.", "completed": False},
-            {"id": 4, "title": f"Best Practices & Optimierung", "description": "Wie man Fehler vermeidet und maximale Performance erzielt.", "completed": False},
-            {"id": 5, "title": f"Zusammenfassung & Ausblick", "description": "Abschließende Worte, weiterführende Ressourcen und nächste Schritte.", "completed": False},
+            {"id": 3, "title": "Praktische Anwendung & Übungen", "description": "Hands-on Beispiele und Übungsprojekte zum Mitmachen.", "completed": False},
+            {"id": 4, "title": "Best Practices & Optimierung", "description": "Wie man Fehler vermeidet und maximale Performance erzielt.", "completed": False},
+            {"id": 5, "title": "Zusammenfassung & Ausblick", "description": "Abschließende Worte, weiterführende Ressourcen und nächste Schritte.", "completed": False},
         ]
 
     async def generate_quiz(self, topic: str, module_title: str) -> List[dict]:
@@ -126,7 +126,7 @@ class LearnService:
         return [
             {"front": f"Grundprinzip von {topic}", "back": "Die fundamentale Regel, auf der die Technologie aufbaut."},
             {"front": f"Häufiger Fehler bei {topic}", "back": "Falsche Konfiguration oder unvollständiges Setup."},
-            {"front": f"Best Practice", "back": "Regelmäßige Überprüfung der Implementierung und Tests."}
+            {"front": "Best Practice", "back": "Regelmäßige Überprüfung der Implementierung und Tests."}
         ]
 
     async def generate_flashcards_from_text(self, text: str) -> List[dict]:
@@ -154,3 +154,67 @@ class LearnService:
             {"front": "Wichtiger Begriff im Text", "back": "Ein zentraler Begriff, der im Dokument erläutert wird."},
             {"front": "Schlussfolgerung", "back": "Das Ergebnis oder Fazit aus dem analysierten Material."}
         ]
+
+    async def generate_vocab_trainer(self, topic: str, level: str = "intermediate") -> List[dict]:
+        prompt = (
+            f"Erstelle eine Vokabelliste von 5 wichtigen Begriffen für das Thema '{topic}' auf {level}-Niveau. "
+            "Gib AUSSCHLIESSLICH ein valides JSON-Array zurück mit Objekten, die 'term', 'definition' und optional 'example' enthalten."
+        )
+        try:
+            result = await self.llm.generate_json(prompt, temperature=0.45)
+            if isinstance(result, list) and len(result) > 0:
+                words = []
+                for item in result[:6]:
+                    words.append({
+                        "term": str(item.get("term", "Begriff")).strip(),
+                        "definition": str(item.get("definition", "Definition nicht verfügbar")).strip(),
+                        "example": str(item.get("example", "")).strip() or None,
+                    })
+                return words
+        except Exception as e:
+            logger.error("Failed to generate vocab trainer: %s", e)
+
+        return [
+            {"term": f"Kernbegriff {i}", "definition": "Kurze Erklärung des Begriffs.", "example": None}
+            for i in range(1, 6)
+        ]
+
+    async def generate_exam(self, topic: str, difficulty: str = "medium") -> List[dict]:
+        prompt = (
+            f"Erstelle 4 anspruchsvolle Prüfungsfragen mit Antworten für das Thema '{topic}'. "
+            f"Gib AUSSCHLIESSLICH ein valides JSON-Array zurück im Format [{{\"question\": ..., \"answer\": ..., \"explanation\": ...}}]. "
+            f"Wähle den Schwierigkeitsgrad {difficulty}."
+        )
+        try:
+            result = await self.llm.generate_json(prompt, temperature=0.45)
+            if isinstance(result, list) and len(result) > 0:
+                questions = []
+                for item in result[:4]:
+                    questions.append({
+                        "question": item.get("question", "Frage nicht verfügbar"),
+                        "answer": item.get("answer", "Antwort nicht verfügbar"),
+                        "explanation": item.get("explanation", "Keine Erklärung verfügbar"),
+                    })
+                return questions
+        except Exception as e:
+            logger.error("Failed to generate exam questions: %s", e)
+
+        return [
+            {
+                "question": f"Was ist das wichtigste Ziel von {topic}?",
+                "answer": "Die Kernkonzepte zu verstehen und anzuwenden.",
+                "explanation": "Eine Prüfungsfrage prüft das Verständnis des zentralen Ziels des Themas.",
+            }
+        ]
+
+    async def generate_speaking_exercise(self, topic: str, language: str = "Deutsch", level: str = "intermediate") -> str:
+        prompt = (
+            f"Erstelle eine kurze Sprechübung in {language} zum Thema '{topic}' für Lernende auf {level} Niveau. "
+            f"Die Übung soll als Textabschnitt dienen, der sich gut laut vorlesen lässt und zentrale Begriffe erklärt."
+        )
+        try:
+            result = await self.llm.generate(prompt, temperature=0.4)
+            return result.strip() if result else f"Lerne zum Thema {topic} durch lautes Vorlesen wichtiger Begriffe."
+        except Exception as e:
+            logger.error("Failed to create speaking exercise: %s", e)
+            return f"Spreche laut über das Thema {topic} und beschreibe dessen wichtigste Punkte."

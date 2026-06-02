@@ -57,9 +57,29 @@ def _init_db_postgres() -> None:
             conn.commit()
 
 
+def _apply_sqlite_column_migrations(conn) -> None:
+    migrations = {
+        "notes": [
+            "tags TEXT",
+            "summary TEXT",
+        ],
+        "tasks": [
+            "priority TEXT NOT NULL DEFAULT 'medium'",
+            "tags TEXT",
+        ],
+    }
+    for table_name, columns in migrations.items():
+        existing = [row[1] for row in conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()]
+        for column_def in columns:
+            column_name = column_def.split()[0]
+            if column_name not in existing:
+                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_def}"))
+
+
 def _init_db_sqlite() -> None:
     Base.metadata.create_all(bind=engine)
     with engine.connect() as conn:
+        _apply_sqlite_column_migrations(conn)
         conn.execute(text("PRAGMA journal_mode=WAL"))
         conn.commit()
 
@@ -67,14 +87,20 @@ def _init_db_sqlite() -> None:
 def init_db():
     from app.models.chat import ChatMessage  # noqa: F401
     from app.models.experiment import ExperimentEvent  # noqa: F401
+    from app.models.job_tracker import JobApplication  # noqa: F401
     from app.models.knowledge import KnowledgeEdge  # noqa: F401
+    from app.models.learn import (  # noqa: F401
+        DailyGoal,
+        FlashcardDeck,
+        LearningHistory,
+        LearningPlan,
+    )
     from app.models.memory import UserMemory  # noqa: F401
     from app.models.note import Note  # noqa: F401
+    from app.models.print_job import PrintJob  # noqa: F401
     from app.models.sentiment import SentimentRecord  # noqa: F401
     from app.models.session import ChatSessionMeta  # noqa: F401
     from app.models.task import Task  # noqa: F401
-    from app.models.learn import LearningPlan, FlashcardDeck, DailyGoal, LearningHistory  # noqa: F401
-    from app.models.job_tracker import JobApplication  # noqa: F401
 
     if _is_postgres():
         _init_db_postgres()
