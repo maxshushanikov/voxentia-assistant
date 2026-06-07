@@ -24,13 +24,13 @@ async def check_ollama() -> dict:
 async def check_tts() -> dict:
     if not settings.TTS_URL:
         return {"status": "disabled", "url": None}
-    return await _probe(settings.TTS_URL, timeout=min(settings.TTS_TIMEOUT, 5.0))
+    return await _probe(settings.TTS_URL, "/health", timeout=min(settings.TTS_TIMEOUT, 5.0))
 
 
 async def check_whisper() -> dict:
     if not settings.WHISPER_URL:
         return {"status": "disabled", "url": None}
-    return await _probe(settings.WHISPER_URL, timeout=min(settings.WHISPER_TIMEOUT, 5.0))
+    return await _probe(settings.WHISPER_URL, "/health", timeout=min(settings.WHISPER_TIMEOUT, 5.0))
 
 
 async def check_xtts() -> dict:

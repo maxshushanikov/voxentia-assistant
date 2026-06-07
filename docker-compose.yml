@@ -126,6 +126,8 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - ENABLE_METRICS=${ENABLE_METRICS:-true}
       - LOG_FORMAT=${LOG_FORMAT:-json}
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
+      - API_KEY=${API_KEY:-}
     volumes:
       # Runtime data only — plugins/code come from the image (see docker-compose.dev.yml)
       - ./data:/app/data

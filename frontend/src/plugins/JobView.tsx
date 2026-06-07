@@ -195,6 +195,7 @@ function MenuTile({ icon, title, description, onClick, color, badge }: { icon: a
    2. STELLENSUCHE BOARD
    ========================================== */
 function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onStartInterview: (job: any) => void }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [portal, setPortal] = useState('All');
