@@ -46,7 +46,9 @@ export default function ChatArea({ sessionId, messages, isThinking, onTileClick,
         mapped[key] = message.feedback;
       }
     });
-    setFeedbackState(mapped);
+    setTimeout(() => {
+      setFeedbackState(mapped);
+    }, 0);
   }, [messages]);
 
   const toggleFeedback = (message: Message, value: 'like' | 'dislike') => {

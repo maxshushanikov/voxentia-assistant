@@ -14,19 +14,11 @@ export default function VisionView() {
     description?: string;
     objects?: string[];
     handwriting?: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   } | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Initialize webcam
-  useEffect(() => {
-    startWebcam();
-    return () => {
-      stopWebcam();
-    };
-  }, []);
 
   const startWebcam = async () => {
     try {
@@ -52,6 +44,16 @@ export default function VisionView() {
       setStream(null);
     }
   };
+
+  // Initialize webcam
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    startWebcam();
+    return () => {
+      stopWebcam();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {

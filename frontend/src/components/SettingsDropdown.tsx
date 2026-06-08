@@ -1,5 +1,5 @@
 import { Languages, User, Check, ChevronDown } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import type { Language, Speaker, Personality } from '../types';
 import { useTranslation } from '../i18n/context';
@@ -26,7 +26,7 @@ export default function SettingsDropdown({
   const { t } = useTranslation();
 
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const close = () => setIsOpen(false);
+  const close = React.useCallback(() => setIsOpen(false), [setIsOpen]);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -36,7 +36,7 @@ export default function SettingsDropdown({
     }
     if (isOpen) document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
-  }, [isOpen]);
+  }, [isOpen, close]);
 
   return (
     <div className="relative" ref={rootRef}>

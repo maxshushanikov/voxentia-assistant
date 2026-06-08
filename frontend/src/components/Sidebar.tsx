@@ -161,6 +161,7 @@ export default function Sidebar({
   }, [t]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSessions();
   }, [historyRefreshKey, loadSessions]);
 

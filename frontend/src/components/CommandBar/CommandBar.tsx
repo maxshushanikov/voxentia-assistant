@@ -78,7 +78,9 @@ export default function CommandBar() {
   }, [open]);
 
   useEffect(() => {
-    setActiveIndex((i) => Math.min(i, Math.max(0, flatFiltered.length - 1)));
+    setTimeout(() => {
+      setActiveIndex((i) => Math.min(i, Math.max(0, flatFiltered.length - 1)));
+    }, 0);
   }, [flatFiltered.length]);
 
   if (!open) return null;

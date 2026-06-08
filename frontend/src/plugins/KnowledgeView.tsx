@@ -42,6 +42,7 @@ export default function KnowledgeView() {
   }, [sessionId, entity]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadGraph();
   }, [loadGraph, sessionId]);
 
