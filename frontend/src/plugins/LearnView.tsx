@@ -51,6 +51,21 @@ export default function LearnView() {
   );
 }
 
+interface DailyGoal {
+  id: number;
+  description: string;
+  completed: boolean;
+  [key: string]: unknown;
+}
+
+interface HistoryEntry {
+  id: string | number;
+  topic: string;
+  action_type: string;
+  score_details: string;
+  [key: string]: unknown;
+}
+
 /* ==========================================
    1. LEARNING DASHBOARD
    ========================================== */
@@ -61,14 +76,10 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
     simulations: 0,
     accuracy: '100%',
     streak: '0 ' + t.learn_days,
-    daily_goals: [] as any[],
-    history: [] as any[],
+    daily_goals: [] as DailyGoal[],
+    history: [] as HistoryEntry[],
   });
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
 
   const fetchStats = async () => {
     try {
@@ -86,6 +97,11 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchStats();
+  }, []);
 
   const toggleGoal = async (goalId: number) => {
     try {
@@ -247,7 +263,7 @@ function LearningDashboard({ onNavigate }: { onNavigate: (m: Mode) => void }) {
   );
 }
 
-function MenuTile({ icon, title, description, onClick, color }: { icon: any, title: string, description: string, onClick: () => void, color: string }) {
+function MenuTile({ icon, title, description, onClick, color }: { icon: React.ReactNode, title: string, description: string, onClick: () => void, color: string }) {
   return (
     <div 
       onClick={onClick}
@@ -280,15 +296,26 @@ function StatsCard({ label, value, color }: { label: string, value: string, colo
 /* ==========================================
    2. LERNPLAN PLANER
    ========================================== */
+interface PlanModule {
+  title: string;
+  description: string;
+  completed: boolean;
+  [key: string]: unknown;
+}
+
+interface LearningPlan {
+  id: string | number;
+  topic: string;
+  progress: number;
+  modules: PlanModule[];
+  [key: string]: unknown;
+}
+
 function LearningPlanPlanner({ onBack, onStartQuiz }: { onBack: () => void, onStartQuiz: (t: string) => void }) {
   const [topic, setTopic] = useState('');
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<LearningPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingPlans, setFetchingPlans] = useState(true);
-
-  useEffect(() => {
-    fetchPlans();
-  }, []);
 
   const fetchPlans = async () => {
     try {
@@ -298,7 +325,7 @@ function LearningPlanPlanner({ onBack, onStartQuiz }: { onBack: () => void, onSt
       });
       if (res.ok) {
         const data = await res.json();
-        setPlans(data);
+        setPlans(data as LearningPlan[]);
       }
     } catch (e) {
       console.error(e);
@@ -306,6 +333,11 @@ function LearningPlanPlanner({ onBack, onStartQuiz }: { onBack: () => void, onSt
       setFetchingPlans(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchPlans();
+  }, []);
 
   const createPlan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,9 +365,9 @@ function LearningPlanPlanner({ onBack, onStartQuiz }: { onBack: () => void, onSt
     }
   };
 
-  const toggleModule = async (plan: any, modIndex: number) => {
+  const toggleModule = async (plan: LearningPlan, modIndex: number) => {
     const updatedModules = [...plan.modules];
-    updatedModules[modIndex].completed = !updatedModules[modIndex].completed;
+    updatedModules[modIndex] = { ...updatedModules[modIndex], completed: !updatedModules[modIndex].completed };
 
     try {
       const token = localStorage.getItem('token') || '';
@@ -429,7 +461,7 @@ function LearningPlanPlanner({ onBack, onStartQuiz }: { onBack: () => void, onSt
 
                 {/* Timeline modules list */}
                 <div className="space-y-4 relative pl-4 border-l border-black/10 dark:border-white/10 ml-2">
-                  {plan.modules.map((mod: any, idx: number) => (
+                  {(plan.modules as PlanModule[]).map((mod: PlanModule, idx: number) => (
                     <div key={idx} className="relative group">
                       {/* Timeline dot */}
                       <div 
@@ -451,7 +483,7 @@ function LearningPlanPlanner({ onBack, onStartQuiz }: { onBack: () => void, onSt
                           </p>
                         </div>
                         <button
-                          onClick={() => onStartQuiz(plan.topic)}
+                          onClick={() => onStartQuiz(String(plan.topic))}
                           className="text-[9px] text-[var(--accent)] hover:underline uppercase tracking-wider font-bold ml-4 whitespace-nowrap"
                         >
                           Modul-Quiz &gt;
@@ -472,13 +504,27 @@ function LearningPlanPlanner({ onBack, onStartQuiz }: { onBack: () => void, onSt
 /* ==========================================
    3. QUIZ MODUS
    ========================================== */
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct_answer: string;
+  explanation?: string;
+  [key: string]: unknown;
+}
+
+interface QuizResult {
+  correct: boolean;
+  explanation?: string;
+  [key: string]: unknown;
+}
+
 function QuizPanel({ onBack, suggestedTopic }: { onBack: () => void, suggestedTopic: string | null }) {
   const [topic, setTopic] = useState(suggestedTopic || '');
   const [loading, setLoading] = useState(false);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [verifiedResult, setVerifiedResult] = useState<any | null>(null);
+  const [verifiedResult, setVerifiedResult] = useState<QuizResult | null>(null);
   const [score, setScore] = useState(0);
   const [quizFinished, setQuizFinished] = useState(false);
 
@@ -504,7 +550,7 @@ function QuizPanel({ onBack, suggestedTopic }: { onBack: () => void, suggestedTo
       });
       if (res.ok) {
         const data = await res.json();
-        setQuestions(data.questions);
+        setQuestions(data.questions as QuizQuestion[]);
       }
     } catch (e) {
       console.error(e);
@@ -534,7 +580,7 @@ function QuizPanel({ onBack, suggestedTopic }: { onBack: () => void, suggestedTo
       });
       if (res.ok) {
         const data = await res.json();
-        setVerifiedResult(data);
+        setVerifiedResult(data as QuizResult);
         if (data.correct) {
           setScore(s => s + 1);
         }
@@ -613,7 +659,7 @@ function QuizPanel({ onBack, suggestedTopic }: { onBack: () => void, suggestedTo
             </h3>
 
             <div className="space-y-4">
-              {questions[currentIndex].options.map((option: string, idx: number) => {
+              {(questions[currentIndex].options).map((option: string, idx: number) => {
                 const isSelected = selectedOption === option;
                 const isCorrect = option === questions[currentIndex].correct_answer;
                 
@@ -691,17 +737,26 @@ function QuizPanel({ onBack, suggestedTopic }: { onBack: () => void, suggestedTo
 /* ==========================================
    4. PDF-BASIERTE LERNKARTEN (3D EFFECT)
    ========================================== */
+interface FlashCard {
+  front: string;
+  back: string;
+}
+
+interface FlashDeck {
+  id?: string | number;
+  title?: string;
+  topic?: string;
+  cards: FlashCard[];
+  [key: string]: unknown;
+}
+
 function FlashcardDeckView({ onBack }: { onBack: () => void }) {
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
-  const [decks, setDecks] = useState<any[]>([]);
-  const [activeDeck, setActiveDeck] = useState<any | null>(null);
+  const [decks, setDecks] = useState<FlashDeck[]>([]);
+  const [activeDeck, setActiveDeck] = useState<FlashDeck | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-
-  useEffect(() => {
-    fetchDecks();
-  }, []);
 
   const fetchDecks = async () => {
     try {
@@ -711,12 +766,17 @@ function FlashcardDeckView({ onBack }: { onBack: () => void }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setDecks(data);
+        setDecks(data as FlashDeck[]);
       }
     } catch (e) {
       console.error(e);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchDecks();
+  }, []);
 
   const generateFromTopic = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -765,7 +825,7 @@ function FlashcardDeckView({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const startStudying = (deck: any) => {
+  const startStudying = (deck: FlashDeck) => {
     setActiveDeck(deck);
     setCurrentIndex(0);
     setIsFlipped(false);

@@ -17,14 +17,23 @@ import {
 import Avatar from '../components/Avatar';
 import { useTranslation } from '../i18n/context';
 
+interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  summary: string;
+  matching_score?: number | null;
+}
+
 type JobMode = 'dashboard' | 'search' | 'cv-upload' | 'tracker' | 'interview';
 
 export default function JobView() {
   const [mode, setMode] = useState<JobMode>('dashboard');
   const [cvUploaded, setCvUploaded] = useState(false);
-  const [selectedJobForInterview, setSelectedJobForInterview] = useState<any | null>(null);
+  const [selectedJobForInterview, setSelectedJobForInterview] = useState<Job | null>(null);
 
-  const handleStartInterview = (job: any) => {
+  const handleStartInterview = (job: Job) => {
     setSelectedJobForInterview(job);
     setMode('interview');
   };
@@ -33,42 +42,43 @@ export default function JobView() {
     switch (mode) {
       case 'dashboard':
         return (
-          <JobDashboard 
-            onNavigate={setMode} 
-            cvUploaded={cvUploaded} 
+          <JobDashboard
+            onNavigate={setMode}
+            cvUploaded={cvUploaded}
             onStartInterview={() => handleStartInterview({
               id: 'custom-ml',
               title: "Senior AI Engineer",
               company: "Voxentia Labs",
+              location: "Remote",
               summary: "Senior AI engineering position working with LLM orchestration and embeddings."
-            })} 
+            })}
           />
         );
       case 'search':
         return (
-          <JobSearchBoard 
-            onBack={() => setMode('dashboard')} 
+          <JobSearchBoard
+            onBack={() => setMode('dashboard')}
             onStartInterview={handleStartInterview}
           />
         );
       case 'cv-upload':
         return (
-          <CVUploader 
-            onBack={() => setMode('dashboard')} 
-            onUploadSuccess={() => setCvUploaded(true)} 
+          <CVUploader
+            onBack={() => setMode('dashboard')}
+            onUploadSuccess={() => setCvUploaded(true)}
           />
         );
       case 'tracker':
         return <BewerbungsTracker onBack={() => setMode('dashboard')} />;
       case 'interview':
         return (
-          <InterviewSimulator 
-            onBack={() => setMode('dashboard')} 
-            selectedJob={selectedJobForInterview} 
+          <InterviewSimulator
+            onBack={() => setMode('dashboard')}
+            selectedJob={selectedJobForInterview}
           />
         );
       default:
-        return <JobDashboard onNavigate={setMode} cvUploaded={cvUploaded} onStartInterview={() => {}} />;
+        return <JobDashboard onNavigate={setMode} cvUploaded={cvUploaded} onStartInterview={() => { }} />;
     }
   };
 
@@ -165,9 +175,9 @@ function JobDashboard({ onNavigate, cvUploaded, onStartInterview }: { onNavigate
   );
 }
 
-function MenuTile({ icon, title, description, onClick, color, badge }: { icon: any, title: string, description: string, onClick: () => void, color: string, badge?: string }) {
+function MenuTile({ icon, title, description, onClick, color, badge }: { icon: React.ReactNode, title: string, description: string, onClick: () => void, color: string, badge?: string }) {
   return (
-    <div 
+    <div
       onClick={onClick}
       className="glass-card p-6 border border-black/5 dark:border-white/5 hover:border-[var(--accent)]/30 hover:bg-black/2 dark:hover:bg-white/2 rounded-[12px] cursor-pointer transition-all group flex flex-col h-full relative"
     >
@@ -176,7 +186,7 @@ function MenuTile({ icon, title, description, onClick, color, badge }: { icon: a
           {badge}
         </span>
       )}
-      <div 
+      <div
         className="w-12 h-12 rounded-[6px] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"
         style={{ backgroundColor: `${color}15`, color }}
       >
@@ -194,14 +204,14 @@ function MenuTile({ icon, title, description, onClick, color, badge }: { icon: a
 /* ==========================================
    2. STELLENSUCHE BOARD
    ========================================== */
-function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onStartInterview: (job: any) => void }) {
+function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onStartInterview: (job: Job) => void }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [portal, setPortal] = useState('All');
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [coverLetter, setCoverLetter] = useState<string | null>(null);
   const [letterLoading, setLetterLoading] = useState(false);
   const [appliedStatus, setAppliedStatus] = useState<Record<string, boolean>>({});
@@ -229,7 +239,7 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
     }
   };
 
-  const generateLetter = async (job: any) => {
+  const generateLetter = async (job: Job) => {
     setLetterLoading(true);
     setCoverLetter(null);
     try {
@@ -258,7 +268,7 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
     }
   };
 
-  const trackJob = async (job: any) => {
+  const trackJob = async (job: Job) => {
     try {
       const token = localStorage.getItem('token') || '';
       const res = await fetch('/api/v1/jobs/applications', {
@@ -356,12 +366,12 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
             </div>
           )}
           {jobs.map((job) => (
-            <div 
+            <div
               key={job.id}
               onClick={() => setSelectedJob(job)}
               className={`glass-card p-6 border rounded-[12px] cursor-pointer transition-all flex flex-col justify-between
-                ${selectedJob?.id === job.id 
-                  ? 'border-[var(--accent)] bg-[var(--accent)]/5' 
+                ${selectedJob?.id === job.id
+                  ? 'border-[var(--accent)] bg-[var(--accent)]/5'
                   : 'border-black/5 dark:border-white/5 hover:border-black/15 dark:hover:border-white/15 bg-black/2 dark:bg-white/2'
                 }
               `}
@@ -371,7 +381,7 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
                   <h4 className="text-lg text-[var(--text-primary)] font-medium mb-1">{job.title}</h4>
                   <p className="text-xs text-[var(--text-secondary)]">{job.company} — {job.location}</p>
                 </div>
-                {job.matching_score !== null && (
+                {job.matching_score != null && (
                   <div className="text-right">
                     <span className="px-2.5 py-1 bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20 rounded-[2px] text-[10px] font-bold">
                       {job.matching_score}% Match
@@ -380,12 +390,12 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
                 )}
               </div>
               <p className="text-xs text-[var(--text-secondary)] line-clamp-3 leading-relaxed mb-6">{job.summary}</p>
-              
+
               {/* Score bar */}
-              {job.matching_score !== null && (
+              {job.matching_score != null && (
                 <div className="w-full h-1 bg-black/10 dark:bg-white/5 rounded-full overflow-hidden mb-4">
-                  <div 
-                    className="h-full bg-[var(--success)]" 
+                  <div
+                    className="h-full bg-[var(--success)]"
                     style={{ width: `${job.matching_score}%` }}
                   />
                 </div>
@@ -434,7 +444,7 @@ function JobSearchBoard({ onBack, onStartInterview }: { onBack: () => void, onSt
                 <div className="border-t border-black/5 dark:border-white/5 pt-6 animate-in fade-in slide-in-from-bottom-2">
                   <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-4 flex items-center justify-between">
                     <span>Generiertes Anschreiben</span>
-                    <button 
+                    <button
                       onClick={() => navigator.clipboard.writeText(coverLetter)}
                       className="text-[9px] text-[var(--accent)] hover:underline flex items-center gap-1 font-bold tracking-widest lowercase"
                     >
@@ -511,7 +521,7 @@ function CVUploader({ onBack, onUploadSuccess }: { onBack: () => void, onUploadS
             <p className="text-xs text-[var(--text-secondary)] mb-8 leading-relaxed">
               Voxentia analysiert deinen Lebenslauf (PDF oder TXT) und berechnet bei der Jobsuche automatisch deinen individuellen **Matching-Score** per Embedding-Vektorvergleich.
             </p>
-            
+
             <label className="w-full py-4 btn-accent rounded-[4px] text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer hover:bg-[var(--accent-hover)] transition-all">
               {loading ? 'Lese Profil...' : 'Lebenslauf auswählen'}
               <input type="file" accept="application/pdf,text/plain" className="hidden" onChange={handleUpload} disabled={loading} />
@@ -554,10 +564,6 @@ function BewerbungsTracker({ onBack }: { onBack: () => void }) {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchApps();
-  }, []);
-
   const fetchApps = async () => {
     try {
       const token = localStorage.getItem('token') || '';
@@ -574,6 +580,10 @@ function BewerbungsTracker({ onBack }: { onBack: () => void }) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchApps();
+  }, []);
 
   const updateStatus = async (appId: number, status: string) => {
     try {
@@ -614,8 +624,8 @@ function BewerbungsTracker({ onBack }: { onBack: () => void }) {
           {columns.map((col) => {
             const colApps = apps.filter(a => a.status === col.id);
             return (
-              <div 
-                key={col.id} 
+              <div
+                key={col.id}
                 className="glass-card p-4 border border-black/5 dark:border-white/5 rounded-[12px] bg-black/2 dark:bg-white/2 flex flex-col"
               >
                 <div className="flex justify-between items-center mb-4 pb-2 border-b border-black/5 dark:border-white/5">
@@ -628,22 +638,22 @@ function BewerbungsTracker({ onBack }: { onBack: () => void }) {
 
                 <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
                   {colApps.map((app) => (
-                    <div 
-                      key={app.id} 
+                    <div
+                      key={app.id}
                       className="p-4 bg-[var(--bg-secondary)] border border-black/5 dark:border-white/10 rounded-[8px] shadow-sm hover:border-[var(--accent)]/30 transition-all flex flex-col justify-between"
                     >
                       <div>
                         <h5 className="text-xs font-medium text-[var(--text-primary)] mb-1 leading-snug">{app.title}</h5>
                         <p className="text-[9px] text-[var(--text-secondary)]">{app.company} — {app.location}</p>
                       </div>
-                      
+
                       <div className="mt-4 flex justify-between items-center">
                         {app.matching_score && (
                           <span className="text-[8px] bg-[var(--success)]/10 text-[var(--success)] px-1.5 py-0.5 rounded-[2px] font-bold uppercase">
                             {app.matching_score}% Match
                           </span>
                         )}
-                        <select 
+                        <select
                           value={app.status}
                           onChange={(e) => updateStatus(app.id, e.target.value)}
                           className="text-[8px] font-bold uppercase bg-transparent text-[var(--text-secondary)] border-none focus:outline-none cursor-pointer"
@@ -674,7 +684,7 @@ function BewerbungsTracker({ onBack }: { onBack: () => void }) {
 /* ==========================================
    5. INTERVIEW SIMULATOR (3D AVATAR SPLIT)
    ========================================== */
-function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selectedJob: any | null }) {
+function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selectedJob: Job | null }) {
   const [step, setStep] = useState<'intro' | 'session' | 'feedback'>('intro');
   const [messages, setMessages] = useState<{ role: 'ai' | 'user', text: string }[]>([]);
   const [currentInput, setCurrentInput] = useState('');
@@ -685,6 +695,7 @@ function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selec
     id: 'general',
     title: "AI Consultant",
     company: "Voxentia Labs",
+    location: "Remote",
     summary: "General software and AI architectural consulting position."
   };
 
@@ -693,12 +704,12 @@ function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selec
     setAvatarSpeaking(true);
     setAvatarEmotion('happy');
     setMessages([
-      { 
-        role: 'ai', 
-        text: `Herzlich willkommen zum Vorstellungsgespräch für die Position als ${job.title} bei ${job.company}. Mein Name ist Voxentia, und ich werde heute Ihr Gespräch führen. Können Sie mir zu Beginn etwas über Ihren Werdegang erzählen?` 
+      {
+        role: 'ai',
+        text: `Herzlich willkommen zum Vorstellungsgespräch für die Position als ${job.title} bei ${job.company}. Mein Name ist Voxentia, und ich werde heute Ihr Gespräch führen. Können Sie mir zu Beginn etwas über Ihren Werdegang erzählen?`
       }
     ]);
-    
+
     // Simulate speaking timing
     setTimeout(() => {
       setAvatarSpeaking(false);
@@ -713,7 +724,7 @@ function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selec
     const userMsg = currentInput;
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setCurrentInput('');
-    
+
     // Set Avatar state to thinking
     setAvatarEmotion('thinking');
 
@@ -729,7 +740,7 @@ function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selec
       ];
       const nextQ = questions[Math.min(messages.length - 1, questions.length - 1)];
       setMessages(prev => [...prev, { role: 'ai', text: nextQ }]);
-      
+
       setTimeout(() => {
         setAvatarSpeaking(false);
         setAvatarEmotion('neutral');
@@ -755,7 +766,7 @@ function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selec
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 overflow-hidden">
         {/* Left Side: Interactive 3D Avatar (Splitscreen) */}
         <div className="lg:col-span-4 flex flex-col h-full bg-black/10 dark:bg-white/2 border border-black/5 dark:border-white/10 rounded-[16px] overflow-hidden relative shadow-lg">
-          <Avatar 
+          <Avatar
             gender="feminine"
             isSpeaking={avatarSpeaking}
             isThinking={avatarEmotion === 'thinking'}
@@ -801,14 +812,14 @@ function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selec
               {/* Chat messages */}
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-4 pr-2">
                 {messages.map((m, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in`}
                   >
-                    <div 
+                    <div
                       className={`max-w-xl p-4 rounded-[12px] text-xs leading-relaxed
-                        ${m.role === 'user' 
-                          ? 'bg-[var(--accent)] text-white shadow-sm' 
+                        ${m.role === 'user'
+                          ? 'bg-[var(--accent)] text-white shadow-sm'
                           : 'bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[var(--text-primary)]'
                         }
                       `}
@@ -857,7 +868,7 @@ function InterviewSimulator({ onBack, selectedJob }: { onBack: () => void, selec
                   <MetricBar label="Selbstbewusstsein & Ton" score={92} />
                   <MetricBar label="Satzbau & Redefluss" score={85} />
                 </div>
-                
+
                 <div className="glass-card p-6 border border-black/5 dark:border-white/10 rounded-[12px] bg-black/2 dark:bg-white/2 flex flex-col justify-between">
                   <div>
                     <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2">AI-Empfehlung</h4>

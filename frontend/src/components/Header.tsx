@@ -32,7 +32,7 @@ interface HeaderProps {
   setIsSettingsOpen: (o: boolean) => void;
 }
 
-const personaConfig: Record<Personality, { label: string; icon: any; color: string }> = {
+const personaConfig: Record<Personality, { label: string; icon: React.ReactNode; color: string }> = {
   professional: { label: 'Professional', icon: <Shield className="w-3.5 h-3.5" />, color: 'var(--accent)' },
   friendly: { label: 'Friendly', icon: <Smile className="w-3.5 h-3.5" />, color: '#10b981' },
   academic: { label: 'Academic', icon: <BookOpen className="w-3.5 h-3.5" />, color: '#3b82f6' },

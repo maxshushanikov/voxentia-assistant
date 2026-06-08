@@ -380,7 +380,7 @@ export default function CalendarView() {
 function EventModal({ event, onClose, defaultDate, onSave, onDelete }: { event: CalendarEvent | null, onClose: () => void, defaultDate: string, onSave: (e: CalendarEvent) => void, onDelete: (id: string) => void }) {
   const { t } = useTranslation();
 
-  const id = event?.id || `evt_${Date.now().toString(36)}`;
+  const [id] = useState(() => event?.id || `evt_${Date.now().toString(36)}`);
   const [title, setTitle] = useState(event?.title || '');
   const [date, setDate] = useState(event?.date || defaultDate);
   const [time, setTime] = useState(event?.time || '10:00');

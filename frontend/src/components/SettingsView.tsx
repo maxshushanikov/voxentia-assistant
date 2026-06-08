@@ -365,9 +365,7 @@ export default function SettingsView({
   );
 }
 
-/* Category Tab Link Component */
 function CategoryTab({
-  id: _id,
   label,
   icon,
   active,
